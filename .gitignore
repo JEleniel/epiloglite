@@ -1,0 +1,214 @@
+# ---------- General ----------
+
+# ----- Common -----
+*~
+.tmp
+tmp/
+*.swp
+
+# ----- DotEnv -----
+.env
+.env.*
+!.env.example
+
+# ----- Backups (https://github.com/github/gitignore/blob/main/Global/Backup.gitignore) -----
+*.bak
+*.gho
+*.ori
+*.orig
+*.tmp
+
+# ----- Diffs & Patches -----
+*.patch
+*.diff
+*.rej
+
+# ----- Secrets and Keys -----
+# Defaults to ignoring all common secret formats. Specific keys can be included using "!"
+secring.*
+*.pem
+*.crt
+*.ca-bundle
+*.p7b
+*.p7s
+*.der
+*.cer
+*.pfx
+*.p12
+
+# ---------- Languages ----------
+
+# ----- Rust .gitignore (https://github.com/github/gitignore/blob/main/Rust.gitignore) -----
+debug/
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# ---------- IDEs & Tooling ----------
+
+# ----- Visual Studio Code / VSCodium (https://github.com/github/gitignore/blob/main/Global/VisualStudioCode.gitignore) -----
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.history/
+*.vsix
+
+# ----- Eclipse (https://github.com/github/gitignore/blob/main/Global/Eclipse.gitignore) -----
+.metadata
+bin/
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+.externalToolBuilders/
+*.launch
+*.pydevproject
+.cproject
+.autotools
+.factorypath
+.buildpath
+.target
+.tern-project
+.texlipse
+.springBeans
+.recommenders/
+.apt_generated/
+.apt_generated_test/
+.cache-main
+.scala_dependencies
+.worksheet
+.project
+
+# ----- Emacs (https://github.com/github/gitignore/blob/main/Global/Emacs.gitignore) -----
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+.org-id-locations
+*_archive
+*_flymake.*
+/eshell/history
+/eshell/lastdir
+/elpa/
+*.rel
+/auto/
+.cask/
+dist/
+flycheck_*.el
+/server/
+.projectile
+.dir-locals.el
+/network-security.data
+
+# ----- JetBrains simplied (https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore) -----
+.idea
+*.iml
+*.ipr
+cmake-build-*/
+*.iws
+out/
+atlassian-ide-plugin.xml
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+
+# ----- KDevelop4 (https://github.com/github/gitignore/blob/main/Global/KDevelop4.gitignore) -----
+*.kdev4
+.kdev4/
+
+# ----- Kate (https://github.com/github/gitignore/blob/main/Global/Kate.gitignore) -----
+.*.kate-swp
+.swp.*
+
+# ----- Vim (https://github.com/github/gitignore/blob/main/Global/Vim.gitignore) -----
+[._]*.s[a-v][a-z]
+!*.svg  # comment out if you don't need vector files
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+.netrwhist
+*~
+tags
+[._]*.un~
+
+# ----- Xcode (https://github.com/github/gitignore/blob/main/Global/Xcode.gitignore) -----
+xcuserdata/
+
+# ----- SublimeText (https://github.com/github/gitignore/blob/main/Global/SublimeText.gitignore) -----
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+sftp-config.json
+sftp-config-alt*.json
+Package Control.last-run
+Package Control.ca-list
+Package Control.ca-bundle
+Package Control.system-ca-bundle
+Package Control.cache/
+Package Control.ca-certs/
+Package Control.merged-ca-bundle
+Package Control.user-ca-bundle
+oscrypto-ca-bundle.crt
+bh_unicode_properties.cache
+GitHub.sublime-settings
+
+# ----- TortoiseGit (https://github.com/github/gitignore/blob/main/Global/TortoiseGit.gitignore) -----
+# Project-level settings
+/.tgitconfig
+
+# ---------- OS Specific ----------
+
+# ----- Linux (https://github.com/github/gitignore/blob/main/Global/Linux.gitignore) -----
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ----- macOS (https://github.com/github/gitignore/blob/main/Global/macOS.gitignore) -----
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# ----- Microsoft Windows (https://github.com/github/gitignore/blob/main/Global/Windows.gitignore) -----
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
