@@ -13,3 +13,4 @@ edition = "2021"
 unsafe_code = "forbid"
 
 [dependencies]
+logos = "0.15.0"
