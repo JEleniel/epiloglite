@@ -93,3 +93,7 @@ Memory allocation, string handling, data type conversion routines, and other uti
 ## Tests
 
 Tests are implemented in the same file as the components under test, in keeping with the common Rust approach.
+
+```rust
+cargo test
+```
