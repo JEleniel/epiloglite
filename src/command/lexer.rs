@@ -1,4 +1,5 @@
 use logos::Logos;
+use regex::Regex;
 
 #[derive(Debug, PartialEq, Clone, Default)]
 enum LexingError {
@@ -30,6 +31,7 @@ pub struct Keyword {
 #[derive(Logos, Debug, PartialEq)]
 #[logos(error=LexingError)]
 enum Token {
+    // Keywords
     #[token("abort", ignore(case))]
     Abort,
     #[token("action", ignore(case))]
@@ -322,6 +324,88 @@ enum Token {
     Within,
     #[token("without", ignore(case))]
     Without,
+
+    // Literals
+    // Time with delimeters
+    #[regex(r"'(?:0 |[12][0-9] |3[0-4] )?(?:[01]?[0-9]|2[0-3]):(?:[0-5]?[0-9]):(?:[0-5]?[0-9])(?:\.[0-9]{1,6})?(?:\+(?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00)|\-(?:0[1-9]|[1-3][0-9]:[0-5][0-9]))?'")]
+    // Time without delimeters
+    #[regex(r"'(?:[01][0-9]|2[0-3])(?:[0-5][0-9])(?:[0-5][0-9])(?:\.[0-9]{1,6})?(?:\+(?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00)|\-(?:0[1-9]|[1-3][0-9]:[0-5][0-9]))?'")]
+    Time,
+    #[token("TRUE", ignore(case))]
+    #[token("FALSE", ignore(case))]
+    BooleanLiteral,
+
+    // Complex symbolic operators
+    #[token("??(")]
+    LeftParenthesisTrigraph,
+    #[token("??)")]
+    RightParentehesisTrigraph,
+    #[token("<>")]
+    InequalityOperator,
+    #[token(">=")]
+    GreaterThanOrEqualOperator,
+    #[token("<=")]
+    LessThanOrEqualOperator,
+    #[token("||")]
+    ConcatenationOperator,
+    #[token("->")]
+    RightArrow,
+    #[token("::")]
+    DoubleColon,
+    #[token("..")]
+    DoubleFullStop,
+
+    // Individual characters
+    #[token(" ")]
+    Space,
+    #[token("\x22")]
+    QuotationMark,
+    #[token("%")]
+    PercentSign,
+    #[token("&")]
+    Ampersand,
+    #[token("'")]
+    Apostrophe,
+    #[token("(")]
+    LeftParenthesis,
+    #[token(")")]
+    RightParenthesis,
+    #[token("*")]
+    Asterisk,
+    #[token("+")]
+    PlusSign,
+    #[token(",")]
+    Comma,
+    #[token("-")]
+    HyphenMinus,
+    #[token(".")]
+    FullStop,
+    #[token("/")]
+    Solidus,
+    #[token(":")]
+    Colon,
     #[token(";")]
     Semicolon,
+    #[token("=")]
+    EqualsSign,
+    #[token("<")]
+    LessThanSign,
+    #[token(">")]
+    GreaterThanSign,
+    #[token("?")]
+    QuestionMark,
+    #[token("[")]
+    LeftSquareBracket,
+    #[token("]")]
+    RightSquareBracket,
+    #[token("^")]
+    CircumflexAccent,
+    #[token("_")]
+    LowLine,
+    #[token("|")]
+    VerticalLine,
+    #[token("{")]
+    LeftCurlyBracket,
+    #[token("}")]
+    RightCurlyBracket,
 }

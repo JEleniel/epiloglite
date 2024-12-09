@@ -13,4 +13,5 @@ edition = "2021"
 unsafe_code = "forbid"
 
 [dependencies]
-logos = "0.15.0"
+logos = { version = "0.15.0", features = ["forbid_unsafe"] }
+regex = "1.11.1"
