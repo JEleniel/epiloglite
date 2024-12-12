@@ -14,7 +14,7 @@ Bug reports, enhancement requests, and documentation suggestions can be opened a
 
 The preferred way to ask questions or make comments about EpilogLite is to visit the [EpilogLite Discussions](https://github.com/jeleniel/epiloglite/discussions).
 
-If you think you have found a bug that has security implications and you do not want to report it on the public forum, you can send a private email to jeleniel at turkeyofman dot com.
+[Private security vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) is enabled on this repository.
 
 ## GNU LESSER GENERAL PUBLIC LICENSE
 
