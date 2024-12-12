@@ -11,7 +11,4 @@ supported for production use.
 
 ## Reporting a Vulnerability
 
-Non-critical vulnerabilities can be reported under Issues. Critical 
-vulnerabilities may be reported to jeleniel at turkeyofman dot com. 
-
-Updates will either be posted to the issue or emailed to the reporter.
+[Private security vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) is enabled on this repository. 
