@@ -1,5 +1,7 @@
 # EpilogLite ("EL") Database Format
 
+status: draft
+
 ## Overview
 
 This document describes and defines the database format used by EpilogLite. Because EpilogLite is designed to be drop-in compatible with SQLite ("SL") it is based off the [SQLite Database File Format 3.0.0](https://www.sqlite.org/fileformat2.html). Whenever EL extends the SL format backwards compatability is maintained, unless noted otherwise.
