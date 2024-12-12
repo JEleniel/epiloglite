@@ -1,5 +1,7 @@
 # EpilogLite Architecture
 
+status: draft
+
 ## Introduction
 
 EpilogLite is an implementation of the SQLite database library using pure Rust. This document describes the architecture of the EpilogLite library crate. The information here is useful to those who want to understand or modify the inner workings of EpilogLite.
@@ -48,7 +50,7 @@ classDiagram
 
 	sqlite3 --> database
 	database --> processor
-	
+
 	processor --> virtual_machine
 	processor --> tokenizer
 	virtual_machine --> btree
@@ -65,7 +67,7 @@ classDiagram
 
 ### epiloglite
 
-The public interface is found in the `epiloglite` module. Functions are generally asynchronous. 
+The public interface is found in the `epiloglite` module. Functions are generally asynchronous.
 
 ### sqlite
 
@@ -77,7 +79,7 @@ This module contains the components responsible for parsing and execution od SQL
 
 #### epiloglite::command::processor
 
-This module coordinates the tokenization, parsing, and execution of SQL statements. 
+This module coordinates the tokenization, parsing, and execution of SQL statements.
 
 #### epiloglite::command::tokenizer
 
@@ -93,7 +95,7 @@ After the semantics have been assigned and a parse tree constructed the code gen
 
 ### epiloglite::comand::virtual_machine
 
-The bytecode from the code generator is handed off to a virtual machine to be executed. 
+The bytecode from the code generator is handed off to a virtual machine to be executed.
 
 ### epiloglite::persistence::btree
 
@@ -105,11 +107,11 @@ The B-Tree module requests information from the block storage in fixed size page
 
 ### epiloglite::os
 
-In order to provide portability across operating systems EpilogLite uses an abstract Virtual File System ("VFS"). The VFS provides methods for finding, opening, creating, modifying, and closing files on block storage. In addition, the OS Interface provides functions for other OS specific tasks, such as finding the current time, and generating randomness. 
+In order to provide portability across operating systems EpilogLite uses an abstract Virtual File System ("VFS"). The VFS provides methods for finding, opening, creating, modifying, and closing files on block storage. In addition, the OS Interface provides functions for other OS specific tasks, such as finding the current time, and generating randomness.
 
 ### epiloglite::utility
 
-Memory allocation, string handling, data type conversion routines, and other utility functions are in the Utilities module. 
+Memory allocation, string handling, data type conversion routines, and other utility functions are in the Utilities module.
 
 ## Tests
 
