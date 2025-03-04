@@ -6,37 +6,6 @@ status: draft
 
 This document describes and defines the database format used by EpilogLite. Because EpilogLite is designed to be drop-in compatible with SQLite ("SL") it is based off the [SQLite Database File Format 3.0.0](https://www.sqlite.org/fileformat2.html). Whenever EL extends the SL format backwards compatability is maintained, unless noted otherwise.
 
-## Document Conventions
-
-- The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED",  "MAY", and "OPTIONAL" in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/info/rfc2119) and updated by [RFC 8174](https://www.rfc-editor.org/info/rfc8174).
-- All data elements conform to the [Rust Data Types](https://doc.rust-lang.org/book/ch03-02-data-types.html).
-  - A "byte" is an unsigned, 8-bit integer (u8). 
-    - Binary prefixes are used for multiples of bytes:
-
-        | Prefix | Abbreviation | Description                       |
-        |--------|--------------|-----------------------------------|
-        | kibi   | Ki           | 2<sup>10</sup> (1024)             |
-        | mebi   | Mi           | 2<sup>20</sup> (1048576)          |
-        | gibi   | Gi           | 2<sup>30</sup> (1073741824)       |
-        | tebi   | Ti           | 2<sup>40</sup> (1099511627776)    |
-        | pebi   | Pi           | 2<sup>50</sup> (1125899906842624) |
-
-        **Table 1:** Binary prefixes
-
-  - Integer literals are written as follows, without thousands separators:
-
-    | Number literals | Example    |
-    |-----------------|------------|
-    | Decimal         | 65         |
-    | Hex             | 0x41       |
-    | Octal           | 0o101      |
-    | Binary          | 0b01000001 |
-    | Byte (u8 only)  | b'A'       |
-
-    **Table 2:** Representation of integer literals
-
-  - [Rust escape sequences](https://doc.rust-lang.org/reference/tokens.html) are used in string literals.
-
 ## The Database Files
 
 EL uses two types of files to maintain the state and recovery information for a database. The primary state of an EL database is contained in a single file on disk ("database"). During a transaction, EL stores additional information in a rollback file, or if EL is in Write Ahead ("WA") mode, a write-ahead file ("journal").
@@ -57,126 +26,125 @@ The database consists of [pages](#pages) with a [database header](#database-head
 
 The database header is the first 100 bytes of the database (on page 1). The database header is divided into fields as shown by the table below.
 
-| Offset | Size | Description                                                                                                                |
-|:------:|:----:|----------------------------------------------------------------------------------------------------------------------------|
-|   0    |  16  | The [header string](#magic-header-string).                                                                                 |
-|   16   |  2   | The database [page size](#page-size) in bytes.                                                                             |
-|   18   |  1   | [File format write version](#file-format-version-numbers).                                                                 |
-|   19   |  1   | [File format read version](#file-format-version-numbers).                                                                  |
-|   20   |  1   | [Reserved bytes per page](#reserved-bytes-per-page)                                                                        |
-|   21   |  1   | Maximum embedded [payload fraction](#payload-fractions).                                                                   |
-|   22   |  1   | Minimum embedded [payload fraction](#payload-fractions).                                                                   |
-|   23   |  1   | Leaf [payload fraction](#payload-fractions).                                                                               |
-|   24   |  4   | [File change counter](#file-change-counter).                                                                               |
-|   28   |  4   | [Size of the database in pages](#database-size)                                                                            |
-|   32   |  4   | Page number of the first [freelist page](#free-page-list)                                                                  |
-|   36   |  4   | Total number of [freelist pages](#free-page-list).                                                                         |
-|   40   |  4   | The [schema cookie](#schema-cookie).                                                                                       |
-|   44   |  4   | The [schema format number](#schema-format-number).                                                                         |
-|   48   |  4   | The [suggested page cache size](#suggested-cache-size).                                                                    |
-|   52   |  4   | In [vacuum](#incremental-vacuum-settings) modes the page number of the largest b-tree page, or zero otherwise.             |
-|   56   |  4   | The database [text encoding](#text-encoding).                                                                              |
-|   60   |  4   | The [user version number](#user-version-number) as read and set by the `epiloglite::Database::set_user_version()` function |
-|   64   |  4   | Non-zero for incremental [vacuum](#incremental-vacuum-settings) mode, zero otherwise.                                      |
-|   68   |  4   | The [application ID](#application-id) set by the `epiloglite::Database::set_application()` function.                       |
-|   72   |  20  | Reserved for expansion. Must be zero.                                                                                      |
-|   92   |  4   | The [version-valid-for number](#library-version-number).                                                                   |
-|   96   |  4   | [SQLite or EpilogLite version number](#library-version-number)                                                             |
+_Table 3: Database header_:
 
-**Table 3:** Database header
+| Offset |  Size  | Description                                                                                     |
+| :----: | :----: | ----------------------------------------------------------------------------------------------- |
+|   0    | char16 | The [header string](#header-string).                                                            |
+|   16   |  u16   | The database [page size](#page-size) in bytes.                                                  |
+|   18   |   u8   | [File format write version](#file-format-version-numbers).                                      |
+|   19   |   u8   | [File format read version](#file-format-version-numbers).                                       |
+|   20   |   u8   | [Reserved bytes per page](#reserved-bytes-per-page)                                             |
+|   21   |   u8   | Alway `64`, ignored                                                                             |
+|   22   |   u8   | Always `32`, ignored                                                                            |
+|   23   |   u8   | Always `32`, ignored                                                                            |
+|   24   |  u32   | [File change counter](#file-change-counter).                                                    |
+|   28   |  u32   | [Size of the database in pages](#database-size)                                                 |
+|   32   |  u32   | Page number of the first [freelist page](#free-page-list)                                       |
+|   36   |  u32   | Total number of [freelist pages](#free-page-list).                                              |
+|   40   |  u32   | The [schema cookie](#schema-cookie).                                                            |
+|   44   |  u32   | The [schema format number](#schema-format-number).                                              |
+|   48   |  u32   | The [suggested page cache size](#suggested-cache-size).                                         |
+|   52   |  u32   | [Vacuum](#vacuum) root page number or `0` to disable vacuuming                      |
+|   56   |  u32   | The database [text encoding](#text-encoding).                                                   |
+|   60   |  u32   | The [user version number](#application-id-and-user-version-number); see `epiloglite::Database::set_user_version()` |
+|   64   |  u32   | [Vacuum](#vacuum) mode - 0: automatic, !0: incremental                                 |
+|   68   |  u32   | The [application ID](#application-id-and-user-version-number-id); see `epiloglite::Database::set_application()`            |
+|   72   | char20 | Reserved for expansion. Must be zero.                                                           |
+|   92   |  u32   | The [last write transaction counter](#write-library-version-number-and-version-valid-for-number).                                        |
+|   96   |  u32   | [SQLite or EpilogLite version number](#write-library-version-number-and-version-valid-for-number)                                  |
 
 #### Header String
 
-Every valid EpilogLite database file begins with one of two "magic" header strings:
+Every valid EpilogLite database file begins with one of the "magic" header strings:
 
-| Header                  |                                             Bytes                                              | Usage                                        |
-|-------------------------|:----------------------------------------------------------------------------------------------:|----------------------------------------------|
-| `"SQLite format 3\x00"` | 0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00 | The null terminated SQLite 3 header string   |
-| `"EpLite format 1\x00"` |    0x45, 0x70, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33    | The null terminated EpilogLite header string |
+- EPLite v1: `EPLite format 1\x00`
+	+ Bytes: `0x45, 0x50, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x31, 0x00`
+	+ _Note_: The EPLite formats are not drop in compatible with SQLite.
+- SQLite v3+: `SQLite format 3\x00`
+	+ Bytes: `0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00`
 
 #### Page Size
 
-The two-byte value beginning at offset 16 determines the page size of the database. This  MUST be a power of two between 2<sup>9</sup> (512) and 2<sup>15</sup> (32768) inclusive or the special value 0x01 for 2<sup>16</sup> (65536).
+A u16 value that determines the page size of the database. This MUST be a power of two between 2<sup>9</sup> (512) and 2<sup>15</sup> (32768) inclusive or the special value 0x0001 for 2<sup>16</sup> (65536).
 
 #### File format version numbers
 
-The file format write version and file format read version at offsets 18 and 19 are intended to allow for enhancements of the file format in future versions. They should both be either 1 for rollback journaling mode or 2 for WAL journaling mode. If the read version is 1 or 2 but the write version is greater than 2, then the database file MUST be treated as read-only. A database file with a read version greater than two MUST NOT be accessed.
+The file format write version and file format read version are intended to allow for enhancements of the file format in future versions. If the write version is greater than the read version then the database file MUST be treated as read-only.
 
-### Reserved bytes per page
+| Value | Mode                      |
+| :-----: | ------------------------- |
+|    0x01    | Rollback journaling       |
+|    0x02    | Write Ahead Log (default) |
 
-The reserved bytes per page byte at offset 20 is the number of bytes of space at the end of each page to reserve for extensions. This value is usually 0.
+#### Reserved bytes per page
 
-The usable size of a database page is the page size minus the reserved bytes per page. The usable size is not allowed to be less than 480. In other words, if the page size is 512, then the reserved space size cannot exceed 32.
+The reserved bytes per page byte is the number of bytes of space at the end of each page to reserve for extensions. This value is usually 0. The usable size of a database page is the page size minus the reserved bytes per page. The usable size is not allowed to be less than 480. In other words, if the page size is 512, then the reserved space size cannot exceed 32.
 
-### Payload fractions
+#### File change counter
 
-The maximum and minimum embedded payload fractions and the leaf payload fraction values must be 64, 32, and 32. These values were originally intended to be tunable parameters that could be used to modify the storage format of the b-tree algorithm. However, that functionality is not supported and there are no current plans to add support in the future. Hence, these three bytes are fixed at the values specified.
+The file change counter is a u32 that is incremented whenever the database file is unlocked after having been modified. When two or more processes are reading the same database file, each process can detect database changes from other processes by monitoring the change counter. A process will normally want to flush its database page cache when another process modified the database, since the cache has become stale. The file change counter facilitates this.
 
-### File change counter
+In WAL mode this will be `0` since changes to the database are detected using the wal-index.
 
-The file change counter is a 4-byte big-endian integer at offset 24 that is incremented whenever the database file is unlocked after having been modified. When two or more processes are reading the same database file, each process can detect database changes from other processes by monitoring the change counter. A process will normally want to flush its database page cache when another process modified the database, since the cache has become stale. The file change counter facilitates this.
+#### Database size
 
-In WAL mode, changes to the database are detected using the wal-index and so the change counter is not needed. Hence, the change counter might not be incremented on each transaction in WAL mode.
+The u32 size of the database file in pages. If this in-header datasize size is not valid (see the next paragraph), then the database size is computed by looking at the actual size of the database file.
 
-### In-header database size
+The in-header database size is only considered to be valid if it is non-zero and if the file change counter exactly matches the version-valid-for number.
 
-The 4-byte big-endian integer at offset 28 into the header stores the size of the database file in pages. If this in-header datasize size is not valid (see the next paragraph), then the database size is computed by looking at the actual size of the database file. 
+#### Free page list
 
-The in-header database size is only considered to be valid if it is non-zero and if the 4-byte change counter at offset 24 exactly matches the 4-byte version-valid-for number at offset 92. 
+Unused pages in the database file are stored on a freelist. A u32 stores the page number of the first page of the freelist, or zero if the freelist is empty. The following u32 stores the total number of pages on the freelist.
 
-### Free page list
+#### Schema cookie
 
-Unused pages in the database file are stored on a freelist. The 4-byte big-endian integer at offset 32 stores the page number of the first page of the freelist, or zero if the freelist is empty. The 4-byte big-endian integer at offset 36 stores the total number of pages on the freelist.
+The schema cookie is a u32 that is incremented whenever the database schema changes. A prepared statement is compiled against a specific version of the database schema. When the database schema changes, the statement must be reprepared. When a prepared statement runs, it first checks the schema cookie to ensure the value is the same as when the statement was prepared and if the schema cookie has changed, the statement either automatically reprepares and reruns or it returns an Error with a `.kind()` of epiloglite::ErrorKind::SchemaChangedError.
 
-### Schema cookie
+#### Schema format number
 
-The schema cookie is a 4-byte big-endian integer at offset 40 that is incremented whenever the database schema changes. A prepared statement is compiled against a specific version of the database schema. When the database schema changes, the statement must be reprepared. When a prepared statement runs, it first checks the schema cookie to ensure the value is the same as when the statement was prepared and if the schema cookie has changed, the statement either automatically reprepares and reruns or it returns an Error with a `.kind()` of epiloglite::ErrorKind::SchemaChangedError.
+The schema format number is u32 that indicates the high-level SQL formatting of the database. If the database is completely empty, if it has no schema, then the schema format number can be zero. Four schema format numbers are currently defined and new database files created by EpilogLite use format 4 by default:
 
-### Schema format number
+| Value | Format |
+| :---: | --- |
+| 0x01 | The original SQLite format |
+| 0x02 | Added `ALTER TABLE ... ADD COLUMN` support |
+| 0x03 | Added non-NULL default support to `ALTER TABLE ... ADD COLUMN` |
+| 0x04 | Added DESC keyword and boolean support |
 
-The schema format number is a 4-byte big-endian integer at offset 44. The schema format number is similar to the file format read and write version numbers at offsets 18 and 19 except that the schema format number refers to the high-level SQL formatting rather than the low-level b-tree formatting. Four schema format numbers are currently defined:
+#### Suggested cache size
 
-- Format 1 is the original SQLite format.
-- Format 2 added the ability of rows within the same table to have a varying number of columns, in order to support the ALTER TABLE ... ADD COLUMN functionality.
-- Format 3 added the ability of extra columns added by ALTER TABLE ... ADD COLUMN to have non-NULL default values.
-- Format 4 causes introduced the DESC keyword on index declarations. Format 4 also added two new boolean record type values. 
+This u32 is the suggested cache size in pages for the database file. The value is a suggestion only and EpilogLite is under no obligation to honor it. For SQLite databases, where this is instead a i32, the absolute value of the integer is used as the suggested size. The suggested cache size can be set using the default_cache_size pragma.
 
-New database files created by EpilogLite use format 4 by default. 
+#### Vacuum
 
-If the database is completely empty, if it has no schema, then the schema format number can be zero.
+The u32 vacuum root page is the page number of the largest root page in the database file. When vacuum is enabled the database file will contain ptrmap pages. The vacuum mode is true (non-zero) for incremental vacuum, and false (`0`) for auto vacuum.
 
-### Suggested cache size
+If the vacuum root page number is zero then vacuuming is disabled and the vacuum mode must also be `0`.
 
-The 4-byte big-endian signed integer at offset 48 is the suggested cache size in pages for the database file. The value is a suggestion only and EpilogLite is under no obligation to honor it. The absolute value of the integer is used as the suggested size. The suggested cache size can be set using the default_cache_size pragma.
+#### Text encoding
 
-### Incremental vacuum settings
+The text encoding is a u32 that determines the encoding used for all text strings stored in the database.  The enum epiloglite::TextEncoding can be used in place of the numeric codes for the text encoding.
 
-The two 4-byte big-endian integers at offsets 52 and 64 are used to manage the auto_vacuum and incremental_vacuum modes. If the integer at offset 52 is zero then pointer-map (ptrmap) pages are omitted from the database file and neither auto_vacuum nor incremental_vacuum are supported. If the integer at offset 52 is non-zero then it is the page number of the largest root page in the database file, the database file will contain ptrmap pages, and the mode must be either auto_vacuum or incremental_vacuum. In this latter case, the integer at offset 64 is true for incremental_vacuum and false for auto_vacuum. If the integer at offset 52 is zero then the integer at offset 64 must also be zero.
+| Value | Encoding |
+| :---: | --- |
+| 0x01 | UTF-8 (default) |
+| 0x02 | UTF-16 little endian |
+| 0x03 | UTF-16 big endian |
 
-### Text encoding
+#### Application ID and User version number
 
-The 4-byte big-endian integer at offset 56 determines the encoding used for all text strings stored in the database. A value of 1 means UTF-8. A value of 2 means UTF-16le. A value of 3 means UTF-16be. No other values are allowed. The enum epiloglite::TextEncoding can be used in place of the numeric codes for the text encoding.
+The application ID is a u32 that can be set by the epiloglite::application functions in order to identify the database as belonging to or associated with a particular application. The application ID is intended for database files used as an application file-format. The application ID can be used by utilities such as file(1) to determine the specific file type rather than just reporting "EpilogLite3 Database". A list of assigned application IDs can be seen by consulting the magic.txt file in the EpilogLite source repository.
 
-### User version number
+The user version is a u32 which which is set and queried by the epiloglite::user_version functions. The user version is not used by EpilogLite.
 
-The 4-byte big-endian integer at offset 60 is the user version which is set and queried by the epiloglite::user_version functions. The user version is not used by EpilogLite.
+#### Write library version number and version-valid-for number
 
-### Application ID
-
-The 4-byte big-endian integer at offset 68 is an "Application ID" that can be set by the epiloglite::application functions in order to identify the database as belonging to or associated with a particular application. The application ID is intended for database files used as an application file-format. The application ID can be used by utilities such as file(1) to determine the specific file type rather than just reporting "EpilogLite3 Database". A list of assigned application IDs can be seen by consulting the magic.txt file in the EpilogLite source repository.
-
-### Write library version number and version-valid-for number
-
-The 4-byte big-endian integer at offset 96 stores the EpilogLite_VERSION_NUMBER value for the EpilogLite library that most recently modified the database file. The 4-byte big-endian integer at offset 92 is the value of the change counter when the version number was stored. The integer at offset 92 indicates which transaction the version number is valid for and is sometimes called the "version-valid-for number".
-
-### Header space reserved for expansion
-
-All other bytes of the database file header are reserved for future expansion and must be set to zero.
-
+The write library version is a u32 that stores the EpilogLite_VERSION_NUMBER value for the EpilogLite library that most recently modified the database file. The last write transaction counter is a u32 containing the value of the change counter when the version number was stored and is sometimes called the "version-valid-for number".
 
 ### Pages
 
-The main database file consists of one or more pages. The size of a page MUST BE a power of two between 2<sup>9</sup> (512) and 2<sup>16</sup> (65536) inclusive. All pages within the same database MUST BE the same size. The page size for a database file is identified by the 2-byte integer located 16 bytes from the beginning of the database file.
+The main database file consists of one or more pages. The size of a page MUST BE a power of two between 2<sup>9</sup> (512) and 2<sup>16</sup> (65536) inclusive. All pages within the same database MUST BE the same size.
 
 Pages are numbered beginning with 1. The maximum page number is 2<sup>32</sup> - 2 (4294967294). The minimum size database is a single 512-byte page. The maximum size database would be 2<sup>32</sup> pages at 2<sup>16</sup> bytes per page or 256 TiB (281474976579584 bytes). Usually EL will hit the maximum file size limit of the underlying filesystem or disk hardware long before it hits its own internal size limit.
 
@@ -186,7 +154,7 @@ Every page in the database has a single use which is one of the following:
 - A [freelist page](#freelist-pages)
 - A [payload overflow page](#payload-overflow-pages)
 - A [pointer map page](#pointer-map-pages)
-- The [lock-byte page](#lock-byte-page) 
+- The [lock-byte page](#lock-byte-page)
 
 All reads from and writes to the main database file begin at a page boundary and all writes are an integer number of pages in size. Reads are also usually an integer number of pages in size, with the one exception that when the database is first opened, the database file header is read as a 100 byte unit.
 
@@ -243,7 +211,7 @@ A b-tree page is divided into regions in the following order:
 - The cell pointer array
 - Unallocated space
 - The cell content area
-- The reserved region 
+- The reserved region
 
 The 100-byte database file header is found only on page 1, which is always a table b-tree page. All other b-tree pages in the database file omit this 100-byte header.
 
@@ -251,10 +219,10 @@ The reserved region is an area of unused space at the end of every page (except 
 
 The b-tree page header is 8 bytes in size for leaf pages and 12 bytes for interior pages. All multibyte values in the page header are big-endian. The b-tree page header is composed of the following fields:
 
-_B-tree Page Header Format_
+_B-tree Page Header Format_:
 
 | Offset | Size | Description                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-|:------:|-----:|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| :----: | ---: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 |   0    |    1 | The one-byte flag at offset 0 indicating the b-tree page type<br /><br /><ul><li>A value of 2 (0x02) means the page is an interior index b-tree page.</li><li>A value of 5 (0x05) means the page is an interior table b-tree page.</li><li>A value of 10 (0x0a) means the page is a leaf index b-tree page.</li><li>A value of 13 (0x0d) means the page is a leaf table b-tree page.</li></ul>Any other value for the b-tree page type is an error. |
 |   1    |    2 | The two-byte integer at offset 1 gives the start of the first freeblock on the page, or is zero if there are no freeblocks.                                                                                                                                                                                                                                                                                                                         |
 |   3    |    2 | The two-byte integer at offset 3 gives the number of cells on the page.                                                                                                                                                                                                                                                                                                                                                                             |
@@ -278,37 +246,37 @@ A variable-length integer or "varint" is a static Huffman encoding of 64-bit two
 
 The format of a cell depends on which kind of b-tree page the cell appears on. The following table shows the elements of a cell, in order of appearance, for the various b-tree page types.
 
-*Table B-Tree Leaf Cell (header 0x0d):*
+_Table B-Tree Leaf Cell (header 0x0d):_
 
 - A varint which is the total number of bytes of payload, including any overflow
 - A varint which is the integer key, a.k.a. "rowid"
 - The initial portion of the payload that does not spill to overflow pages.
-- A 4-byte big-endian integer page number for the first page of the overflow page list - omitted if all payload fits on the b-tree page. 
+- A 4-byte big-endian integer page number for the first page of the overflow page list - omitted if all payload fits on the b-tree page.
 
-*Table B-Tree Interior Cell (header 0x05):*
+_Table B-Tree Interior Cell (header 0x05):_
 
 - A 4-byte big-endian page number which is the left child pointer.
-- A varint which is the integer key 
+- A varint which is the integer key
 
-*Index B-Tree Leaf Cell (header 0x0a):*
+_Index B-Tree Leaf Cell (header 0x0a):_
 
 - A varint which is the total number of bytes of key payload, including any overflow
 - The initial portion of the payload that does not spill to overflow pages.
-- A 4-byte big-endian integer page number for the first page of the overflow page list - omitted if all payload fits on the b-tree page. 
+- A 4-byte big-endian integer page number for the first page of the overflow page list - omitted if all payload fits on the b-tree page.
 
-*Index B-Tree Interior Cell (header 0x02):*
+_Index B-Tree Interior Cell (header 0x02):_
 
 - A 4-byte big-endian page number which is the left child pointer.
 - A varint which is the total number of bytes of key payload, including any overflow
 - The initial portion of the payload that does not spill to overflow pages.
-- A 4-byte big-endian integer page number for the first page of the overflow page list - omitted if all payload fits on the b-tree page. 
+- A 4-byte big-endian integer page number for the first page of the overflow page list - omitted if all payload fits on the b-tree page.
 
 The information above can be recast into a table format as follows:
 
-_B-tree Cell Format_
+_B-tree Cell Format_:
 
 | DataType       | Table Leaf (0x0d) | Table Interior (0x05) | Index Leaf (0x0a) | Index Interior (0x02) | Description                        |
-|----------------|:-----------------:|:---------------------:|:-----------------:|:---------------------:|------------------------------------|
+| -------------- | :---------------: | :-------------------: | :---------------: | :-------------------: | ---------------------------------- |
 | 4-byte integer |                   |           ✔           |                   |           ✔           | Page number of left child          |
 | varint         |         ✔         |                       |         ✔         |           ✔           | Number of bytes of payload         |
 | varint         |         ✔         |           ✔           |                   |                       | Rowid                              |
@@ -317,26 +285,26 @@ _B-tree Cell Format_
 
 The amount of payload that spills onto overflow pages also depends on the page type. For the following computations, let U be the usable size of a database page, the total page size less the reserved space at the end of each page. And let P be the payload size. In the following, symbol X represents the maximum amount of payload that can be stored directly on the b-tree page without spilling onto an overflow page and symbol M represents the minimum amount of payload that must be stored on the btree page before spilling is allowed.
 
-*Table B-Tree Leaf Cell:*
+_Table B-Tree Leaf Cell:_
 
-Let X be U-35. If the payload size P is less than or equal to X then the entire payload is stored on the b-tree leaf page. Let M be ((U-12)*32/255)-23 and let K be M+((P-M)%(U-4)). If P is greater than X then the number of bytes stored on the table b-tree leaf page is K if K is less or equal to X or M otherwise. The number of bytes stored on the leaf page is never less than M. 
+Let X be U-35. If the payload size P is less than or equal to X then the entire payload is stored on the b-tree leaf page. Let M be ((U-12)\*32/255)-23 and let K be M+((P-M)%(U-4)). If P is greater than X then the number of bytes stored on the table b-tree leaf page is K if K is less or equal to X or M otherwise. The number of bytes stored on the leaf page is never less than M.
 
-*Table B-Tree Interior Cell:*
+_Table B-Tree Interior Cell:_
 
-Interior pages of table b-trees have no payload and so there is never any payload to spill. 
+Interior pages of table b-trees have no payload and so there is never any payload to spill.
 
-*Index B-Tree Leaf Or Interior Cell:*
+_Index B-Tree Leaf Or Interior Cell:_
 
-Let X be ((U-12)\*64/255)-23. If the payload size P is less than or equal to X then the entire payload is stored on the b-tree page. Let M be ((U-12)*32/255)-23 and let K be M+((P-M)%(U-4)). If P is greater than X then the number of bytes stored on the index b-tree page is K if K is less than or equal to X or M otherwise. The number of bytes stored on the index page is never less than M. 
+Let X be ((U-12)\*64/255)-23. If the payload size P is less than or equal to X then the entire payload is stored on the b-tree page. Let M be ((U-12)\*32/255)-23 and let K be M+((P-M)%(U-4)). If P is greater than X then the number of bytes stored on the index b-tree page is K if K is less than or equal to X or M otherwise. The number of bytes stored on the index page is never less than M.
 
 Here is an alternative description of the same computation:
 
-- X is U-35 for table btree leaf pages or ((U-12)*64/255)-23 for index pages.
-- M is always ((U-12)*32/255)-23.
+- X is U-35 for table btree leaf pages or ((U-12)\*64/255)-23 for index pages.
+- M is always ((U-12)\*32/255)-23.
 - Let K be M+((P-M)%(U-4)).
 - If P<=X then all P bytes of payload are stored directly on the btree page without overflow.
 - If P>X and K<=X then the first K bytes of P are stored on the btree page and the remaining P-K bytes are stored on overflow pages.
-- If P>X and K>X then the first M bytes of P are stored on the btree page and the remaining P-M bytes are stored on overflow pages. 
+- If P>X and K>X then the first M bytes of P are stored on the btree page and the remaining P-M bytes are stored on overflow pages.
 
 The overflow thresholds are designed to give a minimum fanout of 4 for index b-trees and to make sure enough of the payload is on the b-tree page that the record header can usually be accessed without consulting an overflow page. In hindsight, the designer of the EpilogLite b-tree logic realized that these thresholds could have been made much simpler. However, the computations cannot be changed without resulting in an incompatible file format. And the current computations work well, even if they are a little complex.
 
@@ -350,7 +318,7 @@ Pointer map or ptrmap pages are extra pages inserted into the database to make t
 
 Ptrmap pages must exist in any database file which has a non-zero largest root b-tree page value at offset 52 in the database header. If the largest root b-tree page value is zero, then the database must not contain ptrmap pages.
 
-In a database with ptrmap pages, the first ptrmap page is page 2. A ptrmap page consists of an array of 5-byte entries. Let J be the number of 5-byte entries that will fit in the usable space of a page. (In other words, J=U/5.) The first ptrmap page will contain back pointer information for pages 3 through J+2, inclusive. The second pointer map page will be on page J+3 and that ptrmap page will provide back pointer information for pages J+4 through 2*J+3 inclusive. And so forth for the entire database file.
+In a database with ptrmap pages, the first ptrmap page is page 2. A ptrmap page consists of an array of 5-byte entries. Let J be the number of 5-byte entries that will fit in the usable space of a page. (In other words, J=U/5.) The first ptrmap page will contain back pointer information for pages 3 through J+2, inclusive. The second pointer map page will be on page J+3 and that ptrmap page will provide back pointer information for pages J+4 through 2\*J+3 inclusive. And so forth for the entire database file.
 
 In a database that uses ptrmap pages, all pages at locations identified by the computation in the previous paragraph must be ptrmap page and no other page may be a ptrmap page. Except, if the byte-lock page happens to fall on the same page number as a ptrmap page, then the ptrmap is moved to the following page for that one case.
 
@@ -362,15 +330,15 @@ Each 5-byte ptrmap entry consists of one byte of "page type" information followe
 - A freelist page. The page number should be zero.
 - The first page of a cell payload overflow chain. The page number is the b-tree page that contains the cell whose content has overflowed.
 - A page in an overflow chain other than the first page. The page number is the prior page of the overflow chain.
-- A non-root b-tree page. The page number is the parent b-tree page. 
+- A non-root b-tree page. The page number is the parent b-tree page.
 
 In any database file that contains ptrmap pages, all b-tree root pages must come before any non-root b-tree page, cell payload overflow page, or freelist page. This restriction ensures that a root page will never be moved during an auto-vacuum or incremental-vacuum. The auto-vacuum logic does not know how to update the root_page field of the EpilogLite_schema table and so it is necessary to prevent root pages from being moved during an auto-vacuum in order to preserve the integrity of the EpilogLite_schema table. Root pages are moved to the beginning of the database file by the CREATE TABLE, CREATE INDEX, DROP TABLE, and DROP INDEX operations.
 
-# Schema Layer
+## Schema Layer
 
 The foregoing text describes low-level aspects of the EpilogLite file format. The b-tree mechanism provides a powerful and efficient means of accessing a large data set. This section will describe how the low-level b-tree layer is used to implement higher-level SQL capabilities.
 
-## Record Format
+### Record Format
 
 The data for a table b-tree leaf page and the key of an index b-tree page was characterized above as an arbitrary sequence of bytes. The prior discussion mentioned one key being less than another, but did not define what "less than" meant. The current section will address these omissions.
 
@@ -393,9 +361,9 @@ _Serial Type Codes Of The Record Format_
 | 7 | 8 | Value is a big-endian IEEE 754-2008 64-bit floating point number. |
 | 8 | 0 | Value is the integer 0. (Only available for schema format 4 and higher.) |
 | 9 | 0 | Value is the integer 1. (Only available for schema format 4 and higher.) |
-| 10,11  | variable | Reserved for internal use. These serial type codes will never appear in a well-formed database file, but they might be used in transient and temporary database files that EpilogLite sometimes generates for its own use. The meanings of these codes can shift from one release of EpilogLite to the next. |
-| N≥12 and even  | (N-12)/2 | Value is a BLOB that is (N-12)/2 bytes in length. |
-| N≥13 and odd  | (N-13)/2 | Value is a string in the text encoding and (N-13)/2 bytes in length. The nul terminator is not stored. |
+| 10,11 | variable | Reserved for internal use. These serial type codes will never appear in a well-formed database file, but they might be used in transient and temporary database files that EpilogLite sometimes generates for its own use. The meanings of these codes can shift from one release of EpilogLite to the next. |
+| N≥12 and even | (N-12)/2 | Value is a BLOB that is (N-12)/2 bytes in length. |
+| N≥13 and odd | (N-13)/2 | Value is a string in the text encoding and (N-13)/2 bytes in length. The nul terminator is not stored. |
 
 The header size varint and serial type varints will usually consist of a single byte. The serial type varints for large strings and BLOBs might extend to two or three byte varints, but that is the exception rather than the rule. The varint format is very efficient at coding the record header.
 
@@ -410,13 +378,13 @@ The order of keys in an index b-tree is determined by the sort order of the reco
 - NULL values (serial type 0) sort first.
 - Numeric values (serial types 1 through 9) sort after NULLs and in numeric order.
 - Text values (odd serial types 13 and larger) sort after numeric values in the order determined by the columns collating function.
-- BLOB values (even serial types 12 and larger) sort last and in the order determined by memcmp(). 
+- BLOB values (even serial types 12 and larger) sort last and in the order determined by memcmp().
 
 A collating function for each column is necessary in order to compute the order of text fields. EpilogLite defines three built-in collating functions:
 
 - BINARY: The built-in BINARY collation compares strings byte by byte using the memcmp() function from the standard C library.
 - NOCASE: The NOCASE collation is like BINARY except that uppercase ASCII characters ('A' through 'Z') are folded into their lowercase equivalents prior to running the comparison. Only ASCII characters are case-folded. NOCASE does not implement a general purpose unicode caseless comparison.
-- RTRIM: RTRIM is like BINARY except that extra spaces at the end of either string do not change the result. In other words, strings will compare equal to one another as long as they differ only in the number of spaces at the end. 
+- RTRIM: RTRIM is like BINARY except that extra spaces at the end of either string do not change the result. In other words, strings will compare equal to one another as long as they differ only in the number of spaces at the end.
 
 Additional application-specific collating functions can be added to EpilogLite using the EpilogLite3_create_collation() interface.
 
@@ -504,7 +472,7 @@ The EpilogLite_schema.sql column stores SQL text that describes the object. This
 - The TEMP or TEMPORARY keyword is removed if it occurs after the initial CREATE keyword.
 - Any database name qualifier that occurs prior to the name of the object being created is removed.
 - Leading spaces are removed.
-- All spaces following the first two keywords are converted into a single space. 
+- All spaces following the first two keywords are converted into a single space.
 
 The text in the EpilogLite_schema.sql column is a copy of the original CREATE statement text that created the object, except normalized as described above and as modified by subsequent ALTER TABLE statements. The EpilogLite_schema.sql is NULL for the internal indexes that are automatically created by UNIQUE or PRIMARY KEY constraints.
 
@@ -514,23 +482,23 @@ The name "EpilogLite_schema" does not appear anywhere in the file format. That n
 
 - EpilogLite_master
 - EpilogLite_temp_schema
-- EpilogLite_temp_master 
+- EpilogLite_temp_master
 
 Because the name of the schema table does not appear anywhere in the file format, the meaning of the database file is not changed if the application chooses to refer to the schema table by one of these alternative names.
 
 ## Internal Schema Objects
 
-In addition to the tables, indexes, views, and triggers created by the application and/or the developer using CREATE statements SQL, the EpilogLite_schema table may contain zero or more entries for internal schema objects that are created by EpilogLite for its own internal use. The names of internal schema objects always begin with "EpilogLite_" and any table, index, view, or trigger whose name begins with "EpilogLite_" is an internal schema object. EpilogLite prohibits applications from creating objects whose names begin with "EpilogLite_".
+In addition to the tables, indexes, views, and triggers created by the application and/or the developer using CREATE statements SQL, the EpilogLite*schema table may contain zero or more entries for internal schema objects that are created by EpilogLite for its own internal use. The names of internal schema objects always begin with "EpilogLite*" and any table, index, view, or trigger whose name begins with "EpilogLite*" is an internal schema object. EpilogLite prohibits applications from creating objects whose names begin with "EpilogLite*".
 
 Internal schema objects used by EpilogLite may include the following:
 
-    Indices with names of the form "EpilogLite_autoindex_TABLE_N" that are used to implement UNIQUE and PRIMARY KEY constraints on ordinary tables.
+Indices with names of the form "EpilogLite_autoindex_TABLE_N" that are used to implement UNIQUE and PRIMARY KEY constraints on ordinary tables.
 
-    A table with the name "EpilogLite_sequence" that is used to keep track of the maximum historical INTEGER PRIMARY KEY for a table using AUTOINCREMENT.
+A table with the name "EpilogLite_sequence" that is used to keep track of the maximum historical INTEGER PRIMARY KEY for a table using AUTOINCREMENT.
 
-    Tables with names of the form "EpilogLite_statN" where N is an integer. Such tables store database statistics gathered by the ANALYZE command and used by the query planner to help determine the best algorithm to use for each query. 
+Tables with names of the form "EpilogLite_statN" where N is an integer. Such tables store database statistics gathered by the ANALYZE command and used by the query planner to help determine the best algorithm to use for each query.
 
-New internal schema objects names, always beginning with "EpilogLite_", may be added to the EpilogLite file format in future releases.
+New internal schema objects names, always beginning with "EpilogLite\_", may be added to the EpilogLite file format in future releases.
 
 ### The EpilogLite_sequence table
 
@@ -547,7 +515,6 @@ Application code is allowed to modify the EpilogLite_sequence table, to add new 
 ### The EpilogLite_stat1 table
 
 The EpilogLite_stat1 is an internal table created by the ANALYZE command and used to hold supplemental information about tables and indexes that the query planner can use to help it find better ways of performing queries. Applications can update, delete from, insert into or drop the EpilogLite_stat1 table, but may not create or alter the EpilogLite_stat1 table. The schema of the EpilogLite_stat1 table is as follows:
-
 
 ```sql
 CREATE TABLE EpilogLite_stat1(tbl,idx,stat);
@@ -571,7 +538,6 @@ If the EpilogLite_stat1.idx column is NULL, then the EpilogLite_stat1.stat colum
 
 The EpilogLite_stat2 is only created and is only used if EpilogLite is compiled with EpilogLite_ENABLE_STAT2 and if the EpilogLite version number is between 3.6.18 (2009-09-11) and 3.7.8 (2011-09-19). The EpilogLite_stat2 table is neither read nor written by any version of EpilogLite before 3.6.18 nor after 3.7.8. The EpilogLite_stat2 table contains additional information about the distribution of keys within an index. The schema of the EpilogLite_stat2 table is as follows:
 
-
 ```sql
 CREATE TABLE EpilogLite_stat2(tbl,idx,sampleno,sample);
 ```
@@ -580,7 +546,7 @@ The EpilogLite_stat2.idx column and the EpilogLite_stat2.tbl column in each row 
 
 The EpilogLite_stat2 entries for an index that have EpilogLite_stat2.sampleno between 0 and 9 inclusive are samples of the left-most key value in the index taken at evenly spaced points along the index. Let C be the number of rows in the index. Then the sampled rows are given by
 
-- rownumber = (i*C*2 + C)/20 
+- rownumber = (i*C*2 + C)/20
 
 The variable i in the previous expression varies between 0 and 9. Conceptually, the index space is divided into 10 uniform buckets and the samples are the middle row from each bucket.
 
@@ -611,7 +577,7 @@ CREATE TABLE EpilogLite_stat4(tbl,idx,nEq,nLt,nDLt,sample);
 There are typically between 10 to 40 entries in the EpilogLite_stat4 table for each index for which statistics are available, however these limits are not hard bounds. The meanings of the columns in the EpilogLite_stat4 table are as follows:
 
 | Column | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | tbl    | The EpilogLite_stat4.tbl column holds name of the table that owns the index that the row describes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | idx    | The EpilogLite_stat4.idx column holds name of the index that the row describes, or in the case of an EpilogLite_stat4 entry for a WITHOUT ROWID table, the name of the table itself.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | sample | The EpilogLite_stat4.sample column holds a BLOB in the record format that encodes the indexed columns followed by the rowid for a rowid table or by the columns of the primary key for a WITHOUT ROWID table. The EpilogLite_stat4.sample BLOB for the WITHOUT ROWID table itself contains just the columns of the primary key. Let the number of columns encoded by the EpilogLite_stat4.sample blob be N. For indexes on an ordinary rowid table, N will be one more than the number of columns indexed. For indexes on WITHOUT ROWID tables, N will be the number of columns indexed plus the number of columns in the primary key. For a WITHOUT ROWID table, N will be the number of columns in the primary key. |
@@ -637,7 +603,7 @@ A rollback journal is only considered to be valid if it exists and contains a va
 
 - The rollback journal file can be deleted,
 - The rollback journal file can be truncated to zero length, or
-- The header of the rollback journal can be overwritten with invalid header text (for example, all zeros). 
+- The header of the rollback journal can be overwritten with invalid header text (for example, all zeros).
 
 These three ways of committing a transaction correspond to the DELETE, TRUNCATE, and PERSIST settings, respectively, of the journal_mode pragma.
 
@@ -646,7 +612,7 @@ A valid rollback journal begins with a header in the following format:
 _Rollback Journal Header Format_
 
 | Offset | Size | Description                                                                                                                 |
-|:------:|:----:|-----------------------------------------------------------------------------------------------------------------------------|
+| :----: | :--: | --------------------------------------------------------------------------------------------------------------------------- |
 |   0    |  8   | Header string: 0xd9, 0xd5, 0x05, 0xf9, 0x20, 0xa1, 0x63, 0xd7                                                               |
 |   8    |  4   | The "Page Count" - The number of pages in the next segment of the journal, or -1 to mean all content to the end of the file |
 |   12   |  4   | A random nonce for the checksum                                                                                             |
@@ -663,7 +629,7 @@ Let the database page size (the value of the integer at offset 24 in the journal
 _Rollback Journal Page Record Format_
 
 | Offset | Size | Description                                                        |
-|:------:|:----:|--------------------------------------------------------------------|
+| :----: | :--: | ------------------------------------------------------------------ |
 |   0    |  4   | The page number in the database file                               |
 |   4    |  N   | Original content of the page prior to the start of the transaction |
 |  N+4   |  4   | Checksum                                                           |
@@ -674,7 +640,7 @@ The checksum is an unsigned 32-bit integer computed as follows:
 - Initialize index X to be N-200 (where N is the size of a database page in bytes.
 - Interpret the byte at offset X into the page as an 8-bit unsigned integer and add the value of that integer to the checksum.
 - Subtract 200 from X.
-- If X is greater than or equal to zero, go back to step 3. 
+- If X is greater than or equal to zero, go back to step 3.
 
 The checksum value is used to guard against incomplete writes of a journal page record following a power failure. A different random nonce is used each time a transaction is started in order to minimize the risk that unwritten sectors might by chance contain data from the same page that was a part of prior journals. By changing the nonce for each transaction, stale data on disk will still generate an incorrect checksum and be detected with high probability. The checksum only uses a sparse sample of 32-bit words from the data record for performance reasons - design studies during the planning phases of EpilogLite 3.0.0 showed a significant performance hit in checksumming the entire page.
 
@@ -697,7 +663,7 @@ The WAL header is 32 bytes in size and consists of the following eight big-endia
 _WAL Header Format_
 
 | Offset | Size | Description                                                             |
-|:------:|:----:|-------------------------------------------------------------------------|
+| :----: | :--: | ----------------------------------------------------------------------- |
 |   0    |  4   | Magic number. 0x377f0682 or 0x377f0683                                  |
 |   4    |  4   | File format version. Currently 3007000.                                 |
 |   8    |  4   | Database page size. Example: 1024                                       |
@@ -712,7 +678,7 @@ Immediately following the wal-header are zero or more frames. Each frame consist
 _WAL Frame Header Format_
 
 | Offset | Size | Description                                                                                               |
-|:------:|:----:|-----------------------------------------------------------------------------------------------------------|
+| :----: | :--: | --------------------------------------------------------------------------------------------------------- |
 |   0    |  4   | Page number                                                                                               |
 |   4    |  4   | For commit records, the size of the database file in pages after the commit. For all other records, zero. |
 |   8    |  4   | Salt-1 copied from the WAL header                                                                         |
@@ -736,8 +702,8 @@ The checksum algorithm only works for content which is a multiple of 8 bytes in 
 let s0 = 0;
 let s1 = 0;
 for i from 0 to n-1 step 2:
-    s0 += x(i) + s1;
-    s1 += x(i+1) + s0;
+ s0 += x(i) + s1;
+ s1 += x(i+1) + s0;
 endfor
 # result in s0 and s1
 ```
@@ -770,7 +736,7 @@ Conceptually, the wal-index is shared memory, though the current VFS implementat
 
 The purpose of the wal-index is to answer this question quickly:
 
-- Given a page number P and a maximum WAL frame index M, return the largest WAL frame index for page P that does not exceed M, or return NULL if there are no frames for page P that do not exceed M. 
+- Given a page number P and a maximum WAL frame index M, return the largest WAL frame index for page P that does not exceed M, or return NULL if there are no frames for page P that do not exceed M.
 
 The M value in the previous paragraph is the "mxFrame" value defined in section 4.4 that is read at the start of a transaction and which defines the maximum frame from the WAL that the reader will use.
 
