@@ -1,6 +1,6 @@
 # EpilogLite Source Repository
 
-This repository contains the complete source code for the EpilogLite database engine, including test scripts.  
+This repository contains the complete source code for the EpilogLite database engine, including test scripts.
 
 See the [on-line documentation](https://github.com/jeleniel/epiloglite/wiki) for more information about what EpilogLite is and how it works from a user's perspective.  This [README.md](README.md) file is about the source code that goes into building EpilogLite, not about how EpilogLite is used.
 
@@ -20,11 +20,11 @@ email to security at neurodivergentnetworking dot org.
 
 ## GNU LESSER GENERAL PUBLIC LICENSE
 
-The EpilogLite source code is released under the GNU Lesser General Public License 3.0 only. See [COPYING.md](COPYING.md) for details. 
+The EpilogLite source code is released under the GNU Lesser General Public License 3.0 only. See [COPYING.md](COPYING.md) for details.
 
 ## Testing and Compiling
 
-Since this is a Rust application, the normal 'cargo' commands can be used to test or build the application. 
+Since this is a Rust application, the normal 'cargo' commands can be used to test or build the application.
 
 To execute the test suite run:
 
