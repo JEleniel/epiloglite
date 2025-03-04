@@ -1,0 +1,21 @@
+---
+characters: [";"]
+keywords: [BEGIN, DEFERRED, EXCLUSIVE, IMMEDIATE, TRANSACTION]
+title: BEGIN TRANSACTION
+---
+
+# BEGIN TRANSACTION
+
+```mermaid
+graph TB
+	st(("°"))
+	semi(((";")))
+	st --> BEGIN
+	BEGIN --> DEFERRED
+	BEGIN --> IMMEDIATE
+	BEGIN --> EXCLUSIVE
+	DEFERRED --> TRANSACTION
+	IMMEDIATE --> TRANSACTION
+	EXCLUSIVE --> TRANSACTION
+	TRANSACTION --> semi
+```
