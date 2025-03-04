@@ -9,8 +9,10 @@ title: DETACH
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
 	st --> DETACH
 	DETACH --> DATABASE
 	DETACH --> schema_name([Schema Name])

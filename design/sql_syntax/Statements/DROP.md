@@ -9,8 +9,11 @@ title: DROP
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
+	
 	st --> DROP
 	
 	DROP --> INDEX

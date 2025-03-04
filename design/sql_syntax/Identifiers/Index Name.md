@@ -1,7 +1,15 @@
+---
+title: Index Name
+---
+
 # Index Name
 
-`{rust icon title:regex}TODO`
+## Used by
 
-[Semicolon](../Tokens/Characters/Semicolon.md)
-
-[[../Keywords/Keyword - ON]]
+```dataview
+TABLE WITHOUT ID
+	split(file.path,"/")[length(split(file.path,"/"))-2] as Type,
+	file.link AS Element
+FROM "ba-Projects/EpilogLite/sql_syntax" 
+WHERE contains(identifiers, this.file.name)
+```

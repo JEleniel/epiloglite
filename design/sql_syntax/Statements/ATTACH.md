@@ -10,8 +10,10 @@ title: ATTACH
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
 	st --> ATTACH
 	ATTACH --> DATABASE
 	ATTACH --> expression>Expression]

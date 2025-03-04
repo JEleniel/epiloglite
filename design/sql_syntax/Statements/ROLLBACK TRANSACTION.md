@@ -9,8 +9,11 @@ title: ROLLBACK TRANSACTION
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
+	
 	st --> ROLLBACK 
 	ROLLBACK --> TRANSACTION
 	ROLLBACK --> TO

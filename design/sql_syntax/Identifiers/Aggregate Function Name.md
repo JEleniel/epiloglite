@@ -1,8 +1,9 @@
 ---
-title: Trigger Name
+keywords: [avg, count, group_concat, max, min, string_agg, sum, total]
+title: Aggregate Function Name
 ---
 
-# Trigger Name
+# Aggregate Function Name
 
 ## Used by
 

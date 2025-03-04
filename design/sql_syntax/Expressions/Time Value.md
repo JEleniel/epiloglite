@@ -1,8 +1,8 @@
 ---
-title: Trigger Name
+title: Time Value
 ---
 
-# Trigger Name
+# Time Value
 
 ## Used by
 
@@ -11,5 +11,5 @@ TABLE WITHOUT ID
 	split(file.path,"/")[length(split(file.path,"/"))-2] as Type,
 	file.link AS Element
 FROM "ba-Projects/EpilogLite/sql_syntax" 
-WHERE contains(identifiers, this.file.name)
+WHERE contains(expressions, this.file.name)
 ```

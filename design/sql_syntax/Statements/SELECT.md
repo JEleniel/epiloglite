@@ -10,8 +10,11 @@ title: SELECT
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
+	
 	st --> WITH
 	st --> SELECT
 	st --> VALUES
@@ -21,7 +24,7 @@ graph TB
 	RECURSIVE --> common_table_expression
 	
 	common_table_expression -->|#quot;,#quot;| common_table_expression 
-	common_table_expression --> j0(0)
+	common_table_expression --> j0((+))
 	
 	j0 --> SELECT
 	j0 --> VALUES
@@ -33,24 +36,24 @@ graph TB
 	ALL --> result_column
 	
 	result_column -->|#quot;,#quot;| result_column
-	result_column --> j1("1")
+	result_column --> j1((+))
 		
 	j1 --> FROM
-	j1 --> j2(("2"))
+	j1 --> j2((+))
 	
 	j2 --> WHERE
-	j2 --> j3(("3"))
+	j2 --> j3((+))
 	
 	j3 --> GROUP
 	j3 --> HAVING
-	j3 --> j4(("4"))
+	j3 --> j4((+))
 	
 	j4 --> WINDOW
-	j4 --> j5(("5"))
+	j4 --> j5((+))
 	
 	j5 --> compound_operator>Compound Operator]
 	j5 --> order_clause[ORDER BY]
-	j5 --> j6(("6"))
+	j5 --> j6((+))
 	
 	j6 --> LIMIT
 	j6 --> semi

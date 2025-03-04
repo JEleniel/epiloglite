@@ -10,8 +10,11 @@ title: PRAGMA
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
+	
 	st --> PRAGMA
 	PRAGMA --> schema_name([Schema Name])
 	PRAGMA --> pragma_name([Pragma Name])

@@ -10,8 +10,11 @@ title: UPDATE
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
+	
 	st --> WITH
 	st --> UPDATE
 	
@@ -38,7 +41,7 @@ graph TB
 	SET --> column_name([Column Name])
 	SET --> column_name_list>Column Name List]
 	column_name -->|#quot;=#quot;| column_expression>Expression]
-	column_name_list --> |=| column_expression
+	column_name_list --> |#quot;=#quot;| column_expression
 	column_expression -->|#quot;,#quot;| column_name
 	column_expression -->|#quot;,#quot;| column_name_list
 	column_expression --> FROM

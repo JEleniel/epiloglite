@@ -1,5 +1,15 @@
+---
+title: View Name
+---
+
 # View Name
 
-[Left Parenthesis](../Tokens/Characters/Left%20Parenthesis.md)
+## Used by
 
-[Keyword - AS](../Keywords/Keyword%20-%20AS.md)
+```dataview
+TABLE WITHOUT ID
+	split(file.path,"/")[length(split(file.path,"/"))-2] as Type,
+	file.link AS Element
+FROM "ba-Projects/EpilogLite/sql_syntax" 
+WHERE contains(identifiers, this.file.name)
+```

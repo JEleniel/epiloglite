@@ -9,8 +9,10 @@ title: ANALYZE
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop	
 	st --> ANALYZE
 	ANALYZE --> schema_name([Schema Name])
 	ANALYZE --> index_name([Index Name])

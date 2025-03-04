@@ -9,8 +9,11 @@ title: RELEASE
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
+	
 	st --> RELEASE
 	RELEASE --> SAVEPOINT
 	RELEASE --> savepoint_name([Save Point Name])

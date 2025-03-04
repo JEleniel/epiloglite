@@ -10,8 +10,11 @@ title: COMMIT or END TRANSACTION
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
+	
 	st --> END
 	END --> TRANSACTION
 	TRANSACTION --> semi

@@ -9,8 +9,11 @@ title: SAVEPOINT
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
+	
 	st --> SAVEPOINT
 	SAVEPOINT --> savepoint_name([Save Point Name])
 	savepoint_name --> semi

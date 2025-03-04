@@ -9,7 +9,7 @@ title: VACUUM
 
 ```mermaid
 graph TB
-	st(("°"))
+	st(("B0"))
 	semi(((";")))
 	st --> VACUUM
 	VACUUM --> schema_name([Schema Name])

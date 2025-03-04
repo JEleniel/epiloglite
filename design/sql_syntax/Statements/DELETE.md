@@ -9,8 +9,10 @@ title: DELETE
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
 	st --> WITH
 	st --> DELETE
 	WITH --> RECURSIVE

@@ -11,8 +11,11 @@ title: INSERT
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
+	
 	st --> WITH
 	st --> REPLACE
 	st --> INSERT

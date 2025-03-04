@@ -10,8 +10,10 @@ title: ALTER TABLE
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
 	st --> ALTER
 	ALTER --> TABLE
 	TABLE --> schema_name([Schema Name])

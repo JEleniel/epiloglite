@@ -11,8 +11,10 @@ title: CREATE
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
 	st --> CREATE
 	CREATE --> UNIQUE
 	CREATE --> INDEX
@@ -70,7 +72,7 @@ graph TB
 	trigger_name --> BEFORE
 	trigger_name --> AFTER
 	trigger_name --> instead[INSTEAD OF]
-	trigger_name --> j0(0)
+	trigger_name --> j0((+))
 	BEFORE --> j0
 	AFTER --> j0
 	instead --> j0

@@ -9,8 +9,11 @@ title: REINDEX
 
 ```mermaid
 graph TB
-	st(("°"))
-	semi(((";")))
+	st(( ))
+	semi(;)
+	stop(( ))
+	semi --> stop
+	
 	st --> REINDEX
 	REINDEX --> semi
 	REINDEX --> collation_name([Collation Name])
