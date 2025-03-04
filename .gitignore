@@ -1,4 +1,6 @@
 # ---------- General ----------
+# ----- Local scripts unrelated to building EpilogLite -----
+.local/**/*
 
 # ----- Common -----
 *~

@@ -1,6 +1,7 @@
 # EpilogLite Source Repository
 
 This repository contains the complete source code for the EpilogLite database engine, including test scripts.
+This repository contains the complete source code for the EpilogLite database engine, including test scripts.
 
 See the [on-line documentation](https://github.com/jeleniel/epiloglite/wiki) for more information about what EpilogLite is and how it works from a user's perspective. This [README.md](README.md) file is about the source code that goes into building EpilogLite, not about how EpilogLite is used.
 
@@ -14,7 +15,7 @@ Bug reports, enhancement requests, and documentation suggestions can be opened a
 
 The preferred way to ask questions or make comments about EpilogLite is to visit the [EpilogLite Discussions](https://github.com/jeleniel/epiloglite/discussions).
 
-If you think you have found a bug that has security implications and you do not want to report it on the public forum, you can send a private email to jeleniel at turkeyofman dot com.
+[Private security vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) is enabled on this repository.
 
 ## GNU LESSER GENERAL PUBLIC LICENSE
 
@@ -22,6 +23,7 @@ The EpilogLite source code is released under the GNU Lesser General Public Licen
 
 ## Testing and Compiling
 
+Since this is a Rust application, the normal 'cargo' commands can be used to test or build the application.
 Since this is a Rust application, the normal 'cargo' commands can be used to test or build the application.
 
 To execute the test suite run:
