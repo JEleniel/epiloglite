@@ -1,0 +1,440 @@
+// SQL Grammar based on SQLite 3.49 Grammar
+WHITESPACE = _{ SEPARATOR }
+
+sql_program = {
+    SOI ~ (sql_statement ~ c_semi)+ ~ EOI
+}
+
+sql_statement = {
+    s_alter_table
+  | s_analyze
+  | s_attach
+  | s_begin
+  | s_commit
+  | s_create
+  | s_delete
+  | s_detach
+  | s_explain
+  | s_drop
+  | s_insert
+  | s_pragma
+  | s_reindex
+  | s_rollback
+  | s_savepoint
+  | s_select
+  | s_update
+  | s_vacuum
+}
+
+// Statements:
+s_alter_table = { ^"TODO" }
+
+s_analyze = { ^"TODO" }
+
+s_attach = { ^"TODO" }
+
+s_begin = { ^"TODO" }
+
+s_commit = { ^"TODO" }
+
+s_create = { ^"TODO" }
+
+s_delete = { ^"TODO" }
+
+s_detach = { ^"TODO" }
+
+s_drop = { ^"TODO" }
+
+s_explain = {
+    ^"EXPLAIN" ~ "QUERY PLAN"? ~ sql_statement
+}
+
+s_insert = { ^"TODO" }
+
+s_pragma = { ^"TODO" }
+
+s_reindex = { ^"TODO" }
+
+s_rollback = { ^"TODO" }
+
+s_savepoint = { ^"TODO" }
+
+s_select = { ^"TODO" }
+
+s_update = { ^"TODO" }
+
+s_vacuum = { ^"TODO" }
+
+// Clauses:
+cl_order_by = { ^"TODO" }
+
+cl_filter = { ^"TODO" }
+
+// Functions:
+function_window = {
+    (function | function_agg) ~ ^"over" ~ (cl_window_def | i_window_name)
+}
+
+function_math = {
+    f_acos
+  | f_acosh
+  | f_asin
+  | f_asinh
+  | f_atan
+  | f_atan2
+  | f_atanh
+  | f_ceil
+  | f_ceiling
+  | f_cos
+  | f_cosh
+  | f_degrees
+  | f_exp
+  | f_floor
+  | f_ln
+  | f_log
+  | f_log
+  | f_log10
+  | f_log2
+  | f_mod
+  | f_pi
+  | f_pow
+  | f_power
+  | f_radians
+  | f_sin
+  | f_sinh
+  | f_sqrt
+  | f_tan
+  | f_tanh
+  | f_trunc
+}
+
+f_acos    = { ^"acos" ~ f_p_unary }
+f_acosh   = { ^"acosh" ~ f_p_unary }
+f_asin    = { ^"asin" ~ f_p_unary }
+f_asinh   = { ^"asinh" ~ f_p_unary }
+f_atan    = { ^"atan" ~ f_p_unary }
+f_atan2   = { ^"atan2" ~ f_p_binary }
+f_atanh   = { ^"atanh" ~ f_p_unary }
+f_ceil    = { ^"ceil" ~ f_p_unary }
+f_ceiling = { ^"ceiling" ~ f_p_unary }
+f_cos     = { ^"cos" ~ f_p_unary }
+f_cosh    = { ^"cosh" ~ f_p_unary }
+f_degrees = { ^"degrees" ~ f_p_unary }
+f_exp     = { ^"exp" ~ f_p_unary }
+f_floor   = { ^"floor" ~ f_p_unary }
+f_ln      = { ^"ln" ~ f_p_unary }
+f_log     = { ^"log" ~ f_p_binary }
+f_log     = { ^"log" ~ f_p_unary }
+f_log10   = { ^"log10" ~ f_p_unary }
+f_log2    = { ^"log2" ~ f_p_unary }
+f_mod     = { ^"mod" ~ f_p_binary }
+f_pi      = { ^"pi" ~ f_p_unary }
+f_pow     = { ^"pow" ~ f_p_binary }
+f_power   = { ^"power" ~ f_p_binary }
+f_radians = { ^"radians" ~ f_p_unary }
+f_sin     = { ^"sin" ~ f_p_unary }
+f_sinh    = { ^"sinh" ~ f_p_unary }
+f_sqrt    = { ^"sqrt" ~ f_p_unary }
+f_tan     = { ^"tan" ~ f_p_unary }
+f_tanh    = { ^"tanh" ~ f_p_unary }
+f_trunc   = { ^"trunc" ~ f_p_unary }
+
+function_dt = {
+    f_dt_date
+  | f_dt_time
+  | f_dt_datetime
+  | f_dt_julianday
+  | f_dt_unixepoch
+  | f_dt_strftime
+  | f_dt_timediff
+}
+
+f_dt_date      = { "date" ~ c_lparen ~ f_dt_tv_param ~ c_rparen }
+f_dt_time      = { "time" ~ c_lparen ~ f_dt_tv_param ~ c_rparen }
+f_dt_datetime  = { "datetime" ~ c_lparen ~ f_dt_tv_param ~ c_rparen }
+f_dt_julianday = { "julianway" ~ c_lparen ~ f_dt_tv_param ~ c_rparen }
+f_dt_unixepoch = { "unixepoch" ~ c_lparen ~ f_dt_tv_param ~ c_rparen }
+f_dt_strftime  = { "strftime" ~ c_lparen ~ e_dt_format ~ f_dt_tv_param ~ c_rparen }
+f_dt_timediff  = { "date" ~ c_lparen ~ e_dt_value ~ c_comma ~ e_dt_value ~ c_rparen }
+
+f_dt_tv_param = { e_dt_value ~ (e_dt_modifier ~ (c_comma ~ e_dt_modifier)*)* }
+
+function_agg = {
+    f_agg_avg
+  | f_agg_count
+  | f_agg_group_concat
+  | f_agg_max
+  | f_agg_min
+  | f_agg_string_agg
+  | f_agg_sum
+  | f_agg_total
+}
+
+f_agg_avg          = { ^"avg" ~ f_agg_unary_params }
+f_agg_count        = { ^"count" ~ (f_agg_ast_param | f_agg_unary_params) }
+f_agg_group_concat = { ^"group_concat" ~ (f_agg_unary_params | f_agg_binary_params) }
+f_agg_max          = { ^"max" ~ f_agg_unary_params }
+f_agg_min          = { ^"min" ~ f_agg_unary_params }
+f_agg_string_agg   = { ^"string_agg" ~ f_agg_binary_params }
+f_agg_sum          = { ^"sum" ~ f_agg_unary_params }
+f_agg_total        = { ^"total" ~ f_agg_unary_params }
+
+f_agg_ast_param     = { c_lparen ~ "*" ~ c_rparen }
+f_agg_unary_params  = { c_lparen ~ k_distinct? ~ p_unary ~ cl_order_by? ~ c_rparen ~ cl_filter? }
+f_agg_binary_params = { c_lparen ~ k_distinct? ~ p_binary ~ cl_order_by? ~ c_rparen ~ cl_filter? }
+
+function = {
+    (f_nonary_name ~ f_p_nonary)
+  | (f_unary_name ~ f_p_unary)
+  | (f_binary_name ~ f_p_binary)
+  | (f_un_binary_name ~ f_p_un_binary)
+  | (f_ternary_name ~ f_p_ternary)
+  | (f_bi_ternary_name ~ f_p_bi_ternary)
+  | (f_nary_name ~ f_p_nary)
+  | (f_format_name ~ f_p_format)
+}
+
+f_nonary_name = {
+    ^"changes"
+  | ^"last_insert_rowid"
+  | ^"random"
+  | ^"sqlite_version"
+  | ^"sqlite_source_id"
+}
+
+f_unary_name = {
+    ^"abs"
+  | ^"hex"
+  | ^"length"
+  | ^"likely"
+  | ^"lower"
+  | ^"octet_length"
+  | ^"quote"
+  | ^"randomblob"
+  | ^"sign"
+  | ^"soundex"
+  | ^"sqlite_compileoption_get"
+  | ^"sqlite_compileoption_used"
+  | ^"sqlite_offset"
+}
+
+f_binary_name = {
+    ^"glob"
+  | ^"ifnull"
+  | ^"instr"
+  | ^"likelihood"
+  | ^"nullif"
+}
+
+f_un_binary_name = {
+    ^"load_extension"
+  | ^"ltrim"
+  | ^"round"
+  | ^"rtrim"
+}
+
+f_ternary_name = {
+    ^"$1"
+}
+
+f_bi_ternary_name = {
+    ^"like"
+  | ^"substr"
+  | ^"substring"
+}
+
+f_nary_name = {
+    ^"char"
+  | ^"coalesce"
+  | ^"concat"
+  | ^"concat_ws"
+  | ^"if"
+  | ^"iif"
+  | ^"max"
+  | ^"min"
+}
+
+f_format_name = {
+    ^"format"
+  | ^"printf"
+}
+
+f_p_nonary     = { c_lparen ~ c_rparen }
+f_p_unary      = { c_lparen ~ p_unary ~ c_rparen }
+f_p_binary     = { c_lparen ~ p_binary ~ c_rparen }
+f_p_un_binary  = { c_lparen ~ (p_unary | p_binary) ~ c_rparen }
+f_p_ternary    = { c_lparen ~ p_ternary ~ c_rparen }
+f_p_bi_ternary = { c_lparen ~ (p_binary | p_ternary) ~ c_rparen }
+f_p_nary       = { c_lparen ~ p_nary ~ c_rparen }
+f_p_format     = { c_lparen ~ p_format ~ c_rparen }
+
+// Parameters:
+p_unary   = { expression }
+p_binary  = { expression ~ c_comma ~ expression }
+p_ternary = { p_unary ~ c_comma ~ p_binary }
+p_nary    = { expression ~ (c_comma ~ expression)* }
+p_format  = { e_dt_format ~ c_comma ~ p_nary }
+
+// Expressions:
+expression = { ^"TODO" }
+
+e_dt_value    = { ^"TODO" }
+e_dt_modifier = { ^"TODO" }
+e_dt_format   = { ^"TODO" }
+
+e_format = { ^"TODO" }
+
+// Keywords:
+k_abort             = { ^"ABORT" }
+k_action            = { ^"ACTION" }
+k_add               = { ^"ADD" }
+k_after             = { ^"AFTER" }
+k_all               = { ^"ALL" }
+k_alter             = { ^"ALTER" }
+k_always            = { ^"ALWAYS" }
+k_analyze           = { ^"ANALYZE" }
+k_and               = { ^"AND" }
+k_as                = { ^"AS" }
+k_asc               = { ^"ASC" }
+k_attach            = { ^"ATTACH" }
+k_autoincrement     = { ^"AUTOINCREMENT" }
+k_before            = { ^"BEFORE" }
+k_begin             = { ^"BEGIN" }
+k_between           = { ^"BETWEEN" }
+k_by                = { ^"BY" }
+k_cascade           = { ^"CASCADE" }
+k_case              = { ^"CASE" }
+k_cast              = { ^"CAST" }
+k_check             = { ^"CHECK" }
+k_collate           = { ^"COLLATE" }
+k_column            = { ^"COLUMN" }
+k_commit            = { ^"COMMIT" }
+k_conflict          = { ^"CONFLICT" }
+k_constraint        = { ^"CONSTRAINT" }
+k_create            = { ^"CREATE" }
+k_cross             = { ^"CROSS" }
+k_current           = { ^"CURRENT" }
+k_current_date      = { ^"CURRENT_DATE" }
+k_current_time      = { ^"CURRENT_TIME" }
+k_current_timestamp = { ^"CURRENT_TIMESTAMP" }
+k_database          = { ^"DATABASE" }
+k_default           = { ^"DEFAULT" }
+k_deferrable        = { ^"DEFERRABLE" }
+k_deferred          = { ^"DEFERRED" }
+k_delete            = { ^"DELETE" }
+k_desc              = { ^"DESC" }
+k_detach            = { ^"DETACH" }
+k_distinct          = { ^"DISTINCT" }
+k_do                = { ^"DO" }
+k_drop              = { ^"DROP" }
+k_each              = { ^"EACH" }
+k_else              = { ^"ELSE" }
+k_end               = { ^"END" }
+k_escape            = { ^"ESCAPE" }
+k_except            = { ^"EXCEPT" }
+k_exclude           = { ^"EXCLUDE" }
+k_exclusive         = { ^"EXCLUSIVE" }
+k_exists            = { ^"EXISTS" }
+k_explain           = { ^"EXPLAIN" }
+k_fail              = { ^"FAIL" }
+k_filter            = { ^"FILTER" }
+k_first             = { ^"FIRST" }
+k_following         = { ^"FOLLOWING" }
+k_for               = { ^"FOR" }
+k_foreign           = { ^"FOREIGN" }
+k_from              = { ^"FROM" }
+k_full              = { ^"FULL" }
+k_generated         = { ^"GENERATED" }
+k_glob              = { ^"GLOB" }
+k_group             = { ^"GROUP" }
+k_groups            = { ^"GROUPS" }
+k_having            = { ^"HAVING" }
+k_if                = { ^"IF" }
+k_ignore            = { ^"IGNORE" }
+k_immediate         = { ^"IMMEDIATE" }
+k_in                = { ^"IN" }
+k_index             = { ^"INDEX" }
+k_indexed           = { ^"INDEXED" }
+k_initially         = { ^"INITIALLY" }
+k_inner             = { ^"INNER" }
+k_insert            = { ^"INSERT" }
+k_instead           = { ^"INSTEAD" }
+k_intersect         = { ^"INTERSECT" }
+k_into              = { ^"INTO" }
+k_is                = { ^"IS" }
+k_isnull            = { ^"ISNULL" }
+k_join              = { ^"JOIN" }
+k_key               = { ^"KEY" }
+k_last              = { ^"LAST" }
+k_left              = { ^"LEFT" }
+k_like              = { ^"LIKE" }
+k_limit             = { ^"LIMIT" }
+k_match             = { ^"MATCH" }
+k_materialized      = { ^"MATERIALIZED" }
+k_natural           = { ^"NATURAL" }
+k_no                = { ^"NO" }
+k_not               = { ^"NOT" }
+k_nothing           = { ^"NOTHING" }
+k_notnull           = { ^"NOTNULL" }
+k_null              = { ^"NULL" }
+k_nulls             = { ^"NULLS" }
+k_of                = { ^"OF" }
+k_offset            = { ^"OFFSET" }
+k_on                = { ^"ON" }
+k_or                = { ^"OR" }
+k_order             = { ^"ORDER" }
+k_others            = { ^"OTHERS" }
+k_outer             = { ^"OUTER" }
+k_over              = { ^"OVER" }
+k_partition         = { ^"PARTITION" }
+k_plan              = { ^"PLAN" }
+k_pragma            = { ^"PRAGMA" }
+k_preceding         = { ^"PRECEDING" }
+k_primary           = { ^"PRIMARY" }
+k_query             = { ^"QUERY" }
+k_raise             = { ^"RAISE" }
+k_range             = { ^"RANGE" }
+k_recursive         = { ^"RECURSIVE" }
+k_references        = { ^"REFERENCES" }
+k_regexp            = { ^"REGEXP" }
+k_reindex           = { ^"REINDEX" }
+k_release           = { ^"RELEASE" }
+k_rename            = { ^"RENAME" }
+k_replace           = { ^"REPLACE" }
+k_restrict          = { ^"RESTRICT" }
+k_returning         = { ^"RETURNING" }
+k_right             = { ^"RIGHT" }
+k_rollback          = { ^"ROLLBACK" }
+k_row               = { ^"ROW" }
+k_rows              = { ^"ROWS" }
+k_savepoint         = { ^"SAVEPOINT" }
+k_select            = { ^"SELECT" }
+k_set               = { ^"SET" }
+k_table             = { ^"TABLE" }
+k_temp              = { ^"TEMP" }
+k_temporary         = { ^"TEMPORARY" }
+k_then              = { ^"THEN" }
+k_ties              = { ^"TIES" }
+k_to                = { ^"TO" }
+k_transaction       = { ^"TRANSACTION" }
+k_trigger           = { ^"TRIGGER" }
+k_unbounded         = { ^"UNBOUNDED" }
+k_union             = { ^"UNION" }
+k_unique            = { ^"UNIQUE" }
+k_update            = { ^"UPDATE" }
+k_using             = { ^"USING" }
+k_vacuum            = { ^"VACUUM" }
+k_values            = { ^"VALUES" }
+k_view              = { ^"VIEW" }
+k_virtual           = { ^"VIRTUAL" }
+k_when              = { ^"WHEN" }
+k_where             = { ^"WHERE" }
+k_window            = { ^"WINDOW" }
+k_with              = { ^"WITH" }
+k_without           = { ^"WITHOUT" }
+
+// Characters:
+c_semi   = { ^";" }
+c_comma  = { ^"," }
+c_lparen = { ^"(" }
+c_rparen = { ^")" }
