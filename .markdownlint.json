@@ -32,7 +32,7 @@
 	"ol-prefix": {
 		"style": "ordered"
 	},
-	"single-title": true,
+	"single-title": { "front_matter_title": "" },
 	"strong-style": {
 		"style": "asterisk"
 	},

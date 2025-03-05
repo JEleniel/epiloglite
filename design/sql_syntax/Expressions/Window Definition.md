@@ -1,35 +1,50 @@
 ---
 characters: [",", "(", ")"]
-identifiers: [Column Name, Table Name]
-keywords: [AS, MATERIALIZED, NOT]
-statements: [Select Statement]
-title: Common Table Expression
+expressions: [Expression, Frame Specification, Ordering Term]
+identifiers: [Base Window Name]
+keywords: [BY, ORDER, PARTITION]
+title: Window Definition
 ---
 
-# Common Table Expression
+# Window Definition
 
 ```mermaid
 graph TB
 	st(( ))
 	stop(( ))
+
+	st -->lparen("(") 
 	
-	st --> table_name([Table Name])
+	lparen --> base_window_name([Base Window Name])
+	lparen --> j_part((+))
+	j_part --> partition[PARTITION BY]
+	lparen --> j_ord((+))
+	j_ord --> order[ORDER BY]
+	lparen --> j_frame((+))
+	j_frame --> frame_spec>Frame Specification]
+	lparen --> rparen(")")
 
-	table_name -->|"#quot;(#quot;"| column_name([Column Name])
-	table_name --> AS
+	base_window_name --> j_part
+	base_window_name --> j_ord
+	base_window_name --> j_frame
+	base_window_name --> rparen
+	
+	partition --> p_expr>Expression]
+	
+	p_expr -->|#quot;,#quot;| p_expr
+	p_expr --> j_ord
+	p_expr --> j_frame
+	p_expr --> rparen
+	
+	order --> ordering_term>Ordering Term]
 
-	column_name -->|#quot;,#quot;| column_name
-	column_name -->|"#quot;)#quot;"| AS
+	ordering_term -->|#quot;,#quot;| ordering_term
+	ordering_term --> j_frame
+	ordering_term --> rparen
+	
+	frame_spec --> rparen
 
-	AS --> NOT
-	AS --> MATERIALIZED
-	AS -->|"#quot;(#quot;"| select_statement{{Select Statement}}
-
-	NOT --> MATERIALIZED
-
-	MATERIALIZED -->|"#quot;(#quot;"| select_statement{{Select Statement}}
-
-	select_statement -->|"#quot;)#quot;"| stop
+	rparen --> stop
 ```
 
 ## Used by
@@ -39,9 +54,5 @@ graph TB
 
 | Type       | Element                        |
 | ---------- | ------------------------------ |
-| Statements | [Statements: INSERT](<INSERT>) |
 | Statements | [Statements: SELECT](<SELECT>) |
-| Statements | [Statements: UPDATE](<UPDATE>) |
-| Statements | [Statements: DELETE](<DELETE>) |
-
 <!-- SerializedQuery END -->

@@ -1,38 +1,31 @@
 ---
-characters: ["."]
-identifiers: [Alias, Index Name, Schema Name, Table Name]
-keywords: [AS, BY, INDEXED, NOT]
-title: Qualified Table Name
+characters: [",", "(", ")"]
+expressions: [Expression]
+identifiers: [Column Name]
+keywords: [ON, USING]
+title: Join Constraint
 ---
 
-# Qualified Table Name
+# Join Constraint
 
 ```mermaid
 graph TB
 	st(( ))
 	stop(( ))
 
-	st --> schema_name([Schema Name])
-	st --> table_name([Table Name])
+	st --> ON
+	st --> USING
+	st --> stop
 
-	schema_name -->|#quot;.#quot;| table_name
+	ON --> expression>Expression]
 
-	table_name --> AS
-	table_name --> j0((+))
+	expression --> stop
 
-	j0 --> indexed[INDEXED BY]
-	j0 --> not_indexed[NOT INDEXED]
-	j0 --> stop
+	USING -->|"#quot;(#quot;"| column_name([Column Name])
 
-	AS --> alias([Alias])
-	alias --> j0
-
-	indexed --> index_name([Index Name])
-	indexed --> stop
-
-	index_name --> stop
+	column_name -->|#quot;,#quot;| column_name
+	column_name -->|"#quot;)#quot;"| stop
 	
-	not_indexed --> stop
 ```
 
 ## Used by
@@ -40,8 +33,7 @@ graph TB
 <!-- QueryToSerialize: TABLE WITHOUT ID split(file.path,"/")[length(split(file.path,"/"))-2] as Type, "[" + split(file.path,"/")[length(split(file.path,"/"))-2] + ": " + file.name + "](<" + replace(file.name," ","%20") + ">)" AS Element FROM "ba-Projects/EpilogLite/sql_syntax" WHERE contains(expressions, this.file.name) -->
 <!-- SerializedQuery: TABLE WITHOUT ID split(file.path,"/")[length(split(file.path,"/"))-2] as Type, "[" + split(file.path,"/")[length(split(file.path,"/"))-2] + ": " + file.name + "](<" + replace(file.name," ","%20") + ">)" AS Element FROM "ba-Projects/EpilogLite/sql_syntax" WHERE contains(expressions, this.file.name) -->
 
-| Type       | Element                        |
-| ---------- | ------------------------------ |
-| Statements | [Statements: UPDATE](<UPDATE>) |
-| Statements | [Statements: DELETE](<DELETE>) |
+| Type        | Element                                     |
+| ----------- | ------------------------------------------- |
+| Expressions | [Expressions: Join Clause](<Join%20Clause>) |
 <!-- SerializedQuery END -->

@@ -1,7 +1,6 @@
 ---
-aliases: [COMMIT TRANSACTION]
 characters: [";"]
-keywords: [COMMIT, END, TRANSACTION]
+keywords: [COMMIT, TRANSACTION]
 linter-yaml-title-alias: COMMIT TRANSACTION
 title: COMMIT TRANSACTION
 ---
