@@ -1,8 +1,12 @@
 // SQL Grammar based on SQLite 3.49 Grammar
 WHITESPACE = _{ SEPARATOR }
+COMMENT    = _{
+    (minus ~ minus ~ !NEWLINE ~ NEWLINE)
+  | (solidus ~ asterisk ~ !(asterisk ~ solidus)* ~ asterisk ~ solidus)
+}
 
 sql_program = {
-    SOI ~ (sql_statement ~ c_semi)+ ~ EOI
+    SOI ~ (sql_statement ~ semi)+ ~ EOI
 }
 
 sql_statement = {
@@ -70,120 +74,113 @@ cl_order_by = { ^"TODO" }
 
 cl_filter = { ^"TODO" }
 
+cl_over = { ^"TODO" }
+
+cl_collate = { ^"TODO" }
+
+cl_escape = { ^"TODO" }
+
+cl_is_from = { k_is ~ k_distinct? ~ k_from }
+
+cl_cast = { ^"TODO" }
+
 // Functions:
+function = {
+    function_window
+  | function_math
+  | function_agg
+  | function_date
+  | function_scalar
+}
+
+raise_function = {
+    k_raise ~ lparen ~ (k_ignore | ((k_rollback | k_abort | k_fail) ~ comma ~ expression)) ~ rparen
+}
+
+table_function = { ^"TODO" }
+
 function_window = {
-    (function | function_agg) ~ ^"over" ~ (cl_window_def | i_window_name)
+    (function_scalar ~ cl_filter? ~ cl_over)
+  | (f_agg_unary_name ~ f_p_unary)
+  | (f_agg_binary_name ~ f_p_binary ~ cl_filter? ~ cl_over)
+  | (f_agg_un_binary_name ~ f_p_un_binary ~ cl_filter? ~ cl_over)
 }
 
 function_math = {
-    f_acos
-  | f_acosh
-  | f_asin
-  | f_asinh
-  | f_atan
-  | f_atan2
-  | f_atanh
-  | f_ceil
-  | f_ceiling
-  | f_cos
-  | f_cosh
-  | f_degrees
-  | f_exp
-  | f_floor
-  | f_ln
-  | f_log
-  | f_log
-  | f_log10
-  | f_log2
-  | f_mod
-  | f_pi
-  | f_pow
-  | f_power
-  | f_radians
-  | f_sin
-  | f_sinh
-  | f_sqrt
-  | f_tan
-  | f_tanh
-  | f_trunc
+    (f_m_unary_name ~ f_p_unary)
+  | (f_m_binary_name ~ f_p_binary)
+  | (f_m_un_binary_name ~ f_p_un_binary)
 }
 
-f_acos    = { ^"acos" ~ f_p_unary }
-f_acosh   = { ^"acosh" ~ f_p_unary }
-f_asin    = { ^"asin" ~ f_p_unary }
-f_asinh   = { ^"asinh" ~ f_p_unary }
-f_atan    = { ^"atan" ~ f_p_unary }
-f_atan2   = { ^"atan2" ~ f_p_binary }
-f_atanh   = { ^"atanh" ~ f_p_unary }
-f_ceil    = { ^"ceil" ~ f_p_unary }
-f_ceiling = { ^"ceiling" ~ f_p_unary }
-f_cos     = { ^"cos" ~ f_p_unary }
-f_cosh    = { ^"cosh" ~ f_p_unary }
-f_degrees = { ^"degrees" ~ f_p_unary }
-f_exp     = { ^"exp" ~ f_p_unary }
-f_floor   = { ^"floor" ~ f_p_unary }
-f_ln      = { ^"ln" ~ f_p_unary }
-f_log     = { ^"log" ~ f_p_binary }
-f_log     = { ^"log" ~ f_p_unary }
-f_log10   = { ^"log10" ~ f_p_unary }
-f_log2    = { ^"log2" ~ f_p_unary }
-f_mod     = { ^"mod" ~ f_p_binary }
-f_pi      = { ^"pi" ~ f_p_unary }
-f_pow     = { ^"pow" ~ f_p_binary }
-f_power   = { ^"power" ~ f_p_binary }
-f_radians = { ^"radians" ~ f_p_unary }
-f_sin     = { ^"sin" ~ f_p_unary }
-f_sinh    = { ^"sinh" ~ f_p_unary }
-f_sqrt    = { ^"sqrt" ~ f_p_unary }
-f_tan     = { ^"tan" ~ f_p_unary }
-f_tanh    = { ^"tanh" ~ f_p_unary }
-f_trunc   = { ^"trunc" ~ f_p_unary }
-
-function_dt = {
-    f_dt_date
-  | f_dt_time
-  | f_dt_datetime
-  | f_dt_julianday
-  | f_dt_unixepoch
-  | f_dt_strftime
-  | f_dt_timediff
+f_m_nonary_name = {
+    "pi"
 }
 
-f_dt_date      = { "date" ~ c_lparen ~ f_dt_tv_param ~ c_rparen }
-f_dt_time      = { "time" ~ c_lparen ~ f_dt_tv_param ~ c_rparen }
-f_dt_datetime  = { "datetime" ~ c_lparen ~ f_dt_tv_param ~ c_rparen }
-f_dt_julianday = { "julianway" ~ c_lparen ~ f_dt_tv_param ~ c_rparen }
-f_dt_unixepoch = { "unixepoch" ~ c_lparen ~ f_dt_tv_param ~ c_rparen }
-f_dt_strftime  = { "strftime" ~ c_lparen ~ e_dt_format ~ f_dt_tv_param ~ c_rparen }
-f_dt_timediff  = { "date" ~ c_lparen ~ e_dt_value ~ c_comma ~ e_dt_value ~ c_rparen }
+f_m_unary_name = {
+    "acos"
+  | "acosh"
+  | "asin"
+  | "asinh"
+  | "atan"
+  | "atanh"
+  | "ceil"
+  | "cos"
+  | "cosh"
+  | "degrees"
+  | "exp"
+  | "floor"
+  | "ln"
+  | "log10"
+  | "log2"
+  | "pi"
+  | "radians"
+  | "sin"
+  | "sinh"
+  | "sqrt"
+  | "tan"
+  | "tanh"
+  | "trunc"
+}
 
-f_dt_tv_param = { e_dt_value ~ (e_dt_modifier ~ (c_comma ~ e_dt_modifier)*)* }
+f_m_binary_name = {
+    "atan2"
+  | "mod"
+  | "pow"
+  | "power"
+}
+
+f_m_un_binary_name = { "log" }
+
+function_date = {
+    (f_dt_name ~ lparen ~ f_dt_tv_param ~ rparen)
+  | (f_dt_format_name ~ lparen ~ e_dt_format ~ f_dt_tv_param ~ rparen)
+  | (f_dt_diff_name ~ lparen ~ e_dt_value ~ comma ~ e_dt_value ~ rparen)
+}
+
+f_dt_name        = { "date" | "time" | "datetime" | "julianday" | "unixepoch" }
+f_dt_format_name = { "strftime" }
+f_dt_diff_name   = { "timediff" }
+
+f_dt_tv_param = { e_dt_value ~ (e_dt_modifier ~ (comma ~ e_dt_modifier)*)* }
 
 function_agg = {
-    f_agg_avg
-  | f_agg_count
-  | f_agg_group_concat
-  | f_agg_max
-  | f_agg_min
-  | f_agg_string_agg
-  | f_agg_sum
-  | f_agg_total
+    (f_agg_ast_name ~ f_agg_ast_param)
+  | (f_agg_unary_name ~ f_agg_unary_params)
+  | (f_agg_binary_name ~ f_agg_binary_params)
+  | (f_agg_un_binary_name ~ f_agg_un_binary_params)
 }
 
-f_agg_avg          = { ^"avg" ~ f_agg_unary_params }
-f_agg_count        = { ^"count" ~ (f_agg_ast_param | f_agg_unary_params) }
-f_agg_group_concat = { ^"group_concat" ~ (f_agg_unary_params | f_agg_binary_params) }
-f_agg_max          = { ^"max" ~ f_agg_unary_params }
-f_agg_min          = { ^"min" ~ f_agg_unary_params }
-f_agg_string_agg   = { ^"string_agg" ~ f_agg_binary_params }
-f_agg_sum          = { ^"sum" ~ f_agg_unary_params }
-f_agg_total        = { ^"total" ~ f_agg_unary_params }
+f_agg_ast_name       = { ^"count" }
+f_agg_unary_name     = { ^"avg" | ^"max" | ^"min" | ^"sum" | ^"total" }
+f_agg_binary_name    = { ^"string_agg" }
+f_agg_un_binary_name = { ^"group_concat" | ^"" }
 
-f_agg_ast_param     = { c_lparen ~ "*" ~ c_rparen }
-f_agg_unary_params  = { c_lparen ~ k_distinct? ~ p_unary ~ cl_order_by? ~ c_rparen ~ cl_filter? }
-f_agg_binary_params = { c_lparen ~ k_distinct? ~ p_binary ~ cl_order_by? ~ c_rparen ~ cl_filter? }
+f_agg_ast_param        = { lparen ~ "*" ~ rparen }
+f_agg_unary_params     = { lparen ~ k_distinct? ~ p_unary ~ cl_order_by? ~ rparen ~ cl_filter? }
+f_agg_binary_params    = { lparen ~ k_distinct? ~ p_binary ~ cl_order_by? ~ rparen ~ cl_filter? }
+f_agg_un_binary_params = { lparen ~ k_distinct? ~ f_p_un_binary ~ cl_order_by? ~ rparen ~ cl_filter? }
 
-function = {
+function_scalar = {
     (f_nonary_name ~ f_p_nonary)
   | (f_unary_name ~ f_p_unary)
   | (f_binary_name ~ f_p_binary)
@@ -259,30 +256,148 @@ f_format_name = {
   | ^"printf"
 }
 
-f_p_nonary     = { c_lparen ~ c_rparen }
-f_p_unary      = { c_lparen ~ p_unary ~ c_rparen }
-f_p_binary     = { c_lparen ~ p_binary ~ c_rparen }
-f_p_un_binary  = { c_lparen ~ (p_unary | p_binary) ~ c_rparen }
-f_p_ternary    = { c_lparen ~ p_ternary ~ c_rparen }
-f_p_bi_ternary = { c_lparen ~ (p_binary | p_ternary) ~ c_rparen }
-f_p_nary       = { c_lparen ~ p_nary ~ c_rparen }
-f_p_format     = { c_lparen ~ p_format ~ c_rparen }
+f_p_nonary     = { lparen ~ rparen }
+f_p_unary      = { lparen ~ p_unary ~ rparen }
+f_p_binary     = { lparen ~ p_binary ~ rparen }
+f_p_un_binary  = { lparen ~ (p_unary | p_binary) ~ rparen }
+f_p_ternary    = { lparen ~ p_ternary ~ rparen }
+f_p_bi_ternary = { lparen ~ (p_binary | p_ternary) ~ rparen }
+f_p_nary       = { lparen ~ p_nary ~ rparen }
+f_p_format     = { lparen ~ p_format ~ rparen }
 
 // Parameters:
+p_bind    = { ^"TODO" }
 p_unary   = { expression }
-p_binary  = { expression ~ c_comma ~ expression }
-p_ternary = { p_unary ~ c_comma ~ p_binary }
-p_nary    = { expression ~ (c_comma ~ expression)* }
-p_format  = { e_dt_format ~ c_comma ~ p_nary }
+p_binary  = { expression ~ comma ~ expression }
+p_ternary = { p_unary ~ comma ~ p_binary }
+p_nary    = { expression ~ (comma ~ expression)* }
+p_format  = { e_format ~ comma ~ p_nary }
 
 // Expressions:
-expression = { ^"TODO" }
+expression = {
+    t_literal
+  | p_bind
+  | existing_column_name
+  | operator
+  | function
+  | cast
+  | cl_collate
+  | exists
+  | case
+  | raise_function
+}
+
+cast   = { k_cast ~ lparen ~ expression ~ k_as ~ type_name ~ rparen }
+exists = { k_not? ~ k_exists ~ lparen ~ s_select ~ rparen }
+case   = {
+    k_case ~ expression ~ (k_when ~ expression ~ k_then ~ expression)+ ~ (k_else ~ expression)? ~ k_end
+}
 
 e_dt_value    = { ^"TODO" }
 e_dt_modifier = { ^"TODO" }
 e_dt_format   = { ^"TODO" }
 
 e_format = { ^"TODO" }
+
+e_escape = { ^"TODO" }
+
+// Variables:
+v_nth          = { question ~ t_num_integer_part }
+v_nth_plus_one = { question }
+v_named        = { colon ~ name }
+v_named_at     = { at ~ name }
+v_tcl          = {
+    dollar ~ (ASCII_ALPHA | underscore) ~ ((colon ~ colon ~ ASCII_ALPHANUMERIC) | ASCII_ALPHANUMERIC | underscore)* ~ (lparen ~ !(rparen | LINE_SEPARATOR | OTHER) ~ rparen)
+}
+
+// Data types:
+type = { t_blob_literal | t_literal | t_null | t_boolean | t_number }
+
+t_blob_literal     = { ^"X" ~ single_quote ~ HEX_DIGIT ~ HEX_DIGIT* ~ single_quote }
+t_literal          = {
+    single_quote ~ (single_quote{2} | !(single_quote | LINE_SEPARATOR | OTHER)) ~ single_quote
+}
+t_null             = { ^"NULL" }
+t_boolean          = { ^"TRUE" | ^"FALSE" }
+t_number           = {
+    ((plus | minus)? ~ ((t_num_integer_part ~ (dot ~ t_num_fraction)?) | (dot ~ t_num_fraction)) ~ t_num_exponent?)
+  | t_hex
+}
+t_num_integer_part = { ASCII_DIGIT ~ (underscore? ~ ASCII_DIGIT){0, 18} }
+t_num_fraction     = { dot ~ ASCII_DIGIT ~ (underscore? ~ ASCII_DIGIT){0, 18} }
+t_num_exponent     = { ^"E" ~ (plus | minus)? ~ t_num_integer_part }
+t_hex              = { "0x" ~ HEX_DIGIT ~ (underscore? ~ HEX_DIGIT){0, 15} }
+
+// Operators:
+operator = {
+    logical_or
+}
+
+group     = { lparen ~ expression ~ rparen }
+not       = { tilde ~ expression }
+positive  = { plus ~ expression }
+negative  = { minus ~ expression }
+operator0 = { type | group | not | positive | negative }
+
+// collate
+operator1      = { operator0 ~ (k_collate ~ lparen ~ collation_name ~ rparen)? }
+collation_name = { k_binary | k_nocase | k_rtrim }
+
+// concatenate, extract
+operator2 = { operator1 ~ ((vertical_bar{2} | (minus ~ gt{1, 2})) ~ operator1)* }
+
+// multiply, divide, modulus
+operator3 = { operator2 ~ ((asterisk | solidus | percent) ~ operator2)* }
+
+// add, subtract
+operator4 = { operator3 ~ ((plus | minus) ~ operator3)* }
+
+// and, or, shift left, shift right
+operator5 = { operator4 ~ ((ampersand | vertical_bar | gt{2} | lt{2}) ~ operator4)* }
+
+// lt, gt, lte, gte
+operator6 = { operator5 ~ ((lt | gt | (gt ~ equal) | (lt ~ equal)) ~ operator5)* }
+
+// equals, not equals, is, between, in, match, like, regexp, glob, isnull, notnull
+operator7  = {
+    operator6 ~ ((equal{1, 2} | (exclamation ~ equal) | (lt ~ gt) | (k_is ~ k_not? ~ (k_distinct ~ k_from)?)) ~ operator6)*
+}
+operator8  = {
+    operator7 ~ (k_not? ~ k_in ~ (s_select | table_name | table_function | (lparen ~ operator7 ~ (comma ~ operator7)* ~ rparen)))*
+}
+operator9  = {
+    operator8 ~ (k_isnull | k_notnull | (k_not ~ k_null))*
+}
+operator10 = { operator9 ~ (k_not? ~ k_like ~ operator6 ~ k_escape ~ e_escape)* }
+operator11 = { operator10 ~ (k_between ~ operator6 ~ k_and ~ operator6)* }
+operator12 = { operator11 ~ (k_regexp ~ t_literal)* }
+operator13 = { operator12 ~ ((k_glob | k_match) ~ operator6)* }
+
+logical_not = { k_not ~ operator13 }
+
+logical_and = { (operator13 | logical_not) ~ (k_and ~ (operator13 | logical_not))* }
+
+logical_or = { logical_and ~ (k_or ~ logical_and)* }
+
+// Identifiers:
+type_name            = {
+    "NONE"
+  | "TEXT"
+  | "REAL"
+  | "INTEGER"
+  | "NUMERIC"
+  | "BLOB"
+}
+existing_column_name = { column_name | ^"ROWID" | ^"OID" | ^"_ROWID_" }
+column_name          = { (table_name ~ dot)? ~ name }
+table_name           = { (schema_name ~ dot)? ~ name }
+schema_name          = { name }
+
+name = {
+    (ASCII_ALPHA | underscore) ~ (ASCII_ALPHANUMERIC | underscore)*
+  | (double_quote ~ !double_quote ~ double_quote)
+  | (lsb ~ keyword ~ rsb)
+}
 
 // Keywords:
 k_abort             = { ^"ABORT" }
@@ -301,6 +416,7 @@ k_autoincrement     = { ^"AUTOINCREMENT" }
 k_before            = { ^"BEFORE" }
 k_begin             = { ^"BEGIN" }
 k_between           = { ^"BETWEEN" }
+k_binary            = { ^"BINARY" }
 k_by                = { ^"BY" }
 k_cascade           = { ^"CASCADE" }
 k_case              = { ^"CASE" }
@@ -373,6 +489,7 @@ k_match             = { ^"MATCH" }
 k_materialized      = { ^"MATERIALIZED" }
 k_natural           = { ^"NATURAL" }
 k_no                = { ^"NO" }
+k_nocase            = { ^"NOCASE" }
 k_not               = { ^"NOT" }
 k_nothing           = { ^"NOTHING" }
 k_notnull           = { ^"NOTNULL" }
@@ -407,6 +524,7 @@ k_right             = { ^"RIGHT" }
 k_rollback          = { ^"ROLLBACK" }
 k_row               = { ^"ROW" }
 k_rows              = { ^"ROWS" }
+k_rtrim             = { ^"RTRIM" }
 k_savepoint         = { ^"SAVEPOINT" }
 k_select            = { ^"SELECT" }
 k_set               = { ^"SET" }
@@ -434,7 +552,35 @@ k_with              = { ^"WITH" }
 k_without           = { ^"WITHOUT" }
 
 // Characters:
-c_semi   = { ^";" }
-c_comma  = { ^"," }
-c_lparen = { ^"(" }
-c_rparen = { ^")" }
+ampersand    = { "&" }
+asterisk     = { "*" }
+at           = { "@" }
+circumflex   = { "^" }
+colon        = { ":" }
+comma        = { "," }
+dollar       = { "$" }
+dot          = { "." }
+double_quote = { "\x22" }
+equal        = { "=" }
+exclamation  = { "!" }
+grave        = { "`" }
+gt           = { ">" }
+lcb          = { "{" }
+lparen       = { "(" }
+lsb          = { "[" }
+lt           = { "<" }
+minus        = { "-" }
+octothorpe   = { "#" }
+percent      = { "%" }
+plus         = { "+" }
+question     = { "?" }
+rcb          = { "}" }
+rparen       = { ")" }
+rsb          = { "]" }
+rsolidus     = { "\\" }
+semi         = { ";" }
+single_quote = { "'" }
+solidus      = { "/" }
+tilde        = { "~" }
+underscore   = { "_" }
+vertical_bar = { "|" }
