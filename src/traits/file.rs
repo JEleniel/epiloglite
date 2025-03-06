@@ -1,4 +1,4 @@
-use flagset::{flags, FlagSet};
+use flagset::{FlagSet, flags};
 use std::io;
 
 pub trait File {
