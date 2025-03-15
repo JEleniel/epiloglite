@@ -1,12 +1,12 @@
 // SQL Grammar based on SQLite 3.49 Grammar
 WHITESPACE = _{ SEPARATOR }
 COMMENT    = _{
-    (minus ~ minus ~ !NEWLINE ~ NEWLINE)
-  | (solidus ~ asterisk ~ !(asterisk ~ solidus)* ~ asterisk ~ solidus)
+    ("--" ~ (!NEWLINE ~ ANY)* ~ (NEWLINE | EOI))
+  | ("/*" ~ (!"*/" ~ ANY)* ~ "*/")
 }
 
 sql_program = {
-    SOI ~ (sql_statement ~ semi)+ ~ EOI
+    SOI ~ (sql_statement ~ ";")+ ~ EOI
 }
 
 sql_statement = {
@@ -33,12 +33,12 @@ sql_statement = {
 
 // Statements:
 alter_table = {
-    k_alter ~ k_table ~ table_name_qualified ~ ((k_rename ~ ((k_to ~ table_name) | (k_column? ~ column_name ~ k_to ~ column_name))) | (k_add ~ k_column? ~ column_definition) | (k_drop ~ k_column? ~ column_name))
+    k_alter ~ k_table ~ level_2_name_qualified ~ ((k_rename ~ ((k_to ~ name) | (k_column? ~ name ~ k_to ~ name))) | (k_add ~ k_column? ~ column_definition) | (k_drop ~ k_column? ~ name))
 }
 
-analyze = { k_analyze ~ (schema_name | table_name_qualified | table_name_qualified) }
+analyze = { k_analyze ~ (name | level_2_name_qualified) }
 
-attach = { k_attach ~ k_database? ~ expression ~ k_as ~ schema_name }
+attach = { k_attach ~ k_database? ~ expression ~ k_as ~ name }
 
 begin = { k_begin ~ (k_deferred | k_immediate | k_exclusive)? ~ k_transaction? }
 
@@ -47,47 +47,43 @@ commit = { (k_commit | k_end) ~ k_transaction? }
 create = { k_create ~ (create_index | create_table | create_trigger | create_view | create_virtual_table) }
 
 create_index = {
-    k_unique? ~ k_index ~ if_not_exists? ~ table_name_qualified ~ k_on ~ table_name ~ lparen ~ (indexed_column ~ (comma ~ indexed_column)*) ~ rparen ~ where?
+    k_unique? ~ k_index ~ if_not_exists? ~ level_2_name_qualified ~ k_on ~ name ~ "(" ~ (indexed_column ~ ("," ~ indexed_column)*) ~ ")" ~ where?
 }
 
 create_table = {
-    (k_temp | k_temporary)? ~ k_table ~ if_not_exists? ~ table_name_qualified ~ (k_as ~ select)?
-  | (lparen ~ ((column_definition_list ~ (comma ~ table_constraint_list)?) | table_constraint_list) ~ rparen) ~ table_options?
+    (k_temp | k_temporary)? ~ k_table ~ if_not_exists? ~ level_2_name_qualified ~ (k_as ~ select)?
+  | ("(" ~ ((column_definition_list ~ ("," ~ table_constraint_list)?) | table_constraint_list) ~ ")") ~ table_options?
 }
 
 create_trigger = {
-    (k_temp | k_temporary)? ~ k_trigger ~ if_not_exists? ~ trigger_name_qualified ~ (k_before | k_after | (k_instead ~ k_of))? ~ (k_delete | k_insert | (k_update ~ (k_of ~ column_name_list)?)) ~ k_on ~ table_name ~ (k_for ~ k_each ~ k_row)? ~ when? ~ k_begin ~ ((update | insert | delete | select) ~ semi)+ ~ k_end
+    (k_temp | k_temporary)? ~ k_trigger ~ if_not_exists? ~ level_2_name_qualified ~ (k_before | k_after | (k_instead ~ k_of))? ~ (k_delete | k_insert | (k_update ~ (k_of ~ name_list)?)) ~ k_on ~ name ~ (k_for ~ k_each ~ k_row)? ~ when? ~ k_begin ~ ((update | insert | delete | select) ~ ";")+ ~ k_end
 }
 
 create_view = {
-    (k_temp | k_temporary)? ~ k_view ~ if_not_exists? ~ view_name_qualified ~ (lparen ~ column_name_list ~ rparen)? ~ k_as ~ select
+    (k_temp | k_temporary)? ~ k_view ~ if_not_exists? ~ level_2_name_qualified ~ ("(" ~ name_list ~ ")")? ~ k_as ~ select
 }
 
 create_virtual_table = {
-    k_virtual ~ k_table ~ if_not_exists? ~ table_name_qualified ~ k_using ~ name ~ parameters_nary?
+    k_virtual ~ k_table ~ if_not_exists? ~ level_2_name_qualified ~ k_using ~ name ~ parameters_nary?
 }
 
 delete = {
-    (k_with ~ k_recursive? ~ common_table_expression_list)? ~ k_delete ~ k_from ~ table_name_fully_qualified ~ where? ~ returning?
+    (k_with ~ k_recursive? ~ common_table_expression_list)? ~ k_delete ~ k_from ~ name_fully_qualified ~ where? ~ returning?
 }
 
-detach = { k_detach ~ k_database? ~ schema_name }
+detach = { k_detach ~ k_database? ~ name }
 
-drop = {
-    k_drop ~ ((k_index ~ if_exists? ~ index_name_qualified) | (k_table ~ if_exists? ~ table_name_qualified) | (k_trigger ~ if_exists? ~ trigger_name_qualified) | (k_view ~ if_exists? ~ view_name_qualified))
-}
+drop = { k_drop ~ (k_index | k_table | k_trigger | k_view) ~ if_exists? ~ level_2_name_qualified }
 
-explain = {
-    ^"EXPLAIN" ~ "QUERY PLAN"? ~ sql_statement
-}
+explain = { k_explain ~ (k_query ~ k_plan)? ~ sql_statement }
 
 insert = {
-    (k_with ~ k_recursive? ~ common_table_expression_list)? ~ (k_replace | (k_insert ~ (k_or ~ conflict_action)?)) ~ k_into ~ table_name_qualified ~ (k_as ~ table_name)? ~ (lparen ~ column_name_list ~ rparen)? ~ ((k_values ~ lparen ~ expression_list ~ rparen ~ upsert?) | (select ~ upsert?) | (k_default ~ k_values)) ~ returning?
+    (k_with ~ k_recursive? ~ common_table_expression_list)? ~ (k_replace | (k_insert ~ (k_or ~ conflict_action)?)) ~ k_into ~ level_2_name_qualified ~ (k_as ~ name)? ~ ("(" ~ name_list ~ ")")? ~ ((k_values ~ "(" ~ expression_list ~ ")" ~ upsert?) | (select ~ upsert?) | (k_default ~ k_values)) ~ returning?
 }
 
-pragma = { k_pragma ~ pragma_name_qualified ~ ((equal ~ (name | literal)) | (lparen ~ (name | literal) ~ rparen))? }
+pragma = { k_pragma ~ level_2_name_qualified ~ (("=" ~ (name | literal)) | ("(" ~ (name | literal) ~ ")"))? }
 
-reindex = { k_reindex ~ (collation_name | table_name_qualified | index_name_qualified) }
+reindex = { k_reindex ~ (collation_name | level_2_name_qualified) }
 
 rollback = { k_rollback ~ k_transaction? ~ (k_to ~ k_savepoint? ~ name)? }
 
@@ -101,86 +97,86 @@ select             = {
 part_select        = {
     k_select ~ (k_distinct | k_all)? ~ result_column_list ~ from? ~ where? ~ (k_group ~ k_by ~ expression_list)? ~ (k_having ~ expression)? ~ (k_window ~ window_name_list)?
 }
-part_select_values = { k_values ~ parameters_nary ~ (comma ~ parameters_nary)* }
+part_select_values = { k_values ~ parameters_nary ~ ("," ~ parameters_nary)* }
 
 update = {
-    (k_with ~ k_recursive? ~ common_table_expression_list)? ~ k_update ~ (k_or ~ conflict_action)? ~ table_name_fully_qualified ~ set ~ from? ~ where? ~ returning?
+    (k_with ~ k_recursive? ~ common_table_expression_list)? ~ k_update ~ (k_or ~ conflict_action)? ~ name_fully_qualified ~ set ~ from? ~ where? ~ returning?
 }
 
-vacuum = { k_vacuum ~ schema_name? ~ (k_into ~ literal_string) }
+vacuum = { k_vacuum ~ name? ~ (k_into ~ literal_string) }
 
 // Clauses:
 over = { k_over ~ (window_definition | window_name) }
 
 filter = {
-    k_filter ~ lparen ~ where ~ rparen
+    k_filter ~ "(" ~ where ~ ")"
 }
 
 from = { k_from ~ (table_or_subquery_list | join) }
 
-result_column_list = { result_column ~ (comma ~ result_column)* }
+result_column_list = { result_column ~ ("," ~ result_column)* }
 result_column      = {
-    ((select_column_name | expression) ~ (k_as ~ column_name)?)
-  | (table_name ~ dot)? ~ asterisk
+    ((select_name | expression) ~ (k_as ~ name)?)
+  | (name ~ ".")? ~ "*"
 }
 
 compound_operator = { (k_union ~ k_all?) | k_intersect | k_except }
 limit             = { "TODO" }
 
-table_or_subquery_list = { table_or_subquery ~ (comma ~ table_or_subquery)* }
+table_or_subquery_list = { table_or_subquery ~ ("," ~ table_or_subquery)* }
 table_or_subquery      = {
-    table_name_fully_qualified
-  | ((table_name_qualified ~ parameters_nary) | (lparen ~ select ~ rparen) | (lparen ~ (table_or_subquery_list | join) ~ rparen)) ~ (k_as ~ table_name)?
+    name_fully_qualified
+  | ((level_2_name_qualified ~ parameters_nary) | ("(" ~ select ~ ")") | ("(" ~ (table_or_subquery_list | join) ~ ")")) ~ (k_as ~ name)?
 }
 
 join            = { table_or_subquery ~ (join_operator ~ table_or_subquery ~ join_constraint)* }
 join_operator   = {
-    comma
+    ","
   | (k_cross | (k_natural? ~ (((k_left | k_right | k_full) ~ k_outer?) | k_inner)) ~ k_join)
 }
-join_constraint = { (k_on ~ expression) | (k_using ~ lparen ~ column_name_list ~ rparen) }
+join_constraint = { (k_on ~ expression) | (k_using ~ "(" ~ name_list ~ ")") }
 
-window_name_list    = { window_name ~ (comma ~ window_definition)* }
+window_name_list    = { window_name ~ ("," ~ window_definition)* }
 window_name         = { name ~ (k_as ~ name) }
 window_definition   = {
-    lparen ~ window_name ~ (k_partition ~ k_by ~ expression_list)? ~ order? ~ frame_specification? ~ rparen
+    "(" ~ window_name ~ (k_partition ~ k_by ~ expression_list)? ~ order? ~ frame_specification? ~ ")"
 }
 frame_specification = {
     (k_range | k_rows | k_groups) ~ ((k_between ~ ((k_unbounded ~ k_preceding) | (expression ~ k_preceding) | (k_current ~ k_row) | (expression ~ k_following)) ~ k_and ~ ((expression ~ k_preceding) | (k_current ~ k_row) | (expression ~ k_following) | (k_unbounded ~ k_following))) | (k_unbounded ~ k_preceding) | (expression ~ k_preceding) | (k_current ~ k_row)) ~ (k_exclude ~ ((k_no ~ k_others) | (k_current ~ k_row) | k_group | k_ties))?
 }
 
 upsert = {
-    k_on ~ k_conflict ~ (lparen ~ column_name_list ~ rparen ~ where?)? ~ k_do ~ (k_nothing | (k_update ~ set) ~ where?)
+    k_on ~ k_conflict ~ ("(" ~ name_list ~ ")" ~ where?)? ~ k_do ~ (k_nothing | (k_update ~ set) ~ where?)
 }
 
-set = { k_set ~ column_name_list ~ equal ~ expression ~ (comma ~ column_name_list ~ equal ~ expression)* }
+set = { k_set ~ name_list ~ "=" ~ expression ~ ("," ~ name_list ~ "=" ~ expression)* }
 
 returning = {
-    k_returning ~ (asterisk | (expression ~ (k_as? ~ column_name) ~ (comma ~ expression ~ (k_as? ~ column_name))*))
+    k_returning ~ ("*" | (expression ~ (k_as? ~ name) ~ ("," ~ expression ~ (k_as? ~ name))*))
 }
 
 when = { k_when ~ expression }
 
-column_definition_list = { column_definition ~ (comma ~ column_definition)* }
-table_constraint_list  = { table_constraint ~ (comma ~ table_constraint)* }
+column_definition_list = { column_definition ~ ("," ~ column_definition)* }
+table_constraint_list  = { table_constraint ~ ("," ~ table_constraint)* }
 
-indexed_column_list = { indexed_column ~ (comma ~ indexed_column)* }
-indexed_column      = { (column_name | expression) ~ collate? ~ (k_asc | k_desc)? }
+indexed_column_list = { indexed_column ~ ("," ~ indexed_column)* }
+indexed_column      = { (name | expression) ~ collate? ~ (k_asc | k_desc)? }
 
 table_constraint = {
-    k_constraint ~ name ~ ((((k_primary ~ k_key) | k_unique) ~ lparen ~ indexed_column_list ~ rparen ~ on_conflict) | (k_check ~ lparen ~ expression ~ rparen) | (k_foreign ~ k_key ~ lparen ~ column_name_list ~ rparen ~ foreign_key))
+    k_constraint ~ name ~ ((((k_primary ~ k_key) | k_unique) ~ "(" ~ indexed_column_list ~ ")" ~ on_conflict) | (k_check ~ "(" ~ expression ~ ")") | (k_foreign ~ k_key ~ "(" ~ name_list ~ ")" ~ foreign_key))
 }
 
-table_options = { (k_without ~ k_rowid ~ (comma ~ k_strict)?) | (k_strict ~ (comma ~ k_without ~ k_rowid)?) }
+table_options = { (k_without ~ k_rowid ~ ("," ~ k_strict)?) | (k_strict ~ ("," ~ k_without ~ k_rowid)?) }
 
-collate = { k_collate ~ lparen ~ collation_name ~ rparen }
+collate = { k_collate ~ "(" ~ collation_name ~ ")" }
 
 order = { expression ~ collate? ~ (k_asc | k_desc)? ~ (k_nulls ~ (k_first | k_last))? }
 
-column_definition = { column_name ~ type_name? ~ column_constraint }
+column_definition = { name ~ type_name? ~ column_constraint }
 
 column_constraint = {
-    (k_constraint ~ name)? ~ ((k_primary ~ k_key ~ (k_asc | k_desc)? ~ on_conflict ~ k_autoincrement?) | (k_not ~ k_null ~ on_conflict?) | (k_unique ~ on_conflict) | (k_check ~ lparen ~ expression ~ rparen) | (k_default ~ ((lparen ~ expression ~ rparen) | literal)) | function_collate | foreign_key | ((k_generated ~ k_always)? ~ k_as ~ lparen ~ expression ~ rparen ~ (k_stored | k_virtual)?))
+    (k_constraint ~ name)? ~ ((k_primary ~ k_key ~ (k_asc | k_desc)? ~ on_conflict ~ k_autoincrement?) | (k_not ~ k_null ~ on_conflict?) | (k_unique ~ on_conflict) | (k_check ~ "(" ~ expression ~ ")") | (k_default ~ (("(" ~ expression ~ ")") | literal)) | function_collate | foreign_key | ((k_generated ~ k_always)? ~ k_as ~ "(" ~ expression ~ ")" ~ (k_stored | k_virtual)?))
 }
 
 on_conflict     = { k_on ~ k_conflict ~ conflict_action }
@@ -190,7 +186,7 @@ if_exists     = { k_if ~ k_exists }
 if_not_exists = { k_if ~ k_not ~ k_exists }
 
 foreign_key                 = {
-    k_references ~ table_name ~ (lparen ~ column_name ~ (comma ~ column_name)* ~ rparen)? ~ part_foreign_key_on ~ (k_match ~ name ~ part_foreign_key_on)* ~ part_foreign_key_deferrable
+    k_references ~ name ~ ("(" ~ name ~ ("," ~ name)* ~ ")")? ~ part_foreign_key_on ~ (k_match ~ name ~ part_foreign_key_on)* ~ part_foreign_key_deferrable
 }
 part_foreign_key_on         = { ((part_foreign_key_on_update ~ part_foreign_key_on_delete?) | (part_foreign_key_on_delete ~ part_foreign_key_on_update?)) }
 part_foreign_key_on_update  = {
@@ -213,7 +209,7 @@ function = {
 }
 
 raise_function = {
-    k_raise ~ lparen ~ (k_ignore | ((k_rollback | k_abort | k_fail) ~ comma ~ expression)) ~ rparen
+    k_raise ~ "(" ~ (k_ignore | ((k_rollback | k_abort | k_fail) ~ "," ~ expression)) ~ ")"
 }
 
 table_function = { ^"TODO" }
@@ -270,16 +266,16 @@ functions_math_binary = {
 }
 
 functions_date = {
-    (functions_datetime ~ lparen ~ part_parameters_time ~ rparen)
-  | (functions_date_format ~ lparen ~ literal_date_format ~ part_parameters_time ~ rparen)
-  | (functions_date_difference ~ lparen ~ literal_date_time ~ comma ~ literal_date_time ~ rparen)
+    (functions_datetime ~ "(" ~ part_parameters_time ~ ")")
+  | (functions_date_format ~ "(" ~ literal_string ~ "," ~ part_parameters_time ~ ")")
+  | (functions_date_difference ~ "(" ~ literal_date_time ~ "," ~ literal_date_time ~ ")")
 }
 
 functions_datetime        = { "date" | "time" | "datetime" | "julianday" | "unixepoch" }
 functions_date_format     = { "strftime" }
 functions_date_difference = { "timediff" }
 
-part_parameters_time = { literal_date_time ~ (literal_date_modifier ~ (comma ~ literal_date_modifier)*)* }
+part_parameters_time = { literal_date_time ~ (literal_date_modifier ~ ("," ~ literal_date_modifier)*)* }
 
 functions_aggregate = {
     (functions_aggregate_asterisk ~ parameters_aggregate_asterisk)
@@ -291,9 +287,9 @@ functions_aggregate_asterisk = { ^"count" }
 functions_aggregate_unary    = { ^"avg" | ^"max" | ^"min" | ^"sum" | ^"total" | ^"group_concat" | ^"string_agg" }
 functions_aggregate_binary   = { ^"group_concat" | ^"string_agg" }
 
-parameters_aggregate_asterisk = { lparen ~ "*" ~ rparen }
-parameters_aggregate_unary    = { lparen ~ k_distinct? ~ p_unary ~ order? ~ rparen ~ filter? }
-parameters_aggregate_binary   = { lparen ~ k_distinct? ~ p_binary ~ order? ~ rparen ~ filter? }
+parameters_aggregate_asterisk = { "(" ~ "*" ~ ")" }
+parameters_aggregate_unary    = { "(" ~ k_distinct? ~ p_unary ~ order? ~ ")" ~ filter? }
+parameters_aggregate_binary   = { "(" ~ k_distinct? ~ p_binary ~ order? ~ ")" ~ filter? }
 
 function_scalar = {
     (functions_nonary ~ parameters_nonary)
@@ -370,27 +366,27 @@ functions_format = {
   | ^"printf"
 }
 
-parameters_nonary       = { lparen ~ rparen }
-parameters_unary        = { lparen ~ p_unary ~ rparen }
-parameters_binary       = { lparen ~ p_binary ~ rparen }
-parameters_ternary      = { lparen ~ p_ternary ~ rparen }
-parameters_nary         = { lparen ~ p_nary ~ rparen }
-parameter_string_format = { lparen ~ p_format ~ rparen }
+parameters_nonary       = { "(" ~ ")" }
+parameters_unary        = { "(" ~ p_unary ~ ")" }
+parameters_binary       = { "(" ~ p_binary ~ ")" }
+parameters_ternary      = { "(" ~ p_ternary ~ ")" }
+parameters_nary         = { "(" ~ p_nary ~ ")" }
+parameter_string_format = { "(" ~ p_format ~ ")" }
 
 // Parameters:
 p_bind    = { variable }
 p_unary   = { expression }
-p_binary  = { expression ~ comma ~ expression }
-p_ternary = { expression ~ (comma ~ expression){2} }
-p_nary    = { expression ~ (comma ~ expression)* }
-p_format  = { literal_string_format ~ comma ~ p_nary }
+p_binary  = { expression ~ "," ~ expression }
+p_ternary = { expression ~ ("," ~ expression){2} }
+p_nary    = { expression ~ ("," ~ expression)* }
+p_format  = { literal_string ~ "," ~ p_nary }
 
 // Expressions:
-expression_list = { expression ~ (comma ~ expression)* }
+expression_list = { expression ~ ("," ~ expression)* }
 expression      = {
     literal_string
   | p_bind
-  | column_name_qualified
+  | level_3_name_qualified
   | operator
   | operator
   | function
@@ -400,11 +396,11 @@ expression      = {
   | raise_function
 }
 
-common_table_expression_list = { common_table_expression ~ (comma ~ common_table_expression)* }
-common_table_expression      = { table_name ~ (lparen ~ column_name_list ~ rparen)? ~ k_as ~ (k_not? ~ k_materialized)? ~ lparen ~ select ~ rparen }
+common_table_expression_list = { common_table_expression ~ ("," ~ common_table_expression)* }
+common_table_expression      = { name ~ ("(" ~ name_list ~ ")")? ~ k_as ~ (k_not? ~ k_materialized)? ~ "(" ~ select ~ ")" }
 
-cast   = { k_cast ~ lparen ~ expression ~ k_as ~ type_name ~ rparen }
-exists = { k_not? ~ k_exists ~ lparen ~ select ~ rparen }
+cast   = { k_cast ~ "(" ~ expression ~ k_as ~ type_name ~ ")" }
+exists = { k_not? ~ k_exists ~ "(" ~ select ~ ")" }
 case   = {
     k_case ~ expression ~ (k_when ~ expression ~ k_then ~ expression)+ ~ (k_else ~ expression)? ~ k_end
 }
@@ -412,12 +408,12 @@ case   = {
 // Variables:
 variable = { v_nth | v_nth_plus_one | v_named | v_named_at | v_tcl }
 
-v_nth          = { question ~ literal_number_integer }
-v_nth_plus_one = { question }
-v_named        = { colon ~ name }
-v_named_at     = { at ~ name }
+v_nth          = { "?" ~ literal_number_integer }
+v_nth_plus_one = { "?" }
+v_named        = { ":" ~ name }
+v_named_at     = { "@" ~ name }
 v_tcl          = {
-    dollar ~ (ASCII_ALPHA | underscore) ~ ((colon ~ colon ~ ASCII_ALPHANUMERIC) | ASCII_ALPHANUMERIC | underscore)* ~ (lparen ~ !(rparen | LINE_SEPARATOR | OTHER) ~ rparen)
+    "$" ~ (ASCII_ALPHA | "_") ~ ((":" ~ ":" ~ ASCII_ALPHANUMERIC) | ASCII_ALPHANUMERIC | "_")* ~ ("(" ~ (!(")" | LINE_SEPARATOR | OTHER) ~ ANY)* ~ ")")
 }
 
 // Operators:
@@ -425,31 +421,31 @@ operator = {
     logical_or
 }
 
-group = { lparen ~ expression ~ rparen }
+group = { "(" ~ expression ~ ")" }
 
-not            = { tilde ~ expression }
-positive       = { plus ~ expression }
-negative       = { minus ~ expression }
+not            = { "~" ~ expression }
+positive       = { "+" ~ expression }
+negative       = { "-" ~ expression }
 unary_operator = { literal | group | not | positive | negative }
 
 function_collate = { unary_operator ~ collate? }
 collation_name   = { k_binary | k_nocase | k_rtrim }
 
-concatenate_extract = { function_collate ~ ((vertical_bar{2} | (minus ~ gt{1, 2})) ~ function_collate)* }
+concatenate_extract = { function_collate ~ (("|"{2} | ("-" ~ ">"{1, 2})) ~ function_collate)* }
 
-multiply_divide_modulus = { concatenate_extract ~ ((asterisk | solidus | percent) ~ concatenate_extract)* }
+multiply_divide_modulus = { concatenate_extract ~ (("*" | "/" | "%") ~ concatenate_extract)* }
 
-add_subtract = { multiply_divide_modulus ~ ((plus | minus) ~ multiply_divide_modulus)* }
+add_subtract = { multiply_divide_modulus ~ (("+" | "-") ~ multiply_divide_modulus)* }
 
-binary_operators = { add_subtract ~ ((ampersand | vertical_bar | gt{2} | lt{2}) ~ add_subtract)* }
+binary_operators = { add_subtract ~ (("&" | "|" | ">"{2} | "<"{2}) ~ add_subtract)* }
 
-comparison = { binary_operators ~ ((lt | gt | (gt ~ equal) | (lt ~ equal)) ~ binary_operators)* }
+comparison = { binary_operators ~ (("<" | ">" | (">" ~ "=") | ("<" ~ "=")) ~ binary_operators)* }
 
 equals  = {
-    comparison ~ ((equal{1, 2} | (exclamation ~ equal) | (lt ~ gt) | (k_is ~ k_not? ~ (k_distinct ~ k_from)?)) ~ comparison)*
+    comparison ~ (("="{1, 2} | ("!" ~ "=") | ("<" ~ ">") | (k_is ~ k_not? ~ (k_distinct ~ k_from)?)) ~ comparison)*
 }
 in      = {
-    equals ~ (k_not? ~ k_in ~ (select | table_name_qualified | table_function | (lparen ~ equals ~ (comma ~ equals)* ~ rparen)))*
+    equals ~ (k_not? ~ k_in ~ (select | level_2_name_qualified | table_function | ("(" ~ equals ~ ("," ~ equals)* ~ ")")))*
 }
 isnull  = {
     in ~ (k_isnull | k_notnull | (k_not ~ k_null))*
@@ -466,80 +462,67 @@ logical_and = { (match | logical_not) ~ (k_and ~ (match | logical_not))* }
 logical_or = { logical_and ~ (k_or ~ logical_and)* }
 
 // Identifiers:
-pragma_name_qualified      = { schema_name ~ dot ~ pragma_name }
-pragma_name                = { name }
-view_name_qualified        = { schema_name ~ dot ~ view_name }
-view_name                  = { name }
-trigger_name_qualified     = { schema_name ~ dot ~ trigger_name }
-trigger_name               = { name }
-index_name_qualified       = { schema_name ~ dot ~ index_name }
-index_name                 = { name }
-select_column_name         = { column_name | ^"ROWID" | ^"OID" | ^"_ROWID_" }
-column_name_list           = { column_name ~ (comma ~ column_name)* }
-column_name_qualified      = { (schema_name ~ dot)? ~ table_name_qualified ~ dot ~ column_name }
-column_name                = { name }
-table_name_fully_qualified = { table_name_qualified ~ (k_as ~ table_name)? ~ ((k_indexed ~ k_by ~ index_name) | (k_not ~ k_indexed))? }
-table_name_qualified       = { schema_name ~ dot ~ table_name }
-table_name                 = { name }
-schema_name                = { name }
+select_name            = { name | ^"ROWID" | ^"OID" | ^"_ROWID_" }
+name_list              = { name ~ ("," ~ name)* }
+level_3_name_qualified = { (name ~ "."){0, 2} ~ name }
+name_fully_qualified   = { level_2_name_qualified ~ (k_as ~ name)? ~ ((k_indexed ~ k_by ~ name) | (k_not ~ k_indexed))? }
+level_2_name_qualified = { name ~ "." ~ name }
 
-name                = {
-    (!keyword ~ (ASCII_ALPHA | underscore) ~ (ASCII_ALPHANUMERIC | underscore)*)
-  | (double_quote ~ !keyword ~ part_name_character ~ double_quote)
-  | (lsb ~ keyword ~ rsb)
+name                = @{
+    (!keyword ~ ((ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")*))
+  | (double_quote ~ (!keyword ~ part_name_character)+ ~ double_quote)
+  | ("[" ~ keyword ~ "]")
 }
-part_name_character = { double_quote{2} | (!double_quote ~ part_literal_character) }
+part_name_character = @{ double_quote{2} | (!(double_quote | LINE_SEPARATOR | OTHER) ~ ANY) }
 
 // Literals:
 literal = { literal_blob | literal_string | literal_null | literal_boolean | literal_number }
 
-literal_blob                  = { ^"X" ~ single_quote ~ HEX_DIGIT ~ HEX_DIGIT* ~ single_quote }
-literal_string                = { single_quote ~ part_literal_string_character ~ single_quote }
-part_literal_string_character = { single_quote{2} | part_literal_character }
-part_literal_character        = { !LINE_SEPARATOR ~ !OTHER ~ ANY }
-literal_null                  = { ^"NULL" }
-literal_boolean               = { ^"TRUE" | ^"FALSE" | "1" | "0" }
-literal_number                = {
-    ((plus | minus)? ~ part_literal_number)
-  | literal_number_hex
+literal_blob           = @{ ^"X" ~ single_quote ~ HEX_DIGIT ~ HEX_DIGIT* ~ single_quote }
+literal_string         = @{ single_quote ~ part_literal_character ~ single_quote }
+part_literal_character = @{ single_quote{2} | (!(single_quote | LINE_SEPARATOR | OTHER) ~ ANY) }
+
+literal_null = @{ k_null }
+
+literal_boolean = @{ k_true | k_false }
+
+literal_number = @{ literal_number_decimal | literal_number_hex }
+
+literal_number_decimal = @{
+    ("+" | "-")? ~ ((literal_number_integer ~ part_literal_number_fraction?) | part_literal_number_fraction) ~ part_literal_number_exponent?
 }
-part_literal_number           = { ((literal_number_integer ~ part_literal_number_fraction?) | (dot ~ part_literal_number_fraction)) ~ part_literal_number_exponent? }
-literal_number_integer        = { ASCII_DIGIT ~ (underscore? ~ ASCII_DIGIT){0, 18} }
-literal_number_hex            = { "0x" ~ HEX_DIGIT ~ (underscore? ~ HEX_DIGIT){0, 15} }
-part_literal_number_fraction  = { dot ~ literal_number_integer }
-part_literal_number_exponent  = { ^"E" ~ (plus | minus)? ~ literal_number_integer }
+
+literal_number_integer = @{ ASCII_DIGIT ~ ("_"? ~ ASCII_DIGIT){0, 18} }
+
+literal_number_hex = @{ "0x" ~ HEX_DIGIT ~ ("_"? ~ HEX_DIGIT){0, 15} }
+
+part_literal_number_fraction = @{ "." ~ literal_number_integer }
+part_literal_number_exponent = @{ ^"E" ~ ("+" | "-")? ~ literal_number_integer }
 
 literal_date_time = @{
-    single_quote ~ ((part_literal_date) | (part_literal_date ~ " " ~ part_literal_time) | (part_literal_date ~ ^" " ~ part_literal_time) | (part_literal_time) | k_now | literal_number) ~ single_quote
+    single_quote ~ ((literal_date) | (literal_date ~ (" " | "T") ~ literal_time) | (literal_time) | k_now | literal_number) ~ single_quote
 }
 
-part_literal_date       = { part_literal_date_year ~ minus ~ part_literal_date_month ~ minus ~ part_literal_date_day }
-part_literal_date_year  = { ASCII_DIGIT{4} }
-part_literal_date_month = { ("1" ~ '0'..'2') | ("0" ~ '1'..'9') }
-part_literal_date_day   = { ("3" ~ '0'..'1') | ('1'..'2' ~ ASCII_DIGIT) | ("0" ~ '1'..'9') }
+literal_date            = @{ part_literal_date_year ~ "-" ~ part_literal_date_month ~ "-" ~ part_literal_date_day }
+part_literal_date_year  = @{ ASCII_DIGIT{4} }
+part_literal_date_month = @{ ("1" ~ '0'..'2') | ("0" ~ '1'..'9') }
+part_literal_date_day   = @{ ("3" ~ '0'..'1') | ('1'..'2' ~ ASCII_DIGIT) | ("0" ~ '1'..'9') }
 
-part_literal_time        = { part_literal_time_hour ~ colon ~ part_literal_time_minute ~ (colon ~ part_literal_time_second)? ~ part_literal_timezone? }
-part_literal_time_hour   = { ("2" ~ '0'..'3') | ('0'..'1' ~ ASCII_DIGIT) }
-part_literal_time_minute = { '0'..'5' ~ ASCII_DIGIT }
-part_literal_time_second = { '0'..'5' ~ ASCII_DIGIT ~ (dot ~ ASCII_DIGIT+)? }
-part_literal_timezone    = {
-    ((plus | minus)? ~ part_literal_time_hour ~ colon ~ part_literal_time_minute)
+literal_time             = @{ part_literal_time_hour ~ ":" ~ part_literal_time_minute ~ (":" ~ part_literal_time_second)? ~ part_literal_timezone? }
+part_literal_time_hour   = @{ ("2" ~ '0'..'3') | ('0'..'1' ~ ASCII_DIGIT) }
+part_literal_time_minute = @{ '0'..'5' ~ ASCII_DIGIT }
+part_literal_time_second = @{ '0'..'5' ~ ASCII_DIGIT ~ ("." ~ ASCII_DIGIT+)? }
+part_literal_timezone    = @{
+    (("+" | "-")? ~ part_literal_time_hour ~ ":" ~ part_literal_time_minute)
   | ^"Z"
 }
 
-literal_date_modifier = {
-    single_quote ~ ((literal_number_integer ~ (("year" | "month" | "day" | "hour" | "minute" | "second") ~ "s"?)) | ((plus | minus)? ~ part_literal_time) | ((plus | minus) ~ part_literal_date ~ (" " ~ part_literal_time)?) | ("ceiling" | "floor" | "start of month" | "start of year" | "start of day" | "unixepoch" | "julianday" | "auto" | "localtime" | "utc" | "subsec" | "subsecond ") | ("weekday " ~ '0'..'6')) ~ single_quote
+literal_date_modifier = @{
+    single_quote ~ ((literal_number_integer ~ (("year" | "month" | "day" | "hour" | "minute" | "second") ~ "s"?)) | (("+" | "-")? ~ (literal_date_time | literal_date | literal_time)) | ("ceiling" | "floor" | "start of month" | "start of year" | "start of day" | "unixepoch" | "julianday" | "auto" | "localtime" | "utc" | "subsec" | "subsecond ") | ("weekday " ~ '0'..'6')) ~ single_quote
 }
-
-literal_date_format            = @{ single_quote ~ (literal_format_not_placeholder | literal_format_placeholder)* ~ single_quote }
-literal_format_not_placeholder =  { !percent ~ !single_quote ~ ANY }
-literal_format_placeholder     =  { percent | (ASCII_ALPHA | percent) }
-literal_string_format          =  { ^"TODO" }
 
 // Data types:
-type_name = {
-    ("NONE" | "TEXT" | "REAL" | "INTEGER" | "NUMERIC" | "BLOB")* ~ (lparen ~ literal_number ~ (comma ~ literal_number)? ~ rparen)
-}
+type_name = { "TEXT" | "REAL" | "INTEGER" | "BLOB" | "NULL" }
 
 // Keywords:
 keyword = {
@@ -596,6 +579,7 @@ keyword = {
   | k_exists
   | k_explain
   | k_fail
+  | k_false
   | k_filter
   | k_first
   | k_following
@@ -683,6 +667,7 @@ keyword = {
   | k_to
   | k_transaction
   | k_trigger
+  | k_true
   | k_unbounded
   | k_union
   | k_unique
@@ -752,6 +737,7 @@ k_exclusive         = { ^"EXCLUSIVE" }
 k_exists            = { ^"EXISTS" }
 k_explain           = { ^"EXPLAIN" }
 k_fail              = { ^"FAIL" }
+k_false             = { ^"FALSE" }
 k_filter            = { ^"FILTER" }
 k_first             = { ^"FIRST" }
 k_following         = { ^"FOLLOWING" }
@@ -839,6 +825,7 @@ k_ties              = { ^"TIES" }
 k_to                = { ^"TO" }
 k_transaction       = { ^"TRANSACTION" }
 k_trigger           = { ^"TRIGGER" }
+k_true              = { ^"TRUE" }
 k_unbounded         = { ^"UNBOUNDED" }
 k_union             = { ^"UNION" }
 k_unique            = { ^"UNIQUE" }
@@ -855,29 +842,5 @@ k_with              = { ^"WITH" }
 k_without           = { ^"WITHOUT" }
 
 // Characters:
-ampersand    = { "&" }
-asterisk     = { "*" }
-at           = { "@" }
-colon        = { ":" }
-comma        = { "," }
-dollar       = { "$" }
-dot          = { "." }
 double_quote = { "\x22" }
-equal        = { "=" }
-exclamation  = { "!" }
-gt           = { ">" }
-lparen       = { "(" }
-lsb          = { "[" }
-lt           = { "<" }
-minus        = { "-" }
-percent      = { "%" }
-plus         = { "+" }
-question     = { "?" }
-rparen       = { ")" }
-rsb          = { "]" }
-semi         = { ";" }
 single_quote = { "'" }
-solidus      = { "/" }
-tilde        = { "~" }
-underscore   = { "_" }
-vertical_bar = { "|" }

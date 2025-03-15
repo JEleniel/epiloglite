@@ -1,6 +1,6 @@
 [package]
 name = "epiloglite"
-version = "0.1.0"
+version = "1.0.0-alpha"
 authors = ["Jen Eleniel"]
 description = "EpilogLite is a port of SQLite to Rust. Copyright (C) 2024 Tony M. Bishop"
 license = "LGPL-3.0-only"
