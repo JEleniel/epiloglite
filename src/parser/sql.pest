@@ -1,12 +1,12 @@
 // SQL Grammar based on SQLite 3.49 Grammar
-WHITESPACE = _{ SEPARATOR }
+WHITESPACE = _{ WHITE_SPACE }
 COMMENT    = _{
     ("--" ~ (!NEWLINE ~ ANY)* ~ (NEWLINE | EOI))
   | ("/*" ~ (!"*/" ~ ANY)* ~ "*/")
 }
 
 sql_program = {
-    SOI ~ (sql_statement ~ ";")+ ~ EOI
+    SOI ~ (";"* ~ (sql_statement ~ (";" ~ sql_statement?)*)?) ~ EOI
 }
 
 sql_statement = {
@@ -462,11 +462,11 @@ logical_and = { (match | logical_not) ~ (k_and ~ (match | logical_not))* }
 logical_or = { logical_and ~ (k_or ~ logical_and)* }
 
 // Identifiers:
-select_name            = { name | ^"ROWID" | ^"OID" | ^"_ROWID_" }
-name_list              = { name ~ ("," ~ name)* }
-level_3_name_qualified = { (name ~ "."){0, 2} ~ name }
-name_fully_qualified   = { level_2_name_qualified ~ (k_as ~ name)? ~ ((k_indexed ~ k_by ~ name) | (k_not ~ k_indexed))? }
-level_2_name_qualified = { name ~ "." ~ name }
+select_name            =  { name | ^"ROWID" | ^"OID" | ^"_ROWID_" }
+name_list              =  { name ~ ("," ~ name)* }
+level_3_name_qualified = @{ (name ~ "."){0, 2} ~ name }
+name_fully_qualified   =  { level_2_name_qualified ~ (k_as ~ name)? ~ ((k_indexed ~ k_by ~ name) | (k_not ~ k_indexed))? }
+level_2_name_qualified = @{ name ~ ("." ~ name)? }
 
 name                = @{
     (!keyword ~ ((ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")*))

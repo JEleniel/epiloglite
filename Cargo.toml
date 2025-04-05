@@ -9,12 +9,25 @@ keywords = ["database", "sqlite", "relational", "sql"]
 categories = ["database-implementations"]
 edition = "2024"
 
+[lib]
+name = "epiloglite"
+path = "src/lib.rs"
+
 [lints.rust]
 unsafe_code = "forbid"
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
+flagset = { version = "0.4.6", features = ["serde"] }
 pest = { version = "2", features = ["pretty-print"] }
 pest_derive = "2.7.15"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
+config = { version = "0.15", features = ["json"] }
+fern = { version = "0.7", features = ["colored"] }
+log = { version = "0.4", features = ["serde"] }
+rand = { version = "0.9", features = ["log"] }
+regex = { version = "1.11", features = ["std"] }
+tokio = { version = "1.43", features = ["full"] }
+url = { version = "2.5", features = ["serde"] }
+uuid = { version = "1.16", features = ["serde", "v4"] }

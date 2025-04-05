@@ -1,10 +1,10 @@
 use chrono::{DateTime, Utc};
 
 pub struct QualifiedTableName {
-    table_name: Level2Name,
-    as_name: Option<String>,
-    indexed: bool,
-    indexed_by_name: Option<String>,
+    pub table_name: Level2Name,
+    pub as_name: Option<String>,
+    pub indexed: bool,
+    pub indexed_by_name: Option<String>,
 }
 
 pub struct Level3Name {
@@ -26,11 +26,18 @@ pub enum Literal {
     Null,
 }
 
-pub enum TypeName {
-    Text,
-    Real,
+pub struct TypeName {
+    pub type_name: StorageTypeName,
+    pub min: f64,
+    pub max: f64,
+}
+
+pub enum StorageTypeName {
+    Null,
+    Boolean,
     Integer,
+    Real,
+    Text,
     Blob,
     DateTime,
-    Null,
 }
