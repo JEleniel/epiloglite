@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - Phase 11: Idiomatic Rust Improvements
+- Applied all clippy fixes for code quality
+- Changed module documentation to use `//!` style
+- Used `flatten()` instead of manual `if let Ok()` pattern
+- Changed `&Vec<u8>` to `&[u8]` for better performance
+- Fixed redundant if branches (collapsed identical code paths)
+- Removed unused imports throughout codebase
+- Improved iterator usage with modern patterns
+- All code now clippy-approved
+
+### Added - Phase 10: Type Safety & Security
+- Replaced all hardcoded type strings with ColumnType enum
+- Updated ColumnDefinition to use ColumnType instead of String
+- Added type-safe query builder methods (column_typed, simple_column_typed)
+- Parser now uses ColumnType enum throughout
+- 18 comprehensive adversarial tests covering:
+  - Malformed SQL (missing names, invalid syntax, incomplete statements)
+  - SQL injection attempts (classic injection, comment injection, command chaining)
+  - Keywords as identifiers (reserved words protection)
+  - Edge cases (empty strings, long names, unicode, null bytes, special chars)
+  - Error handling (non-existent tables, duplicates, column mismatches)
+  - Resource exhaustion and concurrent safety
+- Added end-of-statement validation (extra tokens detected)
+- Fixed WHERE clause parsing to consume all tokens
+- Better error messages for syntax errors
+
+### Added - Phase 9: Documentation
+- Complete README rewrite with all features and examples
+- Detailed STATUS.md with module-by-module breakdown
+- Full CHANGELOG.md covering all development phases
+- Updated CONTRIBUTING.md
+- Architecture documentation
+
 ### Added - Phase 8: Query Builder Pattern
 - Query builder fluent interface for type-safe SQL construction
 - SelectBuilder for SELECT queries with WHERE, ORDER BY, LIMIT, OFFSET
