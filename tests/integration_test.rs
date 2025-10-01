@@ -50,6 +50,60 @@ fn test_complete_workflow() -> Result<()> {
 }
 
 #[test]
+fn test_disk_persistence() -> Result<()> {
+	let test_db_path = "/tmp/test_epiloglite.db";
+	
+	// Clean up any existing test database
+	let _ = std::fs::remove_file(test_db_path);
+
+	// Create database and add data
+	{
+		let mut db = Database::open(test_db_path)?;
+		db.execute("CREATE TABLE products (id INTEGER, name TEXT, price INTEGER)")?;
+		db.execute("INSERT INTO products VALUES (1, 'Widget', 100)")?;
+		db.execute("INSERT INTO products VALUES (2, 'Gadget', 200)")?;
+		db.close()?;
+	}
+
+	// Reopen database and verify data persisted
+	{
+		let mut db = Database::open(test_db_path)?;
+		let result = db.execute("SELECT * FROM products")?;
+		
+		match result {
+			ExecutionResult::Select { rows, .. } => {
+				assert_eq!(rows.len(), 2, "Expected 2 rows to be persisted");
+			}
+			_ => panic!("Expected Select result"),
+		}
+		
+		// Add more data
+		db.execute("INSERT INTO products VALUES (3, 'Doohickey', 300)")?;
+		db.close()?;
+	}
+
+	// Reopen again and verify all data
+	{
+		let mut db = Database::open(test_db_path)?;
+		let result = db.execute("SELECT * FROM products")?;
+		
+		match result {
+			ExecutionResult::Select { rows, .. } => {
+				assert_eq!(rows.len(), 3, "Expected 3 rows after second insert");
+			}
+			_ => panic!("Expected Select result"),
+		}
+		
+		db.close()?;
+	}
+
+	// Clean up
+	std::fs::remove_file(test_db_path)?;
+
+	Ok(())
+}
+
+#[test]
 fn test_transactions() -> Result<()> {
 	let mut db = Database::open(":memory:")?;
 

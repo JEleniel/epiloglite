@@ -19,6 +19,19 @@ impl Processor {
 		}
 	}
 
+	/// Create a processor with a specific storage manager
+	pub fn with_storage(storage: StorageManager) -> Self {
+		Processor {
+			parser: Parser::new(),
+			storage,
+		}
+	}
+
+	/// Flush any pending changes to disk
+	pub fn flush(&mut self) -> Result<()> {
+		self.storage.flush()
+	}
+
 	/// Execute a SQL statement
 	pub fn execute(&mut self, sql: &str) -> Result<ExecutionResult> {
 		// Parse the SQL
@@ -47,6 +60,8 @@ impl Processor {
 				// Get the table
 				if let Some(table) = self.storage.get_table_mut(&stmt.table) {
 					table.insert(stmt.values)?;
+					// Flush to disk after insert
+					self.storage.flush()?;
 					Ok(ExecutionResult::RowsAffected(1))
 				} else {
 					Err(Error::NotFound(format!("Table '{}' not found", stmt.table)))
@@ -59,6 +74,8 @@ impl Processor {
 						stmt.where_clause.as_deref().unwrap_or(""),
 						&stmt.set_clauses,
 					)?;
+					// Flush to disk after update
+					self.storage.flush()?;
 					Ok(ExecutionResult::RowsAffected(count))
 				} else {
 					Err(Error::NotFound(format!("Table '{}' not found", stmt.table)))
@@ -68,6 +85,8 @@ impl Processor {
 				// Get the table
 				if let Some(table) = self.storage.get_table_mut(&stmt.table) {
 					let count = table.delete(stmt.where_clause.as_deref())?;
+					// Flush to disk after delete
+					self.storage.flush()?;
 					Ok(ExecutionResult::RowsAffected(count))
 				} else {
 					Err(Error::NotFound(format!("Table '{}' not found", stmt.table)))

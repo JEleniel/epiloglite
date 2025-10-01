@@ -7,6 +7,7 @@ use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::Path;
 
 /// Default file implementation
+#[derive(Debug)]
 pub struct DefaultFile {
 	file: StdFile,
 	path: String,

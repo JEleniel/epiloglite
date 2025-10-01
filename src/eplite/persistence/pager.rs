@@ -55,6 +55,7 @@ impl Page {
 }
 
 /// Page cache manager
+#[derive(Debug)]
 pub struct Pager {
 	page_size: u32,
 	cache: HashMap<u32, Page>,

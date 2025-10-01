@@ -1,14 +1,16 @@
-/// In-memory table storage
+/// In-memory table storage with disk persistence support
 
 use crate::eplite::command::parser::{ColumnDefinition, CreateTableStatement};
 use crate::eplite::error::{Error, Result};
+use crate::eplite::persistence::pager::Pager;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Represents a row of data
 pub type Row = Vec<String>;
 
 /// Table definition
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Table {
 	pub name: String,
 	pub columns: Vec<ColumnDefinition>,
@@ -82,17 +84,89 @@ impl Table {
 	}
 }
 
-/// In-memory storage manager
+/// Storage manager with optional disk persistence
 #[derive(Debug)]
 pub struct StorageManager {
 	tables: HashMap<String, Table>,
+	pager: Option<Pager>,
+	dirty: bool,
 }
 
 impl StorageManager {
 	pub fn new() -> Self {
 		StorageManager {
 			tables: HashMap::new(),
+			pager: None,
+			dirty: false,
 		}
+	}
+
+	/// Create a storage manager with disk persistence
+	pub fn with_pager(pager: Pager) -> Self {
+		StorageManager {
+			tables: HashMap::new(),
+			pager: Some(pager),
+			dirty: false,
+		}
+	}
+
+	/// Load tables from disk if pager is available
+	pub fn load_from_disk(&mut self) -> Result<()> {
+		if let Some(pager) = &mut self.pager {
+			// Try to load from page 1 (page 0 is header)
+			if let Ok(page) = pager.get_page(1) {
+				// Deserialize the tables from the page data
+				if !page.data.is_empty() && page.data[0] != 0 {
+					match bincode::deserialize::<HashMap<String, Table>>(&page.data) {
+						Ok(tables) => {
+							self.tables = tables;
+							return Ok(());
+						}
+						Err(_) => {
+							// Page exists but can't deserialize - might be empty/new database
+						}
+					}
+				}
+			}
+		}
+		Ok(())
+	}
+
+	/// Save tables to disk if pager is available
+	pub fn save_to_disk(&mut self) -> Result<()> {
+		if self.dirty && self.pager.is_some() {
+			if let Some(pager) = &mut self.pager {
+				// Serialize the tables
+				let serialized = bincode::serialize(&self.tables).map_err(|e| {
+					Error::Internal(format!("Failed to serialize tables: {}", e))
+				})?;
+
+				// Get or create page 1
+				let page = pager.get_page_mut(1)?;
+				
+				// Write serialized data
+				if serialized.len() <= page.data.len() {
+					page.data[..serialized.len()].copy_from_slice(&serialized);
+					page.mark_dirty();
+				} else {
+					return Err(Error::Internal(format!(
+						"Serialized data too large: {} bytes (max: {})",
+						serialized.len(),
+						page.data.len()
+					)));
+				}
+
+				// Flush to disk
+				pager.flush()?;
+				self.dirty = false;
+			}
+		}
+		Ok(())
+	}
+
+	/// Mark storage as dirty (needs save)
+	fn mark_dirty(&mut self) {
+		self.dirty = true;
 	}
 
 	/// Create a table
@@ -106,6 +180,8 @@ impl StorageManager {
 
 		let table = Table::new(stmt.name.clone(), stmt.columns);
 		self.tables.insert(stmt.name, table);
+		self.mark_dirty();
+		self.save_to_disk()?;
 		Ok(())
 	}
 
@@ -116,6 +192,9 @@ impl StorageManager {
 
 	/// Get a mutable table
 	pub fn get_table_mut(&mut self, name: &str) -> Option<&mut Table> {
+		if self.tables.contains_key(name) {
+			self.mark_dirty();
+		}
 		self.tables.get_mut(name)
 	}
 
@@ -132,10 +211,17 @@ impl StorageManager {
 	/// Drop a table
 	pub fn drop_table(&mut self, name: &str) -> Result<()> {
 		if self.tables.remove(name).is_some() {
+			self.mark_dirty();
+			self.save_to_disk()?;
 			Ok(())
 		} else {
 			Err(Error::NotFound(format!("Table '{}' not found", name)))
 		}
+	}
+
+	/// Flush any pending changes to disk
+	pub fn flush(&mut self) -> Result<()> {
+		self.save_to_disk()
 	}
 }
 

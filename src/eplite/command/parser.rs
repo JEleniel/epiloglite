@@ -3,6 +3,7 @@
 use crate::eplite::command::tokenizer::{Token, Tokenizer};
 use crate::eplite::error::{Error, Result};
 use logos::Logos;
+use serde::{Deserialize, Serialize};
 
 /// Parse tree node types
 #[derive(Debug, Clone)]
@@ -44,13 +45,13 @@ pub struct DeleteStatement {
 	pub where_clause: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTableStatement {
 	pub name: String,
 	pub columns: Vec<ColumnDefinition>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColumnDefinition {
 	pub name: String,
 	pub data_type: String,

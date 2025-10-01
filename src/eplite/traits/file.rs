@@ -1,7 +1,7 @@
 use flagset::{flags, FlagSet};
 use std::io;
 
-pub trait File {
+pub trait File: std::fmt::Debug {
     fn close(self: &mut Self) -> Result<(), io::Error>;
     fn read(self: &mut Self, offset: u64) -> Result<Vec<u8>, io::Error>;
     fn write(self: &mut Self, data: &Vec<u8>, offset: u64) -> Result<(), io::Error>;
