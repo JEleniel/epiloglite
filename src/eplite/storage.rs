@@ -192,6 +192,53 @@ impl Table {
 		Ok(filtered)
 	}
 
+	/// Select rows with ORDER BY support
+	pub fn select_ordered(&self, where_clause: Option<&str>, order_by_column: &str, ascending: bool) -> Result<Vec<Row>> {
+		let mut rows = self.select(where_clause)?;
+		
+		// Find column index
+		let col_index = self.columns.iter()
+			.position(|c| c.name == order_by_column)
+			.ok_or_else(|| Error::NotFound(format!("Column '{}' not found", order_by_column)))?;
+		
+		// Sort rows by the column
+		rows.sort_by(|a, b| {
+			let val_a = &a[col_index];
+			let val_b = &b[col_index];
+			
+			// Try numeric comparison first
+			if let (Ok(num_a), Ok(num_b)) = (val_a.parse::<f64>(), val_b.parse::<f64>()) {
+				let cmp = num_a.partial_cmp(&num_b).unwrap_or(std::cmp::Ordering::Equal);
+				if ascending { cmp } else { cmp.reverse() }
+			} else {
+				// String comparison
+				let cmp = val_a.cmp(val_b);
+				if ascending { cmp } else { cmp.reverse() }
+			}
+		});
+		
+		Ok(rows)
+	}
+
+	/// Select rows grouped by a column
+	pub fn select_grouped(&self, where_clause: Option<&str>, group_by_column: &str) -> Result<HashMap<String, Vec<Row>>> {
+		let rows = self.select(where_clause)?;
+		
+		// Find column index
+		let col_index = self.columns.iter()
+			.position(|c| c.name == group_by_column)
+			.ok_or_else(|| Error::NotFound(format!("Column '{}' not found", group_by_column)))?;
+		
+		// Group rows by column value
+		let mut groups = HashMap::new();
+		for row in rows {
+			let key = row[col_index].clone();
+			groups.entry(key).or_insert_with(Vec::new).push(row);
+		}
+		
+		Ok(groups)
+	}
+
 	/// Update rows matching a condition
 	pub fn update(&mut self, condition: Option<&str>, updates: &[(String, String)]) -> Result<usize> {
 		let mut count = 0;

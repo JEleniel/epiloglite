@@ -49,15 +49,33 @@ impl Processor {
 					));
 
 					if has_aggregates {
-						// Process aggregate query
+						// Process aggregate query (GROUP BY handled inside if present)
 						self.execute_aggregate_select(table, &stmt)
 					} else {
-						// Regular SELECT
-						let rows: Vec<Vec<String>> = table
-							.select(stmt.where_clause.as_deref())?
-							.into_iter()
-							.map(|row| row.iter().cloned().collect())
-							.collect();
+						// Regular SELECT - check for ORDER BY
+						let rows: Vec<Vec<String>> = if let Some(order_cols) = &stmt.order_by {
+							// ORDER BY present - use first column
+							if !order_cols.is_empty() {
+								table
+									.select_ordered(stmt.where_clause.as_deref(), &order_cols[0], true)?
+									.into_iter()
+									.map(|row| row.iter().cloned().collect())
+									.collect()
+							} else {
+								table
+									.select(stmt.where_clause.as_deref())?
+									.into_iter()
+									.map(|row| row.iter().cloned().collect())
+									.collect()
+							}
+						} else {
+							// No ORDER BY
+							table
+								.select(stmt.where_clause.as_deref())?
+								.into_iter()
+								.map(|row| row.iter().cloned().collect())
+								.collect()
+						};
 						
 						// Extract column names for display
 						let column_names: Vec<String> = stmt.columns.iter().map(|col| {
@@ -128,6 +146,13 @@ impl Processor {
 		table: &crate::eplite::storage::Table,
 		stmt: &crate::eplite::command::parser::SelectStatement,
 	) -> Result<ExecutionResult> {
+		// Check if GROUP BY is present
+		if let Some(group_cols) = &stmt.group_by {
+			if !group_cols.is_empty() {
+				return self.execute_grouped_aggregate_select(table, stmt, &group_cols[0]);
+			}
+		}
+
 		// Get filtered rows
 		let rows = table.select(stmt.where_clause.as_deref())?;
 
@@ -165,7 +190,7 @@ impl Processor {
 									}
 								})
 								.sum();
-							sum.to_string()
+			sum.to_string()
 						}
 						AggregateFunction::Avg => {
 							let values: Vec<f64> = rows
@@ -232,6 +257,134 @@ impl Processor {
 
 		Ok(ExecutionResult::Select {
 			rows: vec![result_row],
+			columns: column_names,
+		})
+	}
+
+	/// Execute aggregates with GROUP BY
+	fn execute_grouped_aggregate_select(
+		&self,
+		table: &crate::eplite::storage::Table,
+		stmt: &crate::eplite::command::parser::SelectStatement,
+		group_col: &str,
+	) -> Result<ExecutionResult> {
+		// Get grouped rows
+		let groups = table.select_grouped(stmt.where_clause.as_deref(), group_col)?;
+
+		let mut result_rows = Vec::new();
+		let mut column_names = Vec::new();
+
+		// Build column names first
+		column_names.push(group_col.to_string());
+		for col_sel in &stmt.columns {
+			match col_sel {
+				ColumnSelection::CountStar => {
+					column_names.push("COUNT(*)".to_string());
+				}
+				ColumnSelection::Aggregate { function, column } => {
+					column_names.push(format!("{}({})", 
+						match function {
+							AggregateFunction::Count => "COUNT",
+							AggregateFunction::Sum => "SUM",
+							AggregateFunction::Avg => "AVG",
+							AggregateFunction::Min => "MIN",
+							AggregateFunction::Max => "MAX",
+						},
+						column
+					));
+				}
+				_ => {}
+			}
+		}
+
+		// Process each group
+		for (group_key, rows) in groups {
+			let mut result_row = vec![group_key];
+
+			for col_sel in &stmt.columns {
+				match col_sel {
+					ColumnSelection::CountStar => {
+						result_row.push(rows.len().to_string());
+					}
+					ColumnSelection::Aggregate { function, column } => {
+						// Find column index
+						let col_idx = table
+							.columns
+							.iter()
+							.position(|c| c.name == *column)
+							.ok_or_else(|| Error::NotFound(format!("Column '{}' not found", column)))?;
+
+						let result = match function {
+							AggregateFunction::Count => {
+								let count = rows.iter().filter(|r| col_idx < r.len()).count();
+								count.to_string()
+							}
+							AggregateFunction::Sum => {
+								let sum: f64 = rows
+									.iter()
+									.filter_map(|r| {
+										if col_idx < r.len() {
+											r[col_idx].parse::<f64>().ok()
+										} else {
+											None
+										}
+									})
+									.sum();
+								sum.to_string()
+							}
+							AggregateFunction::Avg => {
+								let values: Vec<f64> = rows
+									.iter()
+									.filter_map(|r| {
+										if col_idx < r.len() {
+											r[col_idx].parse::<f64>().ok()
+										} else {
+											None
+										}
+									})
+									.collect();
+								if values.is_empty() {
+									"0".to_string()
+								} else {
+									let avg = values.iter().sum::<f64>() / values.len() as f64;
+									avg.to_string()
+								}
+							}
+							AggregateFunction::Min => rows
+								.iter()
+								.filter_map(|r| {
+									if col_idx < r.len() {
+										Some(r[col_idx].clone())
+									} else {
+										None
+									}
+								})
+								.min()
+								.unwrap_or_else(|| "NULL".to_string()),
+							AggregateFunction::Max => rows
+								.iter()
+								.filter_map(|r| {
+									if col_idx < r.len() {
+										Some(r[col_idx].clone())
+									} else {
+										None
+									}
+								})
+								.max()
+								.unwrap_or_else(|| "NULL".to_string()),
+						};
+
+						result_row.push(result);
+					}
+					_ => {}
+				}
+			}
+
+			result_rows.push(result_row);
+		}
+
+		Ok(ExecutionResult::Select {
+			rows: result_rows,
 			columns: column_names,
 		})
 	}

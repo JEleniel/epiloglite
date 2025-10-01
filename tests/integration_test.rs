@@ -234,3 +234,59 @@ fn test_error_handling() {
 	let result = db.execute("CREATE TABLE users (id INTEGER)");
 	assert!(result.is_err());
 }
+
+#[test]
+fn test_order_by() -> Result<()> {
+	let mut db = Database::open(":memory:")?;
+
+	// Create table and insert data
+	db.execute("CREATE TABLE products (id INTEGER, name TEXT, price INTEGER)")?;
+	db.execute("INSERT INTO products VALUES (1, 'Widget', 100)")?;
+	db.execute("INSERT INTO products VALUES (2, 'Gadget', 50)")?;
+	db.execute("INSERT INTO products VALUES (3, 'Doohickey', 150)")?;
+
+	// ORDER BY price (should return in ascending order)
+	let result = db.execute("SELECT * FROM products ORDER BY price")?;
+	match result {
+		ExecutionResult::Select { rows, .. } => {
+			assert_eq!(rows.len(), 3);
+			// Should be ordered by price: Gadget (50), Widget (100), Doohickey (150)
+			assert_eq!(rows[0][2], "50");
+			assert_eq!(rows[1][2], "100");
+			assert_eq!(rows[2][2], "150");
+		}
+		_ => panic!("Expected Select result"),
+	}
+
+	db.close()?;
+	Ok(())
+}
+
+#[test]
+fn test_group_by_with_aggregates() -> Result<()> {
+	let mut db = Database::open(":memory:")?;
+
+	// Create table and insert data
+	db.execute("CREATE TABLE sales (product TEXT, quantity INTEGER, revenue INTEGER)")?;
+	db.execute("INSERT INTO sales VALUES ('Widget', 10, 100)")?;
+	db.execute("INSERT INTO sales VALUES ('Gadget', 5, 50)")?;
+	db.execute("INSERT INTO sales VALUES ('Widget', 15, 150)")?;
+	db.execute("INSERT INTO sales VALUES ('Gadget', 8, 80)")?;
+
+	// GROUP BY product with SUM(quantity)
+	let result = db.execute("SELECT COUNT(*) FROM sales GROUP BY product")?;
+	match result {
+		ExecutionResult::Select { rows, columns } => {
+			assert_eq!(rows.len(), 2); // 2 products
+			assert_eq!(columns.len(), 2); // product, COUNT(*)
+			// Each product should have 2 rows
+			for row in rows {
+				assert_eq!(row[1], "2");
+			}
+		}
+		_ => panic!("Expected Select result"),
+	}
+
+	db.close()?;
+	Ok(())
+}
