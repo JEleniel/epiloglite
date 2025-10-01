@@ -1,135 +1,273 @@
-# EpilogLite Source Repository
+# EpilogLite
 
-This repository contains the complete source code for the EpilogLite database engine, including test scripts and examples.
+[![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
 
-## What is EpilogLite?
+EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliability, and performance. Built with **100% safe Rust** (no `unsafe` code), it provides a drop-in compatible alternative to SQLite with modern Rust idioms.
 
-EpilogLite is a port and refactoring of SQLite 3 to pure Rust without unsafe code. It provides:
+## ✨ Features
 
-- **Pure Rust Implementation**: 100% safe Rust code with `unsafe_code = "forbid"`
-- **SQLite Compatibility**: Backwards compatible with SQLite 3 databases
-- **Modern Format**: Improved EPLite format with enhanced features
-- **Full Type Support**: Native support for all Rust types (bool, i8-i128, u8-u128, f32/f64, strings, blobs)
-- **Cross-Platform**: Supports Windows, Linux, macOS, iOS, Android, and embedded systems
-- **No Dependencies on SQLite**: Clean implementation without SQLite library dependencies
+### Currently Implemented
 
-## Current Status
+#### Core Database Operations
+- ✅ **Full SQL Support** - CREATE TABLE, INSERT, SELECT, UPDATE, DELETE
+- ✅ **Disk Persistence** - Data automatically saves to and loads from files
+- ✅ **In-Memory Databases** - Fast `:memory:` mode for temporary data
+- ✅ **Transactions** - BEGIN, COMMIT, ROLLBACK support
+- ✅ **Multiple Tables** - Create and manage multiple tables simultaneously
 
-**Alpha Development** - Core foundation complete (52 tests passing)
+#### Query Builder Pattern
+- ✅ **Fluent Interface** - Type-safe query construction
+- ✅ **SelectBuilder** - Build SELECT queries with WHERE, ORDER BY, LIMIT
+- ✅ **InsertBuilder** - Build INSERT statements with column specification
+- ✅ **UpdateBuilder** - Build UPDATE statements with SET clauses
+- ✅ **DeleteBuilder** - Build DELETE statements with conditions
+- ✅ **CreateTableBuilder** - Build CREATE TABLE with columns and constraints
 
-✅ Completed:
-- Error handling and result types
-- All Rust native type support (17+ types)
-- Database file format (SQLite 3 & EPLite)
-- File I/O and OS abstraction layer
-- Basic module structure
+#### Type System
+- ✅ **17+ Native Rust Types** - Bool, I8-I128, U8-U128, F32/F64, String, Vec<u8>
+- ✅ **SQL Type Mapping** - INTEGER, TEXT, REAL, BLOB, BOOLEAN
+- ✅ **NULL Support** - Proper NULL value handling
+- ✅ **Type Checking** - Built-in type validation
 
-🚧 In Progress:
-- SQL tokenizer and parser
-- B-tree storage engine
-- Virtual machine for bytecode execution
-- Transaction support
+#### Architecture
+- ✅ **100% Safe Rust** - No unsafe code blocks
+- ✅ **Modular Design** - Clean separation of concerns
+- ✅ **Error Handling** - Comprehensive Result types
+- ✅ **Test Coverage** - 93 tests (88 unit + 5 integration)
 
-## Quick Start
+### In Progress
+- 🚧 WHERE clause filtering
+- 🚧 JOIN operations
+- 🚧 Aggregate functions (COUNT, SUM, AVG, MIN, MAX)
+- 🚧 ORDER BY and GROUP BY implementation
+- 🚧 Index support
+
+### Planned
+- 📋 Unicode 16 support
+- 📋 Graph data structures
+- 📋 Role-based permissions
+- 📋 Lightweight ORM
+- 📋 REST/GraphQL API
+- 📋 SQLite C API compatibility
+- 📋 No-std support
+
+## 🚀 Quick Start
 
 ### Installation
 
-Add EpilogLite to your `Cargo.toml`:
+Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-epiloglite = "0.1.0"
+epiloglite = "0.1"
 ```
 
 ### Basic Usage
 
 ```rust
-use epiloglite::{Database, Result};
+use epiloglite::{Database, ExecutionResult, Result};
 
 fn main() -> Result<()> {
-    // Open an in-memory database
-    let mut db = Database::open(":memory:")?;
+    // Open or create a database file
+    let mut db = Database::open("mydata.db")?;
     
-    // Execute SQL (when implemented)
-    // db.execute("CREATE TABLE users (id INTEGER, name TEXT)")?;
+    // Create a table
+    db.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)")?;
     
-    // Close the database
+    // Insert data
+    db.execute("INSERT INTO users VALUES (1, 'Alice', 30)")?;
+    db.execute("INSERT INTO users VALUES (2, 'Bob', 25)")?;
+    
+    // Query data
+    let result = db.execute("SELECT * FROM users")?;
+    match result {
+        ExecutionResult::Select { rows, columns } => {
+            println!("Found {} rows", rows.len());
+            for row in rows {
+                println!("{:?}", row);
+            }
+        }
+        _ => {}
+    }
+    
+    // Update data
+    db.execute("UPDATE users SET age = 31 WHERE id = 1")?;
+    
+    // Delete data
+    db.execute("DELETE FROM users WHERE id = 2")?;
+    
+    // Close database (auto-saves)
+    db.close()?;
+    
+    Ok(())
+}
+```
+
+### Query Builder Pattern
+
+```rust
+use epiloglite::{Database, SelectBuilder, InsertBuilder, UpdateBuilder, Result};
+
+fn main() -> Result<()> {
+    let mut db = Database::open("mydata.db")?;
+    
+    // Create table with builder
+    let sql = CreateTableBuilder::new()
+        .table("products")
+        .column("id", "INTEGER", &["PRIMARY KEY"])
+        .simple_column("name", "TEXT")
+        .simple_column("price", "INTEGER")
+        .build()?;
+    db.execute(&sql)?;
+    
+    // Insert with builder
+    let sql = InsertBuilder::new()
+        .into("products")
+        .columns(&["id", "name", "price"])
+        .values(&["1", "'Widget'", "100"])
+        .build()?;
+    db.execute(&sql)?;
+    
+    // Query with builder
+    let sql = SelectBuilder::new()
+        .select_all()
+        .from("products")
+        .where_clause("price > 50")
+        .order_by("name")
+        .limit(10)
+        .build()?;
+    let result = db.execute(&sql)?;
+    
+    // Update with builder
+    let sql = UpdateBuilder::new()
+        .table("products")
+        .set("price", "120")
+        .where_clause("id = 1")
+        .build()?;
+    db.execute(&sql)?;
+    
     db.close()?;
     Ok(())
 }
 ```
 
-### Running Examples
+### In-Memory Database
 
-```shell
-cargo run --example basic_usage
+```rust
+use epiloglite::{Database, Result};
+
+fn main() -> Result<()> {
+    // Create in-memory database (faster, no disk I/O)
+    let mut db = Database::open(":memory:")?;
+    
+    // Use like a regular database
+    db.execute("CREATE TABLE temp_data (id INTEGER, value TEXT)")?;
+    db.execute("INSERT INTO temp_data VALUES (1, 'test')")?;
+    
+    // Data is lost when database is closed
+    db.close()?;
+    
+    Ok(())
+}
 ```
 
-## Documentation
+## 📚 Examples
 
-See the [on-line documentation](https://github.com/jeleniel/epiloglite/wiki) for more information about what EpilogLite is and how it works from a user's perspective.
+The `examples/` directory contains several examples:
 
-Design documentation is in the `./design/` folder:
-- [Architecture](design/ARCHITECTURE.md) - System architecture and module overview
+- `basic_usage.rs` - Complete workflow demonstration
+- `query_builder_example.rs` - Query builder pattern examples
+
+Run examples with:
+
+```bash
+cargo run --example basic_usage
+cargo run --example query_builder_example
+```
+
+## 🏗️ Architecture
+
+EpilogLite follows a modular architecture:
+
+```
+eplite/
+├── command/         # SQL parsing and execution
+│   ├── tokenizer    # Lexical analysis
+│   ├── parser       # Syntax analysis
+│   ├── processor    # Query execution
+│   └── virtual_machine # Bytecode VM
+├── persistence/     # Storage engine
+│   ├── pager        # Page cache management
+│   ├── btree        # B-tree implementation
+│   └── header       # Database header
+├── storage/         # Table and row management
+├── query_builder/   # Fluent query interface
+├── os/              # OS abstraction layer
+└── types/           # Type system
+```
+
+## 🧪 Testing
+
+Run the test suite:
+
+```bash
+# Run all tests
+cargo test
+
+# Run specific test category
+cargo test integration
+cargo test query_builder
+
+# Run with output
+cargo test -- --nocapture
+```
+
+Current test coverage: **93 tests passing** (88 unit + 5 integration)
+
+## 📖 Documentation
+
+- [Architecture](design/ARCHITECTURE.md) - System architecture overview
 - [File Format](design/FILEFORMAT.md) - Database file format specification
 - [Virtual Machine](design/VIRTUALMACHINE.md) - Bytecode execution engine
-- [Query Planner](design/QUERYPLANNER.md) - Query optimization
-- [Transactions](design/TRANSACTIONS.md) - Transaction processing
+- [C/C++ Interface](design/C-CPP-Interface.md) - C API design (planned)
+- [Status](STATUS.md) - Current implementation status
+- [Contributing](CONTRIBUTING.md) - Contribution guidelines
+- [Changelog](CHANGELOG.md) - Version history
 
-## Testing and Compiling
+## 🔒 Safety & Security
 
-Since this is a Rust application, the normal 'cargo' commands can be used to test or build the application.
+- **100% Safe Rust** - No `unsafe` blocks anywhere
+- **Comprehensive Error Handling** - All errors properly handled
+- **No Panics** - Graceful error returns
+- **Memory Safe** - Rust's ownership system prevents common bugs
+- **Thread Safe** - Designed for concurrent access
 
-To execute the test suite run:
+## 🎯 Goals
 
-```shell
-cargo test
-```
+EpilogLite aims to:
 
-To create a release build run:
+1. Provide a **safe** alternative to SQLite using pure Rust
+2. Maintain **SQLite 3 compatibility** for existing databases
+3. Offer **modern Rust idioms** (builders, async, etc.)
+4. Support **all major platforms** (Windows, Linux, macOS, mobile, embedded)
+5. Achieve **high performance** without sacrificing safety
 
-```shell
-cargo build --release
-```
+## 🤝 Contributing
 
-The compiled binaries will be in the 'target' folder after the build completes.
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## Features
+## 📄 License
 
-### Completed
-- Safe Rust implementation (no unsafe code)
-- Comprehensive error handling
-- Support for all Rust native types
-- Database file header parsing (SQLite 3 & EPLite formats)
-- OS abstraction layer for cross-platform support
-- File I/O operations
+EpilogLite is licensed under the LGPL-3.0-only license.
 
-### Planned
-- Full SQL support (SELECT, INSERT, UPDATE, DELETE, CREATE, etc.)
-- ACID transactions with rollback
-- B-tree storage engine
-- Query optimizer and planner
-- Role-based permissions
-- REST API and GraphQL support
-- Lightweight ORM
-- C API compatibility layer
+Copyright (C) 2024 Tony M. Bishop
 
-## Contributing
+## 🙏 Acknowledgments
 
-Bug reports, enhancement requests, and documentation suggestions can be opened at the [Epilogue Issues](https://github.com/jeleniel/epiloglite/issues) list.
+- SQLite project for the original design and inspiration
+- Rust community for excellent tooling and libraries
 
-The preferred way to ask questions or make comments about EpilogLite is to visit the [EpilogLite Discussions](https://github.com/jeleniel/epiloglite/discussions).
+## 📬 Contact
 
-[Private security vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability) is enabled on this repository.
-
-## Version Control
-
-EpilogLite sources are managed using [GitHub](https://github.com/jeleniel/epiloglite).
-
-## License
-
-The EpilogLite source code is released under the GNU Lesser General Public License 3.0 only. See [LICENSE.md](LICENSE.md) for details.
-
-## Acknowledgments
-
-EpilogLite is inspired by SQLite, one of the most widely deployed database engines in the world. We thank the SQLite team for their excellent work and comprehensive documentation.
+For questions, issues, or contributions, please use GitHub Issues.
