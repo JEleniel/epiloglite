@@ -17,7 +17,7 @@ graph LR
 	QUERY --> PLAN
 	PLAN --> j0
 	j0 --> alter_table_statement{{ALTER TABLE Statement}}
-	jo --> analyze_statement{{ANALYZE Statement}}
+	j0 --> analyze_statement{{ANALYZE Statement}}
 	j0 --> attach_statement{{ATTACH Statement}}
 	j0 --> begin_transaction_statement{{BEGIN TRANSACTION Statement}}
 	j0 --> commit_transaction_statement{{COMMIT TRANSACTION Statement}}
