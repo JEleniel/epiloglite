@@ -21,13 +21,13 @@ impl Value {
 
 #[derive(Debug, Clone)]
 pub enum ValueType {
-    blob(Vec<u8>),
-    bytes(Vec<u8>),
-    double(f64),
-    i32(i32),
-    i64(i64),
-    string_utf8(String),
-    string_utf16(Vec<u8>),
-    string_utf16le(Vec<u8>),
-    string_utf16be(Vec<u8>),
+    Blob(Vec<u8>),
+    Bytes(Vec<u8>),
+    Double(f64),
+    I32(i32),
+    I64(i64),
+    StringUtf8(String),
+    StringUtf16(Vec<u8>),
+    StringUtf16Le(Vec<u8>),
+    StringUtf16Be(Vec<u8>),
 }
