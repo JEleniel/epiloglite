@@ -8,10 +8,12 @@ EpilogLite has completed its foundational layers and now supports core database 
 
 ## Test Coverage
 
-**93 Tests Passing** (88 unit + 5 integration)
+**111 Tests Passing** (88 unit + 18 adversarial + 5 integration)
 - ✅ All tests passing
 - ✅ Zero failures
 - ✅ Integration tests validate complete workflows
+- ✅ Security tests validate SQL injection resistance
+- ✅ Adversarial tests validate malformed input handling
 
 ## Module Status
 
@@ -27,10 +29,11 @@ EpilogLite has completed its foundational layers and now supports core database 
 #### Type System
 - **Status**: Production Ready
 - ValueType with 17+ Rust native types
-- ColumnType with SQL mappings
+- ColumnType enum (replaces hardcoded strings)
 - Type checking methods (is_numeric, is_integer, is_float, is_text, is_blob)
 - NULL value support
 - Serialization support (serde)
+- Type-safe throughout codebase
 
 #### Constants
 - **Status**: Production Ready
