@@ -2,6 +2,7 @@
 
 use crate::eplite::command::tokenizer::{Token, Tokenizer};
 use crate::eplite::error::{Error, Result};
+use crate::eplite::types::column::ColumnType;
 use logos::Logos;
 use serde::{Deserialize, Serialize};
 
@@ -54,7 +55,7 @@ pub struct CreateTableStatement {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColumnDefinition {
 	pub name: String,
-	pub data_type: String,
+	pub data_type: ColumnType,
 	pub constraints: Vec<String>,
 }
 
@@ -90,29 +91,41 @@ impl Parser {
 		}
 
 		// Parse based on first token
-		match self.current_token() {
-			Some(Token::Select) => self.parse_select(),
-			Some(Token::Insert) => self.parse_insert(),
-			Some(Token::Update) => self.parse_update(),
-			Some(Token::Delete) => self.parse_delete(),
-			Some(Token::Create) => self.parse_create(),
+		let stmt = match self.current_token() {
+			Some(Token::Select) => self.parse_select()?,
+			Some(Token::Insert) => self.parse_insert()?,
+			Some(Token::Update) => self.parse_update()?,
+			Some(Token::Delete) => self.parse_delete()?,
+			Some(Token::Create) => self.parse_create()?,
 			Some(Token::Begin) => {
 				self.advance();
-				Ok(Statement::BeginTransaction)
+				Statement::BeginTransaction
 			}
 			Some(Token::Commit) => {
 				self.advance();
-				Ok(Statement::Commit)
+				Statement::Commit
 			}
 			Some(Token::Rollback) => {
 				self.advance();
-				Ok(Statement::Rollback)
+				Statement::Rollback
 			}
-			_ => Err(Error::Syntax(format!(
-				"Unexpected token: {:?}",
+			_ => {
+				return Err(Error::Syntax(format!(
+					"Unexpected token: {:?}",
+					self.current_token()
+				)))
+			}
+		};
+
+		// Check for extra tokens after statement
+		if self.position < self.tokens.len() {
+			return Err(Error::Syntax(format!(
+				"Unexpected tokens after statement: {:?}",
 				self.current_token()
-			))),
+			)));
 		}
+
+		Ok(stmt)
 	}
 
 	fn current_token(&self) -> Option<&Token> {
@@ -270,6 +283,10 @@ impl Parser {
 
 		let where_clause = if matches!(self.current_token(), Some(Token::Where)) {
 			self.advance();
+			// Consume all remaining tokens in WHERE clause
+			while self.position < self.tokens.len() {
+				self.advance();
+			}
 			Some("where_clause".to_string())
 		} else {
 			None
@@ -289,6 +306,10 @@ impl Parser {
 
 		let where_clause = if matches!(self.current_token(), Some(Token::Where)) {
 			self.advance();
+			// Consume all remaining tokens in WHERE clause
+			while self.position < self.tokens.len() {
+				self.advance();
+			}
 			Some("where_clause".to_string())
 		} else {
 			None
@@ -315,23 +336,23 @@ impl Parser {
 			let data_type = match self.current_token() {
 				Some(Token::Integer) => {
 					self.advance();
-					"INTEGER".to_string()
+					ColumnType::Int32
 				}
 				Some(Token::Text) => {
 					self.advance();
-					"TEXT".to_string()
+					ColumnType::Text
 				}
 				Some(Token::Real) => {
 					self.advance();
-					"REAL".to_string()
+					ColumnType::Float32
 				}
 				Some(Token::Blob) => {
 					self.advance();
-					"BLOB".to_string()
+					ColumnType::Blob
 				}
 				Some(Token::Boolean) => {
 					self.advance();
-					"BOOLEAN".to_string()
+					ColumnType::Boolean
 				}
 				_ => return Err(Error::Syntax("Expected data type".to_string())),
 			};
@@ -437,7 +458,7 @@ mod tests {
 		match result.unwrap() {
 			Statement::CreateTable(stmt) => {
 				assert_eq!(stmt.columns.len(), 2);
-				assert_eq!(stmt.columns[0].data_type, "INTEGER");
+				assert_eq!(stmt.columns[0].data_type, ColumnType::Int32);
 				assert!(stmt.columns[0].constraints.contains(&"PRIMARY KEY".to_string()));
 			}
 			_ => panic!("Expected CreateTable statement"),

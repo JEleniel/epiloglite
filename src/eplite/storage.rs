@@ -3,6 +3,7 @@
 use crate::eplite::command::parser::{ColumnDefinition, CreateTableStatement};
 use crate::eplite::error::{Error, Result};
 use crate::eplite::persistence::pager::Pager;
+use crate::eplite::types::column::ColumnType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -239,12 +240,12 @@ mod tests {
 		let columns = vec![
 			ColumnDefinition {
 				name: "id".to_string(),
-				data_type: "INTEGER".to_string(),
+				data_type: ColumnType::Int32,
 				constraints: vec!["PRIMARY KEY".to_string()],
 			},
 			ColumnDefinition {
 				name: "name".to_string(),
-				data_type: "TEXT".to_string(),
+				data_type: ColumnType::Text,
 				constraints: vec![],
 			},
 		];
@@ -289,7 +290,7 @@ mod tests {
 			name: "users".to_string(),
 			columns: vec![ColumnDefinition {
 				name: "id".to_string(),
-				data_type: "INTEGER".to_string(),
+				data_type: ColumnType::Int32,
 				constraints: vec![],
 			}],
 		};

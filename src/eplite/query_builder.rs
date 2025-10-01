@@ -1,6 +1,7 @@
 /// Query builder for constructing SQL queries using a fluent interface
 
 use crate::eplite::error::{Error, Result};
+use crate::eplite::types::column::ColumnType;
 
 /// Trait for query builders
 pub trait QueryBuilder {
@@ -345,6 +346,22 @@ impl CreateTableBuilder {
 		self
 	}
 
+	/// Add a column with ColumnType enum
+	pub fn column_typed<S: Into<String>>(
+		mut self,
+		name: S,
+		data_type: ColumnType,
+		constraints: &[S],
+	) -> Self
+	where
+		S: Clone,
+	{
+		let constraints_vec: Vec<String> = constraints.iter().map(|c| c.clone().into()).collect();
+		self.columns
+			.push((name.into(), data_type.sql_name().to_string(), constraints_vec));
+		self
+	}
+
 	/// Add a column
 	pub fn column<S: Into<String>>(
 		mut self,
@@ -358,6 +375,13 @@ impl CreateTableBuilder {
 		let constraints_vec: Vec<String> = constraints.iter().map(|c| c.clone().into()).collect();
 		self.columns
 			.push((name.into(), data_type.into(), constraints_vec));
+		self
+	}
+
+	/// Add a simple column with ColumnType enum
+	pub fn simple_column_typed<S: Into<String>>(mut self, name: S, data_type: ColumnType) -> Self {
+		self.columns
+			.push((name.into(), data_type.sql_name().to_string(), Vec::new()));
 		self
 	}
 
