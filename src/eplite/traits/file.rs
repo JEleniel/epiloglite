@@ -8,7 +8,7 @@ pub trait File {
     fn truncate(self: &mut Self, offset: u64) -> Result<(), io::Error>;
     fn sync(
         self: &mut Self,
-        flags: impl Into<FlagSet<SynchronizationType>>,
+        flags: FlagSet<SynchronizationType>,
     ) -> Result<(), io::Error>;
     fn file_size(self: &mut Self) -> Result<u64, io::Error>;
     fn lock(self: &mut Self, lock_type: LockType) -> Result<(), io::Error>;
