@@ -6,6 +6,128 @@ use crate::eplite::persistence::pager::Pager;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// WHERE clause evaluator
+mod where_clause {
+	use super::*;
+
+	/// Comparison operators
+	#[derive(Debug, Clone, PartialEq)]
+	pub enum CompOp {
+		Equal,
+		NotEqual,
+		LessThan,
+		GreaterThan,
+		LessOrEqual,
+		GreaterOrEqual,
+		Like,
+	}
+
+	/// WHERE clause condition
+	#[derive(Debug, Clone)]
+	pub struct Condition {
+		pub column: String,
+		pub operator: CompOp,
+		pub value: String,
+	}
+
+	impl Condition {
+		/// Parse a simple WHERE clause (e.g., "id = 1", "name = 'Alice'", "age > 25")
+		pub fn parse(clause: &str) -> Result<Self> {
+			let clause = clause.trim();
+
+			// Try each operator in order of length (to match >= before >)
+			let operators = [
+				(">=", CompOp::GreaterOrEqual),
+				("<=", CompOp::LessOrEqual),
+				("<>", CompOp::NotEqual),
+				("!=", CompOp::NotEqual),
+				("=", CompOp::Equal),
+				("<", CompOp::LessThan),
+				(">", CompOp::GreaterThan),
+				(" LIKE ", CompOp::Like),
+			];
+
+			for (op_str, op) in &operators {
+				if let Some(pos) = clause.find(op_str) {
+					let column = clause[..pos].trim().to_string();
+					let value = clause[pos + op_str.len()..].trim().to_string();
+
+					if column.is_empty() || value.is_empty() {
+						return Err(Error::Syntax(format!("Invalid WHERE clause: {}", clause)));
+					}
+
+					return Ok(Condition {
+						column,
+						operator: op.clone(),
+						value,
+					});
+				}
+			}
+
+			Err(Error::Syntax(format!("Invalid WHERE clause: {}", clause)))
+		}
+
+		/// Evaluate condition against a row
+		pub fn evaluate(&self, row: &[String], columns: &[ColumnDefinition]) -> bool {
+			// Find column index
+			let col_idx = match columns.iter().position(|c| c.name == self.column) {
+				Some(idx) => idx,
+				None => return false,
+			};
+
+			if col_idx >= row.len() {
+				return false;
+			}
+
+			let row_value = &row[col_idx];
+			let compare_value = self.value.trim_matches('\'').trim_matches('"');
+
+			match self.operator {
+				CompOp::Equal => row_value == compare_value,
+				CompOp::NotEqual => row_value != compare_value,
+				CompOp::LessThan => {
+					// Try numeric comparison first
+					if let (Ok(a), Ok(b)) = (row_value.parse::<f64>(), compare_value.parse::<f64>()) {
+						a < b
+					} else {
+						row_value.as_str() < compare_value
+					}
+				}
+				CompOp::GreaterThan => {
+					if let (Ok(a), Ok(b)) = (row_value.parse::<f64>(), compare_value.parse::<f64>()) {
+						a > b
+					} else {
+						row_value.as_str() > compare_value
+					}
+				}
+				CompOp::LessOrEqual => {
+					if let (Ok(a), Ok(b)) = (row_value.parse::<f64>(), compare_value.parse::<f64>()) {
+						a <= b
+					} else {
+						row_value.as_str() <= compare_value
+					}
+				}
+				CompOp::GreaterOrEqual => {
+					if let (Ok(a), Ok(b)) = (row_value.parse::<f64>(), compare_value.parse::<f64>()) {
+						a >= b
+					} else {
+						row_value.as_str() >= compare_value
+					}
+				}
+				CompOp::Like => {
+					// Simple LIKE implementation (% = wildcard)
+					let pattern = compare_value.replace('%', ".*");
+					if let Ok(re) = regex::Regex::new(&format!("^{}$", pattern)) {
+						re.is_match(row_value)
+					} else {
+						false
+					}
+				}
+			}
+		}
+	}
+}
+
 /// Represents a row of data
 pub type Row = Vec<String>;
 
@@ -51,9 +173,35 @@ impl Table {
 		self.rows.clone()
 	}
 
-	/// Update rows matching a condition (simplified - updates all for now)
-	pub fn update(&mut self, _condition: &str, updates: &[(String, String)]) -> Result<usize> {
+	/// Select rows with WHERE clause filtering
+	pub fn select(&self, where_clause: Option<&str>) -> Result<Vec<Row>> {
+		// If no WHERE clause, return all rows
+		let Some(clause) = where_clause else {
+			return Ok(self.rows.clone());
+		};
+
+		// Parse and evaluate WHERE clause
+		let condition = where_clause::Condition::parse(clause)?;
+		let filtered: Vec<Row> = self
+			.rows
+			.iter()
+			.filter(|row| condition.evaluate(row, &self.columns))
+			.cloned()
+			.collect();
+
+		Ok(filtered)
+	}
+
+	/// Update rows matching a condition
+	pub fn update(&mut self, condition: Option<&str>, updates: &[(String, String)]) -> Result<usize> {
 		let mut count = 0;
+		
+		// Parse WHERE clause if provided
+		let where_cond = if let Some(clause) = condition {
+			Some(where_clause::Condition::parse(clause)?)
+		} else {
+			None
+		};
 		
 		// Find column indexes for updates
 		let mut col_updates = Vec::new();
@@ -63,24 +211,47 @@ impl Table {
 			}
 		}
 
-		// Update all rows (simplified)
+		// Update matching rows
 		for row in &mut self.rows {
+			// Check if row matches WHERE clause
+			if let Some(ref cond) = where_cond {
+				if !cond.evaluate(row, &self.columns) {
+					continue;
+				}
+			}
+
+			// Update the row
 			for (col_idx, value) in &col_updates {
 				if *col_idx < row.len() {
 					row[*col_idx] = value.clone();
-					count += 1;
 				}
 			}
+			count += 1;
 		}
 
-		Ok(if count > 0 { 1 } else { 0 })
+		Ok(count)
 	}
 
-	/// Delete rows matching a condition (simplified - deletes all for now)
-	pub fn delete(&mut self, _condition: Option<&str>) -> Result<usize> {
-		let count = self.rows.len();
-		self.rows.clear();
-		Ok(count)
+	/// Delete rows matching a condition
+	pub fn delete(&mut self, condition: Option<&str>) -> Result<usize> {
+		// Parse WHERE clause if provided
+		let where_cond = if let Some(clause) = condition {
+			Some(where_clause::Condition::parse(clause)?)
+		} else {
+			None
+		};
+
+		let original_count = self.rows.len();
+
+		// Filter out rows that match the condition
+		if let Some(cond) = where_cond {
+			self.rows.retain(|row| !cond.evaluate(row, &self.columns));
+		} else {
+			// No WHERE clause means delete all
+			self.rows.clear();
+		}
+
+		Ok(original_count - self.rows.len())
 	}
 }
 
@@ -328,10 +499,86 @@ mod tests {
 
 		mgr.create_table(stmt1).unwrap();
 		mgr.create_table(stmt2).unwrap();
-
+		
 		let tables = mgr.list_tables();
 		assert_eq!(tables.len(), 2);
 		assert!(tables.contains(&"users".to_string()));
 		assert!(tables.contains(&"posts".to_string()));
+	}
+
+	#[test]
+	fn test_where_clause_equal() {
+		let mut table = create_test_table();
+		table.insert(vec!["1".to_string(), "Alice".to_string()]).unwrap();
+		table.insert(vec!["2".to_string(), "Bob".to_string()]).unwrap();
+		table.insert(vec!["3".to_string(), "Charlie".to_string()]).unwrap();
+
+		let rows = table.select(Some("id = 2")).unwrap();
+		assert_eq!(rows.len(), 1);
+		assert_eq!(rows[0][0], "2");
+		assert_eq!(rows[0][1], "Bob");
+	}
+
+	#[test]
+	fn test_where_clause_greater_than() {
+		let mut table = create_test_table();
+		table.insert(vec!["1".to_string(), "Alice".to_string()]).unwrap();
+		table.insert(vec!["2".to_string(), "Bob".to_string()]).unwrap();
+		table.insert(vec!["3".to_string(), "Charlie".to_string()]).unwrap();
+
+		let rows = table.select(Some("id > 1")).unwrap();
+		assert_eq!(rows.len(), 2);
+	}
+
+	#[test]
+	fn test_where_clause_less_than() {
+		let mut table = create_test_table();
+		table.insert(vec!["1".to_string(), "Alice".to_string()]).unwrap();
+		table.insert(vec!["2".to_string(), "Bob".to_string()]).unwrap();
+		table.insert(vec!["3".to_string(), "Charlie".to_string()]).unwrap();
+
+		let rows = table.select(Some("id < 3")).unwrap();
+		assert_eq!(rows.len(), 2);
+	}
+
+	#[test]
+	fn test_where_clause_string_equal() {
+		let mut table = create_test_table();
+		table.insert(vec!["1".to_string(), "Alice".to_string()]).unwrap();
+		table.insert(vec!["2".to_string(), "Bob".to_string()]).unwrap();
+
+		let rows = table.select(Some("name = 'Alice'")).unwrap();
+		assert_eq!(rows.len(), 1);
+		assert_eq!(rows[0][1], "Alice");
+	}
+
+	#[test]
+	fn test_update_with_where() {
+		let mut table = create_test_table();
+		table.insert(vec!["1".to_string(), "Alice".to_string()]).unwrap();
+		table.insert(vec!["2".to_string(), "Bob".to_string()]).unwrap();
+
+		let updates = vec![("name".to_string(), "Bobby".to_string())];
+		let count = table.update(Some("id = 2"), &updates).unwrap();
+		assert_eq!(count, 1);
+
+		let rows = table.select(Some("id = 2")).unwrap();
+		assert_eq!(rows[0][1], "Bobby");
+	}
+
+	#[test]
+	fn test_delete_with_where() {
+		let mut table = create_test_table();
+		table.insert(vec!["1".to_string(), "Alice".to_string()]).unwrap();
+		table.insert(vec!["2".to_string(), "Bob".to_string()]).unwrap();
+		table.insert(vec!["3".to_string(), "Charlie".to_string()]).unwrap();
+
+		let count = table.delete(Some("id = 2")).unwrap();
+		assert_eq!(count, 1);
+		assert_eq!(table.row_count(), 2);
+
+		// Verify Bob is gone
+		let rows = table.select(None).unwrap();
+		assert!(!rows.iter().any(|r| r[1] == "Bob"));
 	}
 }

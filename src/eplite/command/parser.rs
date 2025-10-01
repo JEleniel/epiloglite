@@ -169,13 +169,71 @@ impl Parser {
 				
 				// Fallback
 				self.advance();
-				Ok("unknown".to_string())
+				Ok(format!("identifier_{}", self.position))
 			}
-			Some(token) => Err(Error::Syntax(format!(
+			_ => Err(Error::Syntax(format!(
 				"Expected identifier, found {:?}",
-				token
+				self.current_token()
 			))),
-			None => Err(Error::Syntax("Expected identifier".to_string())),
+		}
+	}
+
+	/// Parse WHERE clause - returns the raw text of the condition
+	fn parse_where_clause(&mut self) -> Result<String> {
+		// Collect all tokens until we hit a keyword that ends WHERE clause
+		let mut parts = Vec::new();
+		
+		// Re-lex to get actual text
+		let mut lex = Token::lexer(&self.source);
+		let mut token_texts = Vec::new();
+		while let Some(token) = lex.next() {
+			if token.is_ok() {
+				token_texts.push(lex.slice().to_string());
+			}
+		}
+		
+		loop {
+			match self.current_token() {
+				None => break,
+				Some(Token::Set) |
+				Some(Token::Order) |
+				Some(Token::Group) |
+				Some(Token::Limit) |
+				Some(Token::Offset) => break,
+				Some(_) => {
+					if self.position < token_texts.len() {
+						parts.push(token_texts[self.position].clone());
+					}
+					self.advance();
+				}
+			}
+		}
+		
+		if parts.is_empty() {
+			Err(Error::Syntax("Empty WHERE clause".to_string()))
+		} else {
+			Ok(parts.join(" "))
+		}
+	}
+
+	/// Parse a value token (number or string literal)
+	fn parse_value(&mut self) -> Result<String> {
+		// Re-lex to get actual text
+		let mut lex = Token::lexer(&self.source);
+		let mut token_texts = Vec::new();
+		while let Some(token) = lex.next() {
+			if token.is_ok() {
+				token_texts.push(lex.slice().to_string());
+			}
+		}
+		
+		if self.position < token_texts.len() {
+			let val = token_texts[self.position].clone();
+			self.advance();
+			Ok(val)
+		} else {
+			self.advance();
+			Ok("NULL".to_string())
 		}
 	}
 
@@ -203,7 +261,7 @@ impl Parser {
 
 		let where_clause = if matches!(self.current_token(), Some(Token::Where)) {
 			self.advance();
-			Some("where_clause".to_string())
+			Some(self.parse_where_clause()?)
 		} else {
 			None
 		};
@@ -243,9 +301,8 @@ impl Parser {
 		
 		let mut values = Vec::new();
 		loop {
-			// Accept any token as a value for now
-			values.push(format!("value_{}", self.position));
-			self.advance();
+			// Parse actual value
+			values.push(self.parse_value()?);
 			
 			if !matches!(self.current_token(), Some(Token::Comma)) {
 				break;
@@ -271,8 +328,7 @@ impl Parser {
 		loop {
 			let col = self.parse_identifier()?;
 			self.expect(Token::Equals)?;
-			let val = format!("value_{}", self.position);
-			self.advance();
+			let val = self.parse_value()?;
 			set_clauses.push((col, val));
 			
 			if !matches!(self.current_token(), Some(Token::Comma)) {
@@ -283,11 +339,7 @@ impl Parser {
 
 		let where_clause = if matches!(self.current_token(), Some(Token::Where)) {
 			self.advance();
-			// Consume all remaining tokens in WHERE clause
-			while self.position < self.tokens.len() {
-				self.advance();
-			}
-			Some("where_clause".to_string())
+			Some(self.parse_where_clause()?)
 		} else {
 			None
 		};
@@ -306,11 +358,7 @@ impl Parser {
 
 		let where_clause = if matches!(self.current_token(), Some(Token::Where)) {
 			self.advance();
-			// Consume all remaining tokens in WHERE clause
-			while self.position < self.tokens.len() {
-				self.advance();
-			}
-			Some("where_clause".to_string())
+			Some(self.parse_where_clause()?)
 		} else {
 			None
 		};

@@ -42,8 +42,9 @@ impl Processor {
 			Statement::Select(stmt) => {
 				// Get the table
 				if let Some(table) = self.storage.get_table(&stmt.from) {
+					// Use the new select method with WHERE clause support
 					let rows: Vec<Vec<String>> = table
-						.select_all()
+						.select(stmt.where_clause.as_deref())?
 						.into_iter()
 						.map(|row| row.iter().cloned().collect())
 						.collect();
@@ -71,7 +72,7 @@ impl Processor {
 				// Get the table
 				if let Some(table) = self.storage.get_table_mut(&stmt.table) {
 					let count = table.update(
-						stmt.where_clause.as_deref().unwrap_or(""),
+						stmt.where_clause.as_deref(),
 						&stmt.set_clauses,
 					)?;
 					// Flush to disk after update
