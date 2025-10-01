@@ -1,6 +1,6 @@
 /// SQL command processor - coordinates tokenization, parsing, and execution
 
-use crate::eplite::command::parser::{Parser, Statement};
+use crate::eplite::command::parser::{AggregateFunction, ColumnSelection, Parser, Statement};
 use crate::eplite::error::{Error, Result};
 use crate::eplite::storage::StorageManager;
 
@@ -42,17 +42,36 @@ impl Processor {
 			Statement::Select(stmt) => {
 				// Get the table
 				if let Some(table) = self.storage.get_table(&stmt.from) {
-					// Use the new select method with WHERE clause support
-					let rows: Vec<Vec<String>> = table
-						.select(stmt.where_clause.as_deref())?
-						.into_iter()
-						.map(|row| row.iter().cloned().collect())
-						.collect();
-					
-					Ok(ExecutionResult::Select {
-						rows,
-						columns: stmt.columns,
-					})
+					// Check if this is an aggregate query
+					let has_aggregates = stmt.columns.iter().any(|col| matches!(
+						col,
+						ColumnSelection::Aggregate { .. } | ColumnSelection::CountStar
+					));
+
+					if has_aggregates {
+						// Process aggregate query
+						self.execute_aggregate_select(table, &stmt)
+					} else {
+						// Regular SELECT
+						let rows: Vec<Vec<String>> = table
+							.select(stmt.where_clause.as_deref())?
+							.into_iter()
+							.map(|row| row.iter().cloned().collect())
+							.collect();
+						
+						// Extract column names for display
+						let column_names: Vec<String> = stmt.columns.iter().map(|col| {
+							match col {
+								ColumnSelection::Column(name) => name.clone(),
+								_ => "*".to_string(),
+							}
+						}).collect();
+						
+						Ok(ExecutionResult::Select {
+							rows,
+							columns: column_names,
+						})
+					}
 				} else {
 					Err(Error::NotFound(format!("Table '{}' not found", stmt.from)))
 				}
@@ -101,6 +120,120 @@ impl Processor {
 			Statement::Commit => Ok(ExecutionResult::Success),
 			Statement::Rollback => Ok(ExecutionResult::Success),
 		}
+	}
+
+	/// Execute aggregate SELECT query
+	fn execute_aggregate_select(
+		&self,
+		table: &crate::eplite::storage::Table,
+		stmt: &crate::eplite::command::parser::SelectStatement,
+	) -> Result<ExecutionResult> {
+		// Get filtered rows
+		let rows = table.select(stmt.where_clause.as_deref())?;
+
+		// Calculate aggregates
+		let mut result_row = Vec::new();
+		let mut column_names = Vec::new();
+
+		for col_sel in &stmt.columns {
+			match col_sel {
+				ColumnSelection::CountStar => {
+					result_row.push(rows.len().to_string());
+					column_names.push("COUNT(*)".to_string());
+				}
+				ColumnSelection::Aggregate { function, column } => {
+					// Find column index
+					let col_idx = table
+						.columns
+						.iter()
+						.position(|c| c.name == *column)
+						.ok_or_else(|| Error::NotFound(format!("Column '{}' not found", column)))?;
+
+					let result = match function {
+						AggregateFunction::Count => {
+							let count = rows.iter().filter(|r| col_idx < r.len()).count();
+							count.to_string()
+						}
+						AggregateFunction::Sum => {
+							let sum: f64 = rows
+								.iter()
+								.filter_map(|r| {
+									if col_idx < r.len() {
+										r[col_idx].parse::<f64>().ok()
+									} else {
+										None
+									}
+								})
+								.sum();
+							sum.to_string()
+						}
+						AggregateFunction::Avg => {
+							let values: Vec<f64> = rows
+								.iter()
+								.filter_map(|r| {
+									if col_idx < r.len() {
+										r[col_idx].parse::<f64>().ok()
+									} else {
+										None
+									}
+								})
+								.collect();
+							if values.is_empty() {
+								"0".to_string()
+							} else {
+								let avg = values.iter().sum::<f64>() / values.len() as f64;
+								avg.to_string()
+							}
+						}
+						AggregateFunction::Min => rows
+							.iter()
+							.filter_map(|r| {
+								if col_idx < r.len() {
+									Some(r[col_idx].clone())
+								} else {
+									None
+								}
+							})
+							.min()
+							.unwrap_or_else(|| "NULL".to_string()),
+						AggregateFunction::Max => rows
+							.iter()
+							.filter_map(|r| {
+								if col_idx < r.len() {
+									Some(r[col_idx].clone())
+								} else {
+									None
+								}
+							})
+							.max()
+							.unwrap_or_else(|| "NULL".to_string()),
+					};
+
+					result_row.push(result);
+					column_names.push(format!("{}({})", 
+						match function {
+							AggregateFunction::Count => "COUNT",
+							AggregateFunction::Sum => "SUM",
+							AggregateFunction::Avg => "AVG",
+							AggregateFunction::Min => "MIN",
+							AggregateFunction::Max => "MAX",
+						},
+						column
+					));
+				}
+				ColumnSelection::Column(_) => {
+					// Regular columns in aggregate query - not supported yet
+					return Err(Error::Syntax(
+						"Non-aggregate columns require GROUP BY".to_string(),
+					));
+				}
+			}
+		}
+
+		Ok(ExecutionResult::Select {
+			rows: vec![result_row],
+			columns: column_names,
+		})
 	}
 }
 

@@ -19,11 +19,34 @@ pub enum Statement {
 	Rollback,
 }
 
+/// Aggregate function type
+#[derive(Debug, Clone, PartialEq)]
+pub enum AggregateFunction {
+	Count,
+	Sum,
+	Avg,
+	Min,
+	Max,
+}
+
+/// Column selection - either a regular column or an aggregate
+#[derive(Debug, Clone)]
+pub enum ColumnSelection {
+	Column(String),
+	Aggregate {
+		function: AggregateFunction,
+		column: String,
+	},
+	CountStar, // COUNT(*)
+}
+
 #[derive(Debug, Clone)]
 pub struct SelectStatement {
-	pub columns: Vec<String>,
+	pub columns: Vec<ColumnSelection>,
 	pub from: String,
 	pub where_clause: Option<String>,
+	pub group_by: Option<Vec<String>>,
+	pub order_by: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone)]
@@ -242,13 +265,75 @@ impl Parser {
 
 		let mut columns = Vec::new();
 		
-		// Parse columns
+		// Parse columns (including aggregates)
 		if matches!(self.current_token(), Some(Token::Star)) {
-			columns.push("*".to_string());
+			columns.push(ColumnSelection::Column("*".to_string()));
 			self.advance();
 		} else {
 			loop {
-				columns.push(self.parse_identifier()?);
+				// Check for aggregate functions
+				let col = match self.current_token() {
+					Some(Token::Count) => {
+						self.advance();
+						self.expect(Token::LeftParen)?;
+						if matches!(self.current_token(), Some(Token::Star)) {
+							self.advance();
+							self.expect(Token::RightParen)?;
+							ColumnSelection::CountStar
+						} else {
+							let col_name = self.parse_identifier()?;
+							self.expect(Token::RightParen)?;
+							ColumnSelection::Aggregate {
+								function: AggregateFunction::Count,
+								column: col_name,
+							}
+						}
+					}
+					Some(Token::Sum) => {
+						self.advance();
+						self.expect(Token::LeftParen)?;
+						let col_name = self.parse_identifier()?;
+						self.expect(Token::RightParen)?;
+						ColumnSelection::Aggregate {
+							function: AggregateFunction::Sum,
+							column: col_name,
+						}
+					}
+					Some(Token::Avg) => {
+						self.advance();
+						self.expect(Token::LeftParen)?;
+						let col_name = self.parse_identifier()?;
+						self.expect(Token::RightParen)?;
+						ColumnSelection::Aggregate {
+							function: AggregateFunction::Avg,
+							column: col_name,
+						}
+					}
+					Some(Token::Min) => {
+						self.advance();
+						self.expect(Token::LeftParen)?;
+						let col_name = self.parse_identifier()?;
+						self.expect(Token::RightParen)?;
+						ColumnSelection::Aggregate {
+							function: AggregateFunction::Min,
+							column: col_name,
+						}
+					}
+					Some(Token::Max) => {
+						self.advance();
+						self.expect(Token::LeftParen)?;
+						let col_name = self.parse_identifier()?;
+						self.expect(Token::RightParen)?;
+						ColumnSelection::Aggregate {
+							function: AggregateFunction::Max,
+							column: col_name,
+						}
+					}
+					_ => ColumnSelection::Column(self.parse_identifier()?),
+				};
+				
+				columns.push(col);
+				
 				if !matches!(self.current_token(), Some(Token::Comma)) {
 					break;
 				}
@@ -266,10 +351,50 @@ impl Parser {
 			None
 		};
 
+		// Parse GROUP BY
+		let group_by = if matches!(self.current_token(), Some(Token::Group)) {
+			self.advance();
+			self.expect(Token::By)?;
+			let mut cols = Vec::new();
+			loop {
+				cols.push(self.parse_identifier()?);
+				if !matches!(self.current_token(), Some(Token::Comma)) {
+					break;
+				}
+				self.advance();
+			}
+			Some(cols)
+		} else {
+			None
+		};
+
+		// Parse ORDER BY
+		let order_by = if matches!(self.current_token(), Some(Token::Order)) {
+			self.advance();
+			self.expect(Token::By)?;
+			let mut cols = Vec::new();
+			loop {
+				cols.push(self.parse_identifier()?);
+				// Skip ASC/DESC keywords if present
+				if matches!(self.current_token(), Some(Token::Asc) | Some(Token::Desc)) {
+					self.advance();
+				}
+				if !matches!(self.current_token(), Some(Token::Comma)) {
+					break;
+				}
+				self.advance();
+			}
+			Some(cols)
+		} else {
+			None
+		};
+
 		Ok(Statement::Select(SelectStatement {
 			columns,
 			from,
 			where_clause,
+			group_by,
+			order_by,
 		}))
 	}
 
@@ -479,7 +604,7 @@ mod tests {
 		match result.unwrap() {
 			Statement::Select(stmt) => {
 				assert_eq!(stmt.columns.len(), 1);
-				assert_eq!(stmt.columns[0], "*");
+				assert!(matches!(stmt.columns[0], ColumnSelection::Column(ref s) if s == "*"));
 			}
 			_ => panic!("Expected Select statement"),
 		}

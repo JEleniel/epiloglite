@@ -50,6 +50,76 @@ fn test_complete_workflow() -> Result<()> {
 }
 
 #[test]
+fn test_aggregate_functions() -> Result<()> {
+	let mut db = Database::open(":memory:")?;
+
+	// Create table
+	db.execute("CREATE TABLE products (id INTEGER, name TEXT, price INTEGER)")?;
+	db.execute("INSERT INTO products VALUES (1, 'Widget', 100)")?;
+	db.execute("INSERT INTO products VALUES (2, 'Gadget', 200)")?;
+	db.execute("INSERT INTO products VALUES (3, 'Doohickey', 150)")?;
+
+	// Test COUNT(*)
+	let result = db.execute("SELECT COUNT(*) FROM products")?;
+	match result {
+		ExecutionResult::Select { rows, columns } => {
+			assert_eq!(columns[0], "COUNT(*)");
+			assert_eq!(rows[0][0], "3");
+		}
+		_ => panic!("Expected Select result"),
+	}
+
+	// Test SUM
+	let result = db.execute("SELECT SUM(price) FROM products")?;
+	match result {
+		ExecutionResult::Select { rows, .. } => {
+			assert_eq!(rows[0][0], "450");
+		}
+		_ => panic!("Expected Select result"),
+	}
+
+	// Test AVG
+	let result = db.execute("SELECT AVG(price) FROM products")?;
+	match result {
+		ExecutionResult::Select { rows, .. } => {
+			let avg: f64 = rows[0][0].parse().unwrap();
+			assert!((avg - 150.0).abs() < 0.01);
+		}
+		_ => panic!("Expected Select result"),
+	}
+
+	// Test MIN
+	let result = db.execute("SELECT MIN(price) FROM products")?;
+	match result {
+		ExecutionResult::Select { rows, .. } => {
+			assert_eq!(rows[0][0], "100");
+		}
+		_ => panic!("Expected Select result"),
+	}
+
+	// Test MAX
+	let result = db.execute("SELECT MAX(price) FROM products")?;
+	match result {
+		ExecutionResult::Select { rows, .. } => {
+			assert_eq!(rows[0][0], "200");
+		}
+		_ => panic!("Expected Select result"),
+	}
+
+	// Test COUNT with WHERE
+	let result = db.execute("SELECT COUNT(*) FROM products WHERE price > 100")?;
+	match result {
+		ExecutionResult::Select { rows, .. } => {
+			assert_eq!(rows[0][0], "2");
+		}
+		_ => panic!("Expected Select result"),
+	}
+
+	db.close()?;
+	Ok(())
+}
+
+#[test]
 fn test_disk_persistence() -> Result<()> {
 	let test_db_path = "/tmp/test_epiloglite.db";
 	
