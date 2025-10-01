@@ -2,17 +2,20 @@
 
 use crate::eplite::command::parser::{Parser, Statement};
 use crate::eplite::error::{Error, Result};
+use crate::eplite::storage::StorageManager;
 
 /// Processes SQL commands
 #[derive(Debug)]
 pub struct Processor {
 	parser: Parser,
+	storage: StorageManager,
 }
 
 impl Processor {
 	pub fn new() -> Self {
 		Processor {
 			parser: Parser::new(),
+			storage: StorageManager::new(),
 		}
 	}
 
@@ -24,16 +27,56 @@ impl Processor {
 		// Execute based on statement type
 		match statement {
 			Statement::Select(stmt) => {
-				// For now, return a success result
-				Ok(ExecutionResult::Select {
-					rows: Vec::new(),
-					columns: stmt.columns,
-				})
+				// Get the table
+				if let Some(table) = self.storage.get_table(&stmt.from) {
+					let rows: Vec<Vec<String>> = table
+						.select_all()
+						.into_iter()
+						.map(|row| row.iter().map(|s| s.clone()).collect())
+						.collect();
+					
+					Ok(ExecutionResult::Select {
+						rows,
+						columns: stmt.columns,
+					})
+				} else {
+					Err(Error::NotFound(format!("Table '{}' not found", stmt.from)))
+				}
 			}
-			Statement::Insert(_) => Ok(ExecutionResult::RowsAffected(1)),
-			Statement::Update(_) => Ok(ExecutionResult::RowsAffected(1)),
-			Statement::Delete(_) => Ok(ExecutionResult::RowsAffected(1)),
-			Statement::CreateTable(_) => Ok(ExecutionResult::Success),
+			Statement::Insert(stmt) => {
+				// Get the table
+				if let Some(table) = self.storage.get_table_mut(&stmt.table) {
+					table.insert(stmt.values)?;
+					Ok(ExecutionResult::RowsAffected(1))
+				} else {
+					Err(Error::NotFound(format!("Table '{}' not found", stmt.table)))
+				}
+			}
+			Statement::Update(stmt) => {
+				// Get the table
+				if let Some(table) = self.storage.get_table_mut(&stmt.table) {
+					let count = table.update(
+						stmt.where_clause.as_deref().unwrap_or(""),
+						&stmt.set_clauses,
+					)?;
+					Ok(ExecutionResult::RowsAffected(count))
+				} else {
+					Err(Error::NotFound(format!("Table '{}' not found", stmt.table)))
+				}
+			}
+			Statement::Delete(stmt) => {
+				// Get the table
+				if let Some(table) = self.storage.get_table_mut(&stmt.table) {
+					let count = table.delete(stmt.where_clause.as_deref())?;
+					Ok(ExecutionResult::RowsAffected(count))
+				} else {
+					Err(Error::NotFound(format!("Table '{}' not found", stmt.table)))
+				}
+			}
+			Statement::CreateTable(stmt) => {
+				self.storage.create_table(stmt)?;
+				Ok(ExecutionResult::Success)
+			}
 			Statement::BeginTransaction => Ok(ExecutionResult::Success),
 			Statement::Commit => Ok(ExecutionResult::Success),
 			Statement::Rollback => Ok(ExecutionResult::Success),
@@ -74,7 +117,15 @@ mod tests {
 	#[test]
 	fn test_execute_select() {
 		let mut processor = Processor::new();
+		// First create the table
+		processor
+			.execute("CREATE TABLE users (id INTEGER, name TEXT)")
+			.unwrap();
+		// Then query it
 		let result = processor.execute("SELECT * FROM users");
+		if let Err(e) = &result {
+			eprintln!("Error: {}", e);
+		}
 		assert!(result.is_ok());
 		match result.unwrap() {
 			ExecutionResult::Select { columns, .. } => {
@@ -87,6 +138,11 @@ mod tests {
 	#[test]
 	fn test_execute_insert() {
 		let mut processor = Processor::new();
+		// First create the table
+		processor
+			.execute("CREATE TABLE users (id INTEGER, name TEXT)")
+			.unwrap();
+		// Then insert
 		let result = processor.execute("INSERT INTO users VALUES (1, 'John')");
 		assert!(result.is_ok());
 		match result.unwrap() {

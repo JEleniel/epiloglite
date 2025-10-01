@@ -57,6 +57,10 @@ mod tests {
 	#[test]
 	fn test_database_execute_select() {
 		let mut db = Database::open(":memory:").unwrap();
+		// First create the table
+		db.execute("CREATE TABLE users (id INTEGER, name TEXT)")
+			.unwrap();
+		// Then query it
 		let result = db.execute("SELECT * FROM users");
 		assert!(result.is_ok());
 	}
@@ -72,6 +76,10 @@ mod tests {
 	#[test]
 	fn test_database_execute_insert() {
 		let mut db = Database::open(":memory:").unwrap();
+		// First create the table
+		db.execute("CREATE TABLE users (id INTEGER, name TEXT)")
+			.unwrap();
+		// Then insert
 		let result = db.execute("INSERT INTO users VALUES (1, 'John')");
 		assert!(result.is_ok());
 		match result.unwrap() {

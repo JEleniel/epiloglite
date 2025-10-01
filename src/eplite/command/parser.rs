@@ -2,6 +2,7 @@
 
 use crate::eplite::command::tokenizer::{Token, Tokenizer};
 use crate::eplite::error::{Error, Result};
+use logos::Logos;
 
 /// Parse tree node types
 #[derive(Debug, Clone)]
@@ -61,6 +62,7 @@ pub struct ColumnDefinition {
 pub struct Parser {
 	tokens: Vec<Token>,
 	position: usize,
+	source: String,
 }
 
 impl Parser {
@@ -68,11 +70,15 @@ impl Parser {
 		Parser {
 			tokens: Vec::new(),
 			position: 0,
+			source: String::new(),
 		}
 	}
 
 	/// Parse SQL statement into a parse tree
 	pub fn parse(&mut self, sql: &str) -> Result<Statement> {
+		// Store the source for extracting actual text
+		self.source = sql.to_string();
+
 		// Tokenize the SQL
 		let tokenizer = Tokenizer::new(sql.to_string());
 		self.tokens = tokenizer.tokenize();
@@ -133,10 +139,23 @@ impl Parser {
 	fn parse_identifier(&mut self) -> Result<String> {
 		match self.current_token() {
 			Some(Token::Identifier) => {
-				// In a real implementation, we'd extract the actual text
-				let id = format!("identifier_{}", self.position);
+				// Extract the actual text by re-lexing from the source
+				let mut lex = Token::lexer(&self.source);
+				let mut idx = 0;
+				while let Some(token) = lex.next() {
+					if idx == self.position {
+						if let Ok(Token::Identifier) = token {
+							let text = lex.slice().to_string();
+							self.advance();
+							return Ok(text);
+						}
+					}
+					idx += 1;
+				}
+				
+				// Fallback
 				self.advance();
-				Ok(id)
+				Ok("unknown".to_string())
 			}
 			Some(token) => Err(Error::Syntax(format!(
 				"Expected identifier, found {:?}",

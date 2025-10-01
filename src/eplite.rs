@@ -4,6 +4,7 @@ pub mod database;
 pub mod error;
 pub mod os;
 pub mod persistence;
+pub mod storage;
 mod traits;
 mod types;
 pub mod utility;
