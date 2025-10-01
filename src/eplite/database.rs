@@ -50,6 +50,15 @@ impl Database {
 		self.processor.execute(sql)
 	}
 
+	/// Execute a query from a builder
+	pub fn execute_builder<B>(&mut self, builder: B) -> Result<ExecutionResult>
+	where
+		B: crate::eplite::query_builder::QueryBuilder,
+	{
+		let sql = builder.build()?;
+		self.execute(&sql)
+	}
+
 	/// Get the database file path
 	pub fn path(&self) -> &str {
 		&self.path
