@@ -441,6 +441,113 @@ impl StorageManager {
 	pub fn flush(&mut self) -> Result<()> {
 		self.save_to_disk()
 	}
+
+	/// Perform a simple CROSS JOIN between two tables (Cartesian product)
+	pub fn cross_join(&self, table1_name: &str, table2_name: &str) -> Result<(Vec<Vec<String>>, Vec<String>)> {
+		let table1 = self.tables.get(table1_name)
+			.ok_or_else(|| Error::NotFound(format!("Table '{}' not found", table1_name)))?;
+		let table2 = self.tables.get(table2_name)
+			.ok_or_else(|| Error::NotFound(format!("Table '{}' not found", table2_name)))?;
+
+		// Get all rows from both tables
+		let rows1 = table1.select_all();
+		let rows2 = table2.select_all();
+
+		// Build column names with table prefixes
+		let mut column_names = Vec::new();
+		for col in &table1.columns {
+			column_names.push(format!("{}.{}", table1_name, col.name));
+		}
+		for col in &table2.columns {
+			column_names.push(format!("{}.{}", table2_name, col.name));
+		}
+
+		// Cartesian product
+		let mut result_rows = Vec::new();
+		for row1 in &rows1 {
+			for row2 in &rows2 {
+				let mut combined_row = row1.clone();
+				combined_row.extend(row2.clone());
+				result_rows.push(combined_row);
+			}
+		}
+
+		Ok((result_rows, column_names))
+	}
+
+	/// Perform INNER JOIN between two tables with ON condition
+	pub fn inner_join(&self, table1_name: &str, table2_name: &str, on_condition: &str) -> Result<(Vec<Vec<String>>, Vec<String>)> {
+		let table1 = self.tables.get(table1_name)
+			.ok_or_else(|| Error::NotFound(format!("Table '{}' not found", table1_name)))?;
+		let table2 = self.tables.get(table2_name)
+			.ok_or_else(|| Error::NotFound(format!("Table '{}' not found", table2_name)))?;
+
+		// Parse ON condition (e.g., "table1.id = table2.user_id")
+		let (left_col, right_col) = self.parse_join_condition(on_condition)?;
+
+		// Find column indices
+		let left_idx = self.find_column_in_table(table1, table1_name, &left_col)?;
+		let right_idx = self.find_column_in_table(table2, table2_name, &right_col)?;
+
+		// Get all rows from both tables
+		let rows1 = table1.select_all();
+		let rows2 = table2.select_all();
+
+		// Build column names with table prefixes
+		let mut column_names = Vec::new();
+		for col in &table1.columns {
+			column_names.push(format!("{}.{}", table1_name, col.name));
+		}
+		for col in &table2.columns {
+			column_names.push(format!("{}.{}", table2_name, col.name));
+		}
+
+		// Inner join - only matching rows
+		let mut result_rows = Vec::new();
+		for row1 in &rows1 {
+			for row2 in &rows2 {
+				if left_idx < row1.len() && right_idx < row2.len() && row1[left_idx] == row2[right_idx] {
+					let mut combined_row = row1.clone();
+					combined_row.extend(row2.clone());
+					result_rows.push(combined_row);
+				}
+			}
+		}
+
+		Ok((result_rows, column_names))
+	}
+
+	/// Parse JOIN ON condition like "table1.col1 = table2.col2"
+	fn parse_join_condition(&self, condition: &str) -> Result<(String, String)> {
+		let parts: Vec<&str> = condition.split('=').map(|s| s.trim()).collect();
+		if parts.len() != 2 {
+			return Err(Error::Syntax(format!("Invalid JOIN condition: {}", condition)));
+		}
+		Ok((parts[0].to_string(), parts[1].to_string()))
+	}
+
+	/// Find column index in table, supporting table.column notation
+	fn find_column_in_table(&self, table: &Table, table_name: &str, column_ref: &str) -> Result<usize> {
+		// Handle table.column or just column
+		let column_name = if column_ref.contains('.') {
+			let parts: Vec<&str> = column_ref.split('.').collect();
+			if parts.len() == 2 {
+				// Verify table name matches
+				if parts[0] != table_name {
+					return Err(Error::Syntax(format!("Table name mismatch: {} vs {}", parts[0], table_name)));
+				}
+				parts[1]
+			} else {
+				return Err(Error::Syntax(format!("Invalid column reference: {}", column_ref)));
+			}
+		} else {
+			column_ref
+		};
+
+		table.columns.iter()
+			.position(|c| c.name == column_name)
+			.ok_or_else(|| Error::NotFound(format!("Column '{}' not found in table '{}'", column_name, table_name)))
+	}
 }
 
 impl Default for StorageManager {

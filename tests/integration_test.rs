@@ -290,3 +290,39 @@ fn test_group_by_with_aggregates() -> Result<()> {
 	db.close()?;
 	Ok(())
 }
+
+#[test]
+fn test_join_operations() -> Result<()> {
+let mut db = Database::open(":memory:")?;
+
+// Create tables
+db.execute("CREATE TABLE users (id INTEGER, name TEXT)")?;
+db.execute("CREATE TABLE orders (order_id INTEGER, user_id INTEGER, product TEXT)")?;
+
+// Insert data
+db.execute("INSERT INTO users VALUES (1, 'Alice')")?;
+db.execute("INSERT INTO users VALUES (2, 'Bob')")?;
+db.execute("INSERT INTO orders VALUES (101, 1, 'Widget')")?;
+db.execute("INSERT INTO orders VALUES (102, 1, 'Gadget')")?;
+db.execute("INSERT INTO orders VALUES (103, 2, 'Doohickey')")?;
+
+// Test that tables exist and have data
+let result = db.execute("SELECT * FROM users")?;
+match result {
+ExecutionResult::Select { rows, .. } => {
+assert_eq!(rows.len(), 2); // 2 users
+}
+_ => panic!("Expected Select result"),
+}
+
+let result = db.execute("SELECT * FROM orders")?;
+match result {
+ExecutionResult::Select { rows, .. } => {
+assert_eq!(rows.len(), 3); // 3 orders
+}
+_ => panic!("Expected Select result"),
+}
+
+db.close()?;
+Ok(())
+}

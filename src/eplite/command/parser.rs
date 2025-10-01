@@ -40,10 +40,28 @@ pub enum ColumnSelection {
 	CountStar, // COUNT(*)
 }
 
+/// Join type
+#[derive(Debug, Clone, PartialEq)]
+pub enum JoinType {
+	Inner,
+	Left,
+	Right,
+	Cross,
+}
+
+/// Join clause
+#[derive(Debug, Clone)]
+pub struct JoinClause {
+	pub join_type: JoinType,
+	pub table: String,
+	pub on_condition: Option<String>, // e.g., "table1.id = table2.id"
+}
+
 #[derive(Debug, Clone)]
 pub struct SelectStatement {
 	pub columns: Vec<ColumnSelection>,
 	pub from: String,
+	pub joins: Vec<JoinClause>,
 	pub where_clause: Option<String>,
 	pub group_by: Option<Vec<String>>,
 	pub order_by: Option<Vec<String>>,
@@ -392,6 +410,7 @@ impl Parser {
 		Ok(Statement::Select(SelectStatement {
 			columns,
 			from,
+			joins: Vec::new(), // TODO: Parse JOIN clauses
 			where_clause,
 			group_by,
 			order_by,
