@@ -122,11 +122,16 @@ impl Default for DefaultVfs {
 }
 
 impl VirtualFileSystem for DefaultVfs {
-	fn open(&self, _path: &Path, _flags: OpenFlags) -> Result<Box<dyn File>> {
-		// TODO: Implement file opening
-		Err(crate::eplite::error::Error::NotSupported(
-			"File opening not yet implemented".to_string(),
-		))
+	fn open(&self, path: &Path, flags: OpenFlags) -> Result<Box<dyn File>> {
+		use super::file::DefaultFile;
+		
+		let file = DefaultFile::open(
+			path,
+			flags.read_only || flags.read_write,
+			flags.read_write || flags.create,
+			flags.create,
+		)?;
+		Ok(Box::new(file))
 	}
 
 	fn delete(&self, path: &Path, _sync_dir: bool) -> Result<()> {

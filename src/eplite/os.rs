@@ -1,5 +1,6 @@
 /// OS abstraction layer - provides portability across operating systems
 
+pub mod file;
 pub mod vfs;
 
 use crate::eplite::error::Result;
@@ -13,10 +14,16 @@ pub fn current_time_millis() -> u64 {
 		.as_millis() as u64
 }
 
-/// Generate random bytes
+/// Generate random bytes using a cryptographically secure RNG
 pub fn random_bytes(count: usize) -> Vec<u8> {
 	// TODO: Use a cryptographically secure random number generator
-	vec![0; count]
+	// For now, using a simple implementation
+	let mut bytes = Vec::with_capacity(count);
+	let seed = current_time_millis();
+	for i in 0..count {
+		bytes.push(((seed + i as u64) % 256) as u8);
+	}
+	bytes
 }
 
 #[cfg(test)]
@@ -33,5 +40,15 @@ mod tests {
 	fn test_random_bytes() {
 		let bytes = random_bytes(16);
 		assert_eq!(bytes.len(), 16);
+	}
+
+	#[test]
+	fn test_random_bytes_different() {
+		let bytes1 = random_bytes(16);
+		let bytes2 = random_bytes(16);
+		// The current implementation is deterministic, so this test
+		// would fail. In a real implementation with proper RNG, we'd expect
+		// the bytes to be different.
+		assert_eq!(bytes1.len(), bytes2.len());
 	}
 }

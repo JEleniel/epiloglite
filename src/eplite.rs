@@ -1,7 +1,7 @@
 pub mod command;
 mod constants;
 pub mod database;
-mod error;
+pub mod error;
 pub mod os;
 pub mod persistence;
 mod traits;
