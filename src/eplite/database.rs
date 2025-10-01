@@ -1,6 +1,6 @@
 /// Database connection and management
 
-use crate::eplite::command::processor::Processor;
+use crate::eplite::command::processor::{ExecutionResult, Processor};
 use crate::eplite::error::{Error, Result};
 use std::path::Path;
 
@@ -26,7 +26,7 @@ impl Database {
 	}
 
 	/// Execute a SQL statement
-	pub fn execute(&mut self, sql: &str) -> Result<()> {
+	pub fn execute(&mut self, sql: &str) -> Result<ExecutionResult> {
 		self.processor.execute(sql)
 	}
 
@@ -55,9 +55,28 @@ mod tests {
 	}
 
 	#[test]
-	fn test_database_execute() {
+	fn test_database_execute_select() {
 		let mut db = Database::open(":memory:").unwrap();
-		let result = db.execute("SELECT 1");
-		assert!(result.is_err()); // Not yet implemented
+		let result = db.execute("SELECT * FROM users");
+		assert!(result.is_ok());
+	}
+
+	#[test]
+	fn test_database_execute_create() {
+		let mut db = Database::open(":memory:").unwrap();
+		let result = db.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)");
+		assert!(result.is_ok());
+		assert!(matches!(result.unwrap(), ExecutionResult::Success));
+	}
+
+	#[test]
+	fn test_database_execute_insert() {
+		let mut db = Database::open(":memory:").unwrap();
+		let result = db.execute("INSERT INTO users VALUES (1, 'John')");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			ExecutionResult::RowsAffected(n) => assert_eq!(n, 1),
+			_ => panic!("Expected RowsAffected"),
+		}
 	}
 }
