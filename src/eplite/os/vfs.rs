@@ -1,9 +1,7 @@
 /// Virtual File System trait
 
 use crate::eplite::error::Result;
-use crate::eplite::traits::file::{File, LockType, SynchronizationType, UnlockType};
-use flagset::FlagSet;
-use std::io;
+use crate::eplite::traits::file::File;
 use std::path::Path;
 
 /// Virtual File System trait

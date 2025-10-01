@@ -11,7 +11,6 @@ mod types;
 pub mod utility;
 
 pub use constants::*;
-pub use error::{Error, Result};
 
 #[derive(Debug)]
 pub struct EPLite {}

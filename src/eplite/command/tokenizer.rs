@@ -231,12 +231,10 @@ impl Tokenizer {
 
 	pub fn tokenize(&self) -> Vec<Token> {
 		let mut tokens = Vec::new();
-		let mut lex = Token::lexer(&self.source);
+		let lex = Token::lexer(&self.source);
 
-		while let Some(token) = lex.next() {
-			if let Ok(token) = token {
-				tokens.push(token);
-			}
+		for token in lex.flatten() {
+			tokens.push(token);
 		}
 
 		tokens

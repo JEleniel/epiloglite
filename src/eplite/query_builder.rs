@@ -410,7 +410,7 @@ impl CreateTableBuilder {
 			.map(|(name, data_type, constraints)| {
 				let mut def = format!("{} {}", name, data_type);
 				if !constraints.is_empty() {
-					def.push_str(" ");
+					def.push(' ');
 					def.push_str(&constraints.join(" "));
 				}
 				def

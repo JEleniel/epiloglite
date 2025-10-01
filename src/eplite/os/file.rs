@@ -62,9 +62,8 @@ impl File for DefaultFile {
 	fn sync(&mut self, flags: FlagSet<SynchronizationType>) -> io::Result<()> {
 		if flags.contains(SynchronizationType::SqliteSyncFull) {
 			self.file.sync_all()?;
-		} else if flags.contains(SynchronizationType::SqliteSyncDataonly) {
-			self.file.sync_data()?;
 		} else {
+			// Both SqliteSyncDataonly and default case use sync_data
 			self.file.sync_data()?;
 		}
 		Ok(())

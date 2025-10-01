@@ -3,7 +3,6 @@
 use crate::eplite::command::parser::{ColumnDefinition, CreateTableStatement};
 use crate::eplite::error::{Error, Result};
 use crate::eplite::persistence::pager::Pager;
-use crate::eplite::types::column::ColumnType;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -235,6 +234,7 @@ impl Default for StorageManager {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::eplite::types::column::ColumnType;
 
 	fn create_test_table() -> Table {
 		let columns = vec![

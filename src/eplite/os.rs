@@ -3,7 +3,6 @@
 pub mod file;
 pub mod vfs;
 
-use crate::eplite::error::Result;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Get current time in milliseconds since Unix epoch

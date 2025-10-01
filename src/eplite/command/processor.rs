@@ -45,7 +45,7 @@ impl Processor {
 					let rows: Vec<Vec<String>> = table
 						.select_all()
 						.into_iter()
-						.map(|row| row.iter().map(|s| s.clone()).collect())
+						.map(|row| row.iter().cloned().collect())
 						.collect();
 					
 					Ok(ExecutionResult::Select {

@@ -65,7 +65,7 @@ pub struct Pager {
 
 impl Pager {
 	pub fn new(page_size: u32) -> Result<Self> {
-		if page_size < MIN_PAGE_SIZE || page_size > MAX_PAGE_SIZE {
+		if !(MIN_PAGE_SIZE..=MAX_PAGE_SIZE).contains(&page_size) {
 			return Err(Error::InvalidFormat(format!(
 				"Invalid page size: {}. Must be between {} and {}",
 				page_size, MIN_PAGE_SIZE, MAX_PAGE_SIZE
