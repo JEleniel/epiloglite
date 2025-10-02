@@ -10,6 +10,8 @@ pub mod config;
 pub mod index;
 pub mod logging;
 pub mod orm;
+pub mod optimizer;
+pub mod permissions;
 mod traits;
 mod types;
 pub mod utility;
