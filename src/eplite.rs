@@ -12,6 +12,8 @@ pub mod logging;
 pub mod orm;
 pub mod optimizer;
 pub mod permissions;
+#[cfg(feature = "server")]
+pub mod server;
 mod traits;
 mod types;
 pub mod utility;
