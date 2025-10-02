@@ -6,6 +6,8 @@ pub mod os;
 pub mod persistence;
 pub mod query_builder;
 pub mod storage;
+pub mod config;
+pub mod logging;
 mod traits;
 mod types;
 pub mod utility;
