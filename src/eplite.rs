@@ -9,6 +9,7 @@ pub mod storage;
 pub mod config;
 pub mod index;
 pub mod logging;
+pub mod orm;
 mod traits;
 mod types;
 pub mod utility;
