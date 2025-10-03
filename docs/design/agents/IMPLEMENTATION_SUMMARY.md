@@ -70,15 +70,9 @@ epiloglite/
 21. **Logging**: Structured logging with multiple targets, colors
 22. **C API**: SQLite-compatible functions (feature-gated)
 23. **REST API**: HTTP endpoints for SQL execution (feature-gated)
-24. **GraphQL**: GraphQL schema and resolvers (feature-gated)
+24. **Server Enhancements**: OAuth, MFA, TLS, client library, caching, batching
 
-### 🚧 IN PROGRESS (10%)
-
-#### Server Mode Enhancements
-- OAuth authentication integration
-- Custom authentication handlers
-- Advanced TLS 1.3 configuration
-- Dedicated client library
+### 🚧 IN PROGRESS (5%)
 
 #### Platform Support
 - No-std mode for embedded systems
@@ -174,8 +168,8 @@ int sqlite3_prepare_v2(sqlite3 *db, const char *sql, ...);
 ## Testing
 
 ### Test Coverage
-- **Total Tests**: 146
-  - Unit tests: 119
+- **Total Tests**: 166
+  - Unit tests: 139
   - Adversarial/security tests: 18
   - Integration tests: 9
 - **Pass Rate**: 100% (0 failures)
