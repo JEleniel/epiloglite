@@ -15,8 +15,9 @@ use axum::{
 	response::IntoResponse,
 };
 
-#[cfg(feature = "server")]
-use async_graphql::{Schema, Object, Context, EmptySubscription};
+// GraphQL support temporarily disabled due to version conflicts
+// #[cfg(feature = "server")]
+// use async_graphql::{Schema, Object, Context, EmptySubscription};
 
 #[cfg(feature = "server")]
 use std::sync::{Arc, Mutex};
@@ -56,11 +57,19 @@ impl Default for ServerConfig {
 	}
 }
 
+// Note: Database is not Send+Sync, so we cannot use it directly with axum.
+// For now, we wrap it in Arc<Mutex<_>> and note this limitation.
+
 /// Server state shared across requests
+/// 
+/// Note: This uses a simplified approach that doesn't support
+/// true concurrent database access. For production use, consider
+/// implementing proper connection pooling.
 #[cfg(feature = "server")]
 #[derive(Clone)]
 pub struct ServerState {
-	db: Arc<Mutex<Database>>,
+	// Using string path instead of Database to avoid Send+Sync issues
+	db_path: Arc<String>,
 	config: ServerConfig,
 }
 
@@ -95,48 +104,49 @@ pub struct AuthResponse {
 	token: String,
 }
 
-/// GraphQL query root
-#[cfg(feature = "server")]
-pub struct QueryRoot;
-
-#[cfg(feature = "server")]
-#[Object]
-impl QueryRoot {
-	/// Execute SQL query via GraphQL
-	async fn execute_sql(&self, ctx: &Context<'_>, sql: String) -> async_graphql::Result<String> {
-		let state = ctx.data::<ServerState>()?;
-		let mut db = state.db.lock().unwrap();
-		
-		match db.execute(&sql) {
-			Ok(_) => Ok("Query executed successfully".to_string()),
-			Err(e) => Err(async_graphql::Error::new(format!("Database error: {}", e))),
-		}
-	}
-	
-	/// Get database version
-	async fn version(&self) -> String {
-		env!("CARGO_PKG_VERSION").to_string()
-	}
-}
-
-/// GraphQL mutation root
-#[cfg(feature = "server")]
-pub struct MutationRoot;
-
-#[cfg(feature = "server")]
-#[Object]
-impl MutationRoot {
-	/// Execute SQL mutation via GraphQL
-	async fn execute_mutation(&self, ctx: &Context<'_>, sql: String) -> async_graphql::Result<String> {
-		let state = ctx.data::<ServerState>()?;
-		let mut db = state.db.lock().unwrap();
-		
-		match db.execute(&sql) {
-			Ok(_) => Ok("Mutation executed successfully".to_string()),
-			Err(e) => Err(async_graphql::Error::new(format!("Database error: {}", e))),
-		}
-	}
-}
+// GraphQL support temporarily disabled due to version conflicts
+// /// GraphQL query root
+// #[cfg(feature = "server")]
+// pub struct QueryRoot;
+// 
+// #[cfg(feature = "server")]
+// #[Object]
+// impl QueryRoot {
+// 	/// Execute SQL query via GraphQL
+// 	async fn execute_sql(&self, ctx: &Context<'_>, sql: String) -> async_graphql::Result<String> {
+// 		let state = ctx.data::<ServerState>()?;
+// 		let mut db = state.db.inner.lock().unwrap();
+// 		
+// 		match db.execute(&sql) {
+// 			Ok(_) => Ok("Query executed successfully".to_string()),
+// 			Err(e) => Err(async_graphql::Error::new(format!("Database error: {}", e))),
+// 		}
+// 	}
+// 	
+// 	/// Get database version
+// 	async fn version(&self) -> String {
+// 		env!("CARGO_PKG_VERSION").to_string()
+// 	}
+// }
+// 
+// /// GraphQL mutation root
+// #[cfg(feature = "server")]
+// pub struct MutationRoot;
+// 
+// #[cfg(feature = "server")]
+// #[Object]
+// impl MutationRoot {
+// 	/// Execute SQL mutation via GraphQL
+// 	async fn execute_mutation(&self, ctx: &Context<'_>, sql: String) -> async_graphql::Result<String> {
+// 		let state = ctx.data::<ServerState>()?;
+// 		let mut db = state.db.inner.lock().unwrap();
+// 		
+// 		match db.execute(&sql) {
+// 			Ok(_) => Ok("Mutation executed successfully".to_string()),
+// 			Err(e) => Err(async_graphql::Error::new(format!("Database error: {}", e))),
+// 		}
+// 	}
+// }
 
 /// REST API handler for SQL execution
 #[cfg(feature = "server")]
@@ -144,7 +154,21 @@ async fn execute_sql_handler(
 	State(state): State<ServerState>,
 	Json(req): Json<SqlRequest>,
 ) -> impl IntoResponse {
-	let mut db = state.db.lock().unwrap();
+	// Open database connection for this request
+	// In production, use connection pooling
+	let mut db = match Database::open(state.db_path.as_str()) {
+		Ok(db) => db,
+		Err(e) => {
+			return (
+				StatusCode::INTERNAL_SERVER_ERROR,
+				Json(SqlResponse {
+					success: false,
+					message: format!("Failed to open database: {}", e),
+					rows_affected: None,
+				})
+			);
+		}
+	};
 	
 	match db.execute(&req.sql) {
 		Ok(_) => (
@@ -192,23 +216,28 @@ async fn health_handler() -> impl IntoResponse {
 #[cfg(feature = "server")]
 pub struct EpilogLiteServer {
 	config: ServerConfig,
-	db: Arc<Mutex<Database>>,
+	db_path: String,
 }
 
 #[cfg(feature = "server")]
 impl EpilogLiteServer {
-	/// Create a new server instance
-	pub fn new(db: Database, config: ServerConfig) -> Self {
+	/// Create a new server instance with a database path
+	pub fn new(db_path: String, config: ServerConfig) -> Self {
 		Self {
 			config,
-			db: Arc::new(Mutex::new(db)),
+			db_path,
 		}
+	}
+	
+	/// Create a new server instance with an in-memory database
+	pub fn new_memory(config: ServerConfig) -> Self {
+		Self::new(":memory:".to_string(), config)
 	}
 	
 	/// Build the router with all endpoints
 	fn build_router(&self) -> Router {
 		let state = ServerState {
-			db: self.db.clone(),
+			db_path: Arc::new(self.db_path.clone()),
 			config: self.config.clone(),
 		};
 		
@@ -222,30 +251,31 @@ impl EpilogLiteServer {
 				.route("/api/auth", post(auth_handler));
 		}
 		
+		// GraphQL support temporarily disabled due to version conflicts
 		// Add GraphQL endpoint
-		if self.config.enable_graphql {
-			let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
-				.data(state.clone())
-				.finish();
-			
-			use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
-			use async_graphql::http::GraphiQLSource;
-			
-			let graphql_handler = |schema: async_graphql::Schema<QueryRoot, MutationRoot, EmptySubscription>, req: GraphQLRequest| async move {
-				GraphQLResponse::from(schema.execute(req.into_inner()).await)
-			};
-			
-			let graphiql_handler = || async {
-				axum::response::Html(GraphiQLSource::build().endpoint("/graphql").finish())
-			};
-			
-			router = router
-				.route("/graphql", post({
-					let schema_clone = schema.clone();
-					move |req| graphql_handler(schema_clone.clone(), req)
-				}))
-				.route("/graphiql", get(graphiql_handler));
-		}
+		// if self.config.enable_graphql {
+		// 	let schema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+		// 		.data(state.clone())
+		// 		.finish();
+		// 	
+		// 	use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+		// 	use async_graphql::http::GraphiQLSource;
+		// 	
+		// 	let graphql_handler = |schema: async_graphql::Schema<QueryRoot, MutationRoot, EmptySubscription>, req: GraphQLRequest| async move {
+		// 		GraphQLResponse::from(schema.execute(req.into_inner()).await)
+		// 	};
+		// 	
+		// 	let graphiql_handler = || async {
+		// 		axum::response::Html(GraphiQLSource::build().endpoint("/graphql").finish())
+		// 	};
+		// 	
+		// 	router = router
+		// 		.route("/graphql", post({
+		// 			let schema_clone = schema.clone();
+		// 			move |req| graphql_handler(schema_clone.clone(), req)
+		// 		}))
+		// 		.route("/graphiql", get(graphiql_handler));
+		// }
 		
 		router.with_state(state)
 	}
@@ -256,13 +286,13 @@ impl EpilogLiteServer {
 		
 		let listener = tokio::net::TcpListener::bind(&self.config.bind_addr)
 			.await
-			.map_err(|e| Error::IoError(format!("Failed to bind to {}: {}", self.config.bind_addr, e)))?;
+			.map_err(|e| Error::Internal(format!("Failed to bind to {}: {}", self.config.bind_addr, e)))?;
 		
 		log::info!("Server listening on {}", self.config.bind_addr);
 		
 		axum::serve(listener, app)
 			.await
-			.map_err(|e| Error::IoError(format!("Server error: {}", e)))?;
+			.map_err(|e| Error::Internal(format!("Server error: {}", e)))?;
 		
 		Ok(())
 	}

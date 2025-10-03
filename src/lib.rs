@@ -11,6 +11,16 @@ pub use eplite::query_builder::{
 };
 pub use eplite::{SchemaFormat, TextEncoding};
 
+#[cfg(feature = "server")]
+pub use eplite::server::{
+	AuthHandler, AuthManager, BackupCode, BatchConfig, BatchProcessor, BatchRequest,
+	BatchResponse, CacheConfig, CacheEvictionPolicy, Certificate, CertificateManager,
+	CertValidationPolicy, CipherSuite, CircuitState, ClientCertMode, ClientConfig,
+	ConnectionState, EpilogLiteClient, EpilogLiteServer, MfaConfig, OAuthConfig,
+	OAuthProvider, PoolStats, QueryCache, RequestBuilder, ServerConfig, ServerState,
+	SqlRequest, SqlResponse, TlsConfig, TlsVersion, TotpSecret, UserProfile,
+};
+
 pub const EPILOGLITE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const SQLITE_SHM_NLOCK: u32 = 0;
 
