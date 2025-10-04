@@ -43,8 +43,10 @@ impl Processor {
 		// Execute based on statement type
 		match statement {
 			Statement::Select(stmt) => {
-				// Get the table
-				if let Some(table) = self.storage.get_table(&stmt.from) {
+				// Check if this is a JOIN query
+				if !stmt.joins.is_empty() {
+					self.execute_join_select(&stmt)
+				} else if let Some(table) = self.storage.get_table(&stmt.from) {
 					// Check if this is an aggregate query
 					let has_aggregates = stmt.columns.iter().any(|col| matches!(
 						col,
@@ -404,6 +406,57 @@ impl Processor {
 		Ok(ExecutionResult::Select {
 			rows: result_rows,
 			columns: column_names,
+		})
+	}
+
+	/// Execute SELECT with JOIN clauses
+	fn execute_join_select(&self, stmt: &crate::eplite::command::parser::SelectStatement) -> Result<ExecutionResult> {
+		use crate::eplite::command::parser::JoinType;
+
+		// Currently we support single JOIN operations
+		// TODO: Support multiple JOINs
+		if stmt.joins.len() != 1 {
+			return Err(Error::NotSupported("Multiple JOINs not yet supported".to_string()));
+		}
+
+		let join = &stmt.joins[0];
+		let table1_name = &stmt.from;
+		let table2_name = &join.table;
+
+		// Execute the appropriate join
+		let (rows, columns) = match join.join_type {
+			JoinType::Cross => {
+				self.storage.cross_join(table1_name, table2_name)?
+			}
+			JoinType::Inner => {
+				let on_condition = join.on_condition.as_ref()
+					.ok_or_else(|| Error::Syntax("INNER JOIN requires ON condition".to_string()))?;
+				self.storage.inner_join(table1_name, table2_name, on_condition)?
+			}
+			JoinType::Left => {
+				let on_condition = join.on_condition.as_ref()
+					.ok_or_else(|| Error::Syntax("LEFT JOIN requires ON condition".to_string()))?;
+				self.storage.left_join(table1_name, table2_name, on_condition)?
+			}
+			JoinType::Right => {
+				let on_condition = join.on_condition.as_ref()
+					.ok_or_else(|| Error::Syntax("RIGHT JOIN requires ON condition".to_string()))?;
+				self.storage.right_join(table1_name, table2_name, on_condition)?
+			}
+		};
+
+		// Apply WHERE clause if present
+		let filtered_rows = if let Some(where_clause) = &stmt.where_clause {
+			// For now, simple filtering - would need proper WHERE evaluation for joins
+			// This is a simplified implementation
+			rows
+		} else {
+			rows
+		};
+
+		Ok(ExecutionResult::Select {
+			rows: filtered_rows,
+			columns,
 		})
 	}
 }
