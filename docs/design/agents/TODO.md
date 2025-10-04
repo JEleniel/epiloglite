@@ -1,14 +1,10 @@
 # EpilogLite TODO - Phased Development Plan
 
-**Last Updated**: 2024-12-XX
-**Current Phase**: Phase 26 (No-std Support)
-**Overall Progress**: ~92% Complete
+This document details all of the features that must be implemented for release 1.0.0.
 
-## Priority Legend
-- 🔴 Critical - Blocking other work
-- 🟠 High - Important for next release
-- 🟡 Medium - Nice to have
-- 🟢 Low - Future consideration
+**Last Updated**: 2024-12-XX
+**Last Completed Phase**: Phase 26
+**Overall Progress**: ~92% Complete
 
 ## Phase Status Legend
 - ✅ Complete
@@ -17,63 +13,6 @@
 - ⏸️ On Hold
 
 ---
-
-### Phase 25: Server Mode Enhancements ✅
-**Status**: Complete
-**Priority**: 🟠 High
-**Target**: Version 1.0.0
-**Completion**: 100%
-
-#### Authentication Enhancements
-- [x] 🟠 OAuth provider integration
-  - [x] OAuth 2.0 flow implementation
-  - [x] Provider registration (Google, GitHub, etc.)
-  - [x] Token exchange
-  - [x] User profile mapping
-- [x] 🟠 Custom authentication handlers
-  - [x] Plugin system for auth providers
-  - [x] Auth middleware abstraction
-  - [x] Documentation for custom auth
-- [x] 🟡 Multi-factor authentication (MFA)
-  - [x] TOTP support
-  - [x] Backup codes
-  - [x] MFA enforcement policies
-
-#### TLS Configuration
-- [x] 🟠 Advanced TLS 1.3 options
-  - [x] Client certificate authentication
-  - [x] Certificate validation policies
-  - [x] Cipher suite selection
-  - [x] Certificate rotation
-- [x] 🟡 Certificate management API
-  - [x] Certificate upload endpoint
-  - [x] Certificate renewal
-  - [x] Certificate revocation
-
-#### Client Library
-- [x] 🟠 Dedicated Rust client library
-  - [x] Connection management
-  - [x] Request builder
-  - [x] Response parsing
-  - [x] Error handling
-- [x] 🟡 Connection pooling
-  - [x] Pool configuration
-  - [x] Health checks
-  - [x] Connection reuse
-- [x] 🟡 Automatic reconnection
-  - [x] Retry logic
-  - [x] Exponential backoff
-  - [x] Circuit breaker pattern
-
-#### Performance Optimizations
-- [x] 🟡 Request batching
-  - [x] Batch API endpoint
-  - [x] Transaction batching
-  - [x] Response streaming
-- [x] 🟡 Caching layer
-  - [x] Query result caching
-  - [x] Cache invalidation
-  - [x] Cache configuration
 
 ### Phase 1: Core Type System ✅
 **Status**: Complete
@@ -398,69 +337,63 @@
 - [x] Feature gate (server feature)
 - [x] Basic integration tests
 
----
-
-## ✅ COMPLETED PHASES (Phases 1-25)
+### Phase 25: Server Mode Enhancements ✅
+**Status**: Complete
+**Completion**: 100%
 
 #### Authentication Enhancements
-- [x] 🟠 OAuth provider integration
+- [x] OAuth provider integration
   - [x] OAuth 2.0 flow implementation
   - [x] Provider registration (Google, GitHub, etc.)
   - [x] Token exchange
   - [x] User profile mapping
-- [x] 🟠 Custom authentication handlers
+- [x] Custom authentication handlers
   - [x] Plugin system for auth providers
   - [x] Auth middleware abstraction
   - [x] Documentation for custom auth
-- [x] 🟡 Multi-factor authentication (MFA)
+- [x] Multi-factor authentication (MFA)
   - [x] TOTP support
   - [x] Backup codes
   - [x] MFA enforcement policies
 
 #### TLS Configuration
-- [x] 🟠 Advanced TLS 1.3 options
+- [x] Advanced TLS 1.3 options
   - [x] Client certificate authentication
   - [x] Certificate validation policies
   - [x] Cipher suite selection
   - [x] Certificate rotation
-- [x] 🟡 Certificate management API
+- [x] Certificate management API
   - [x] Certificate upload endpoint
   - [x] Certificate renewal
   - [x] Certificate revocation
 
 #### Client Library
-- [x] 🟠 Dedicated Rust client library
+- [x] Dedicated Rust client library
   - [x] Connection management
   - [x] Request builder
   - [x] Response parsing
   - [x] Error handling
-- [x] 🟡 Connection pooling
+- [x] Connection pooling
   - [x] Pool configuration
   - [x] Health checks
   - [x] Connection reuse
-- [x] 🟡 Automatic reconnection
+- [x] Automatic reconnection
   - [x] Retry logic
   - [x] Exponential backoff
   - [x] Circuit breaker pattern
 
 #### Performance Optimizations
-- [x] 🟡 Request batching
+- [x] Request batching
   - [x] Batch API endpoint
   - [x] Transaction batching
   - [x] Response streaming
-- [x] 🟡 Caching layer
+- [x] Caching layer
   - [x] Query result caching
   - [x] Cache invalidation
   - [x] Cache configuration
 
----
-
-## 📋 PLANNED PHASES
-
 ### Phase 26: No-std Support ✅
 **Status**: Complete
-**Priority**: 🟡 Medium
-**Target**: Version 1.1.0
 **Completion**: 100%
 
 - [x] Remove std dependencies from core
@@ -471,22 +404,19 @@
 - [x] Example for embedded target
 - [x] Feature gate (no-std feature)
 
-### Phase 27: Extended Unicode Support 📋
-**Priority**: 🟡 Medium
-**Target**: Version 1.1.0
-**Estimated Effort**: 2-3 weeks
+---
 
-- [ ] Complete UTF-16 support
-- [ ] Unicode normalization
-- [ ] Collation sequences
-- [ ] Case-insensitive operations with Unicode
-- [ ] Unicode-aware LIKE operator
-- [ ] Unit tests for Unicode edge cases
+## 📋 PLANNED PHASES
 
-### Phase 28: Graph Data Structures 📋
-**Priority**: 🟢 Low
-**Target**: Version 1.2.0
-**Estimated Effort**: 4-6 weeks
+### Priority Legend
+
+- 🔴 Critical - Blocking other work
+- 🟠 High - Important for next release
+- 🟡 Medium - Nice to have
+- 🟢 Low - Future consideration
+
+### Phase 27: Graph Data Structures 📋
+**Priority**: 🔴 Critical
 
 - [ ] Graph table type
 - [ ] Node and edge representation
@@ -496,10 +426,8 @@
 - [ ] Integration with relational data
 - [ ] Query syntax for graphs
 
-### Phase 29: Advanced JOIN Types 📋
-**Priority**: 🟡 Medium
-**Target**: Version 1.1.0
-**Estimated Effort**: 2 weeks
+### Phase 28: Advanced JOIN Types 📋
+**Priority**: 🔴 Critical
 
 - [ ] LEFT JOIN / LEFT OUTER JOIN
 - [ ] RIGHT JOIN / RIGHT OUTER JOIN
@@ -508,10 +436,8 @@
 - [ ] Self-join optimization
 - [ ] Unit tests for all join types
 
-### Phase 30: Subquery Optimization 📋
-**Priority**: 🟡 Medium
-**Target**: Version 1.1.0
-**Estimated Effort**: 2-3 weeks
+### Phase 29: Subquery Optimization 📋
+**Priority**: 🔴 Critical
 
 - [ ] Subquery flattening
 - [ ] Correlated subquery support
@@ -520,10 +446,8 @@
 - [ ] Subquery caching
 - [ ] Unit tests for subqueries
 
-### Phase 31: Write-Ahead Logging (WAL) 📋
-**Priority**: 🟠 High
-**Target**: Version 1.2.0
-**Estimated Effort**: 4-6 weeks
+### Phase 30: Write-Ahead Logging (WAL) 📋
+**Priority**: 🔴 Critical
 
 - [ ] WAL file format
 - [ ] WAL writing logic
@@ -533,10 +457,8 @@
 - [ ] Performance benchmarks
 - [ ] Unit tests for WAL
 
-### Phase 32: Async I/O 📋
-**Priority**: 🟡 Medium
-**Target**: Version 1.2.0
-**Estimated Effort**: 3-4 weeks
+### Phase 31: Async I/O 📋
+**Priority**: 🔴 Critical
 
 - [ ] Async file operations
 - [ ] Async VFS trait
@@ -546,23 +468,8 @@
 - [ ] Performance comparison
 - [ ] Unit tests for async operations
 
-### Phase 33: MVCC (Multi-Version Concurrency Control) 📋
-**Priority**: 🟠 High
-**Target**: Version 1.3.0
-**Estimated Effort**: 6-8 weeks
-
-- [ ] Version chain structure
-- [ ] Snapshot isolation
-- [ ] Transaction ID management
-- [ ] Garbage collection of old versions
-- [ ] Read-without-locking
-- [ ] Serializable isolation level
-- [ ] Unit tests for MVCC
-
-### Phase 34: Stored Procedures 📋
-**Priority**: 🟢 Low
-**Target**: Version 1.4.0
-**Estimated Effort**: 4-6 weeks
+### Phase 32: Stored Procedures 📋
+**Priority**: 🔴 Critical
 
 - [ ] Stored procedure syntax
 - [ ] Procedure storage
@@ -572,10 +479,8 @@
 - [ ] Error handling in procedures
 - [ ] Unit tests for procedures
 
-### Phase 35: Triggers 📋
-**Priority**: 🟡 Medium
-**Target**: Version 1.3.0
-**Estimated Effort**: 3-4 weeks
+### Phase 33: Triggers 📋
+**Priority**: 🔴 Critical
 
 - [ ] Trigger syntax (BEFORE/AFTER, INSERT/UPDATE/DELETE)
 - [ ] Trigger storage
@@ -585,10 +490,8 @@
 - [ ] Trigger management (CREATE/DROP)
 - [ ] Unit tests for triggers
 
-### Phase 36: Views 📋
-**Priority**: 🟡 Medium
-**Target**: Version 1.3.0
-**Estimated Effort**: 2-3 weeks
+### Phase 34: Views 📋
+**Priority**: 🔴 Critical
 
 - [ ] View definition syntax
 - [ ] View storage
@@ -598,35 +501,8 @@
 - [ ] Updatable views (planned)
 - [ ] Unit tests for views
 
-### Phase 37: Full-Text Search 📋
-**Priority**: 🟢 Low
-**Target**: Version 1.4.0
-**Estimated Effort**: 4-6 weeks
-
-- [ ] FTS table type
-- [ ] Tokenization
-- [ ] Inverted index
-- [ ] MATCH operator
-- [ ] Ranking algorithms
-- [ ] Snippet generation
-- [ ] Unit tests for FTS
-
-### Phase 38: JSON Support 📋
-**Priority**: 🟡 Medium
-**Target**: Version 1.2.0
-**Estimated Effort**: 2-3 weeks
-
-- [ ] JSON column type
-- [ ] JSON functions (json_extract, json_array, etc.)
-- [ ] JSON path expressions
-- [ ] JSON indexing
-- [ ] JSON validation
-- [ ] Unit tests for JSON
-
-### Phase 39: Window Functions 📋
-**Priority**: 🟡 Medium
-**Target**: Version 1.3.0
-**Estimated Effort**: 3-4 weeks
+### Phase 35: Window Functions 📋
+**Priority**: 🔴 Critical
 
 - [ ] Window function syntax
 - [ ] ROW_NUMBER, RANK, DENSE_RANK
@@ -636,10 +512,51 @@
 - [ ] Frame specifications
 - [ ] Unit tests for window functions
 
+### Phase 36: Extended Unicode Support 📋
+**Priority**: 🟠 High
+
+- [ ] Complete UTF-16 support
+- [ ] Unicode normalization
+- [ ] Collation sequences
+- [ ] Case-insensitive operations with Unicode
+- [ ] Unicode-aware LIKE operator
+- [ ] Unit tests for Unicode edge cases
+
+### Phase 37: MVCC (Multi-Version Concurrency Control) 📋
+**Priority**: 🟠 High
+
+- [ ] Version chain structure
+- [ ] Snapshot isolation
+- [ ] Transaction ID management
+- [ ] Garbage collection of old versions
+- [ ] Read-without-locking
+- [ ] Serializable isolation level
+- [ ] Unit tests for MVCC
+
+
+### Phase 38: JSON Support 📋
+**Priority**: 🟡 Medium
+
+- [ ] JSON column type
+- [ ] JSON functions (json_extract, json_array, etc.)
+- [ ] JSON path expressions
+- [ ] JSON indexing
+- [ ] JSON validation
+- [ ] Unit tests for JSON
+
+### Phase 39: Full-Text Search 📋
+**Priority**: 🟢 Low
+
+- [ ] FTS table type
+- [ ] Tokenization
+- [ ] Inverted index
+- [ ] MATCH operator
+- [ ] Ranking algorithms
+- [ ] Snippet generation
+- [ ] Unit tests for FTS
+
 ### Phase 40: WASM Target 📋
 **Priority**: 🟢 Low
-**Target**: Version 1.4.0
-**Estimated Effort**: 2-3 weeks
 
 - [ ] WASM compilation
 - [ ] WASM VFS (browser storage)
@@ -647,55 +564,6 @@
 - [ ] Browser compatibility
 - [ ] Example web application
 - [ ] Documentation for WASM
-
----
-
-## 🎯 Milestone Targets
-
-### Version 1.0.0 (Current Target)
-**Target Date**: Q1 2025
-**Focus**: Production-ready core with server mode
-
-- [x] Core database engine (Phases 1-12)
-- [x] Advanced SQL features (Phases 13-16)
-- [x] Performance and security (Phases 17-22)
-- [x] C API and server foundation (Phases 23-24)
-- [x] Server enhancements (Phase 25)
-
-### Version 1.1.0
-**Target Date**: Q2 2025
-**Focus**: Platform support and compatibility
-
-- [ ] No-std support (Phase 26)
-- [ ] Extended Unicode (Phase 27)
-- [ ] Advanced JOINs (Phase 29)
-- [ ] Subquery optimization (Phase 30)
-
-### Version 1.2.0
-**Target Date**: Q3 2025
-**Focus**: Performance and scalability
-
-- [ ] WAL mode (Phase 31)
-- [ ] Async I/O (Phase 32)
-- [ ] JSON support (Phase 38)
-
-### Version 1.3.0
-**Target Date**: Q4 2025
-**Focus**: Advanced database features
-
-- [ ] MVCC (Phase 33)
-- [ ] Triggers (Phase 35)
-- [ ] Views (Phase 36)
-- [ ] Window functions (Phase 39)
-
-### Version 1.4.0
-**Target Date**: Q1 2026
-**Focus**: Extended capabilities
-
-- [ ] Graph data structures (Phase 28)
-- [ ] Stored procedures (Phase 34)
-- [ ] Full-text search (Phase 37)
-- [ ] WASM target (Phase 40)
 
 ---
 
@@ -782,36 +650,6 @@ cargo fmt
 # Generate documentation
 cargo doc --open
 ```
-
----
-
-## 📝 Notes for Agents
-
-### Task Selection Priority:
-1. 🔴 Critical tasks (blocking)
-2. 🟠 High priority tasks (current milestone)
-3. 🟡 Medium priority tasks (next milestone)
-4. 🟢 Low priority tasks (future)
-
-### Before Starting a Task:
-- Verify no one else is working on it
-- Understand dependencies and prerequisites
-- Review related code and tests
-- Plan the implementation approach
-
-### During Implementation:
-- Follow existing code patterns and style
-- Write comprehensive tests
-- Handle all error cases
-- Update documentation
-- Keep changes focused and minimal
-
-### After Implementation:
-- Run full test suite
-- Update STATUS.md if needed
-- Mark task complete in this TODO
-- Commit with clear message
-- Create pull request
 
 ---
 
