@@ -215,6 +215,7 @@ The `examples/` directory contains several examples:
 
 - `basic_usage.rs` - Complete workflow demonstration
 - `query_builder_example.rs` - Query builder pattern examples
+- `savepoint_example.rs` - Transaction savepoint operations
 - `embedded/no_std_basic.rs` - No-std embedded example
 
 Run examples with:
@@ -222,6 +223,7 @@ Run examples with:
 ```bash
 cargo run --example basic_usage
 cargo run --example query_builder_example
+cargo run --example savepoint_example
 
 # No-std build (won't run but demonstrates compilation)
 cargo build --example no_std_basic --no-default-features --features no-std
