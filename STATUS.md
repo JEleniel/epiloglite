@@ -8,7 +8,7 @@ EpilogLite has completed its foundational layers and now supports core database 
 
 ## Test Coverage
 
-**111 Tests Passing** (88 unit + 18 adversarial + 5 integration)
+**152 Tests Passing** (124 unit + 18 adversarial + 10 integration)
 - ✅ All tests passing
 - ✅ Zero failures
 - ✅ Integration tests validate complete workflows
@@ -107,7 +107,7 @@ EpilogLite has completed its foundational layers and now supports core database 
 - UPDATE statements (SET, WHERE)
 - DELETE statements (FROM, WHERE)
 - CREATE TABLE (columns, data types, constraints)
-- Transaction statements (BEGIN, COMMIT, ROLLBACK)
+- Transaction statements (BEGIN, COMMIT, ROLLBACK, SAVEPOINT, RELEASE, ROLLBACK TO SAVEPOINT)
 - Real identifier extraction from source
 - 8 unit tests
 
@@ -249,6 +249,7 @@ All integration tests passing:
 1. **test_complete_workflow** - Full CRUD operations
 2. **test_disk_persistence** - Save/load across sessions
 3. **test_transactions** - BEGIN/COMMIT/ROLLBACK
+4. **test_savepoint_operations** - SAVEPOINT/RELEASE/ROLLBACK TO SAVEPOINT
 4. **test_multiple_tables** - Multiple table management
 5. **test_error_handling** - Error scenarios
 
@@ -307,7 +308,7 @@ All integration tests passing:
 ✅ Update records
 ✅ Delete records
 ✅ Multiple tables
-✅ Transactions (BEGIN/COMMIT/ROLLBACK)
+✅ Transactions (BEGIN/COMMIT/ROLLBACK/SAVEPOINT/RELEASE)
 ✅ In-memory databases
 ✅ Query builder pattern
 ✅ Type-safe operations

@@ -13,7 +13,7 @@ EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliabi
 - ✅ **Full SQL Support** - CREATE TABLE, INSERT, SELECT, UPDATE, DELETE
 - ✅ **Disk Persistence** - Data automatically saves to and loads from files
 - ✅ **In-Memory Databases** - Fast `:memory:` mode for temporary data
-- ✅ **Transactions** - BEGIN, COMMIT, ROLLBACK support
+- ✅ **Transactions** - BEGIN, COMMIT, ROLLBACK, SAVEPOINT, RELEASE support
 - ✅ **Multiple Tables** - Create and manage multiple tables simultaneously
 
 #### Query Builder Pattern
@@ -34,7 +34,7 @@ EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliabi
 - ✅ **100% Safe Rust** - No unsafe code blocks
 - ✅ **Modular Design** - Clean separation of concerns
 - ✅ **Error Handling** - Comprehensive Result types
-- ✅ **Test Coverage** - 111 tests (88 unit + 18 adversarial + 5 integration)
+- ✅ **Test Coverage** - 152 tests (124 unit + 18 adversarial + 10 integration)
 - ✅ **Security Tested** - SQL injection resistance, malformed input handling
 - ✅ **Idiomatic Rust** - Clippy-approved, modern patterns
 - ✅ **Type Safety** - ColumnType enum eliminates hardcoded strings

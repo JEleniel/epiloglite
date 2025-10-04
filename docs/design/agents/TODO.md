@@ -100,7 +100,7 @@ This document details all of the features that must be implemented for release 1
 - [x] UPDATE statement parsing
 - [x] DELETE statement parsing
 - [x] CREATE TABLE parsing
-- [x] Transaction statements (BEGIN/COMMIT/ROLLBACK)
+- [x] Transaction statements (BEGIN/COMMIT/ROLLBACK/SAVEPOINT/RELEASE/ROLLBACK TO SAVEPOINT)
 - [x] Expression parsing
 - [x] Unit tests for parser
 
