@@ -20,6 +20,9 @@ pub enum Statement {
 	BeginTransaction,
 	Commit,
 	Rollback,
+	Savepoint(String),
+	Release(String),
+	RollbackToSavepoint(String),
 }
 
 /// Aggregate function type
@@ -151,7 +154,15 @@ impl Parser {
 			}
 			Some(Token::Rollback) => {
 				self.advance();
-				Statement::Rollback
+				self.parse_rollback()?
+			}
+			Some(Token::Savepoint) => {
+				self.advance();
+				self.parse_savepoint()?
+			}
+			Some(Token::Release) => {
+				self.advance();
+				self.parse_release()?
 			}
 			_ => {
 				return Err(Error::Syntax(format!(
@@ -600,6 +611,48 @@ impl Parser {
 			columns,
 		}))
 	}
+
+	fn parse_rollback(&mut self) -> Result<Statement> {
+		// Check if this is "ROLLBACK TO SAVEPOINT name" or "ROLLBACK TO name"
+		if matches!(self.current_token(), Some(Token::To)) {
+			self.advance(); // consume TO
+			
+			// Optional SAVEPOINT keyword
+			if matches!(self.current_token(), Some(Token::Savepoint)) {
+				self.advance();
+			}
+			
+			// Get savepoint name
+			let name = self.parse_identifier()?;
+			Ok(Statement::RollbackToSavepoint(name))
+		} else if matches!(self.current_token(), Some(Token::Transaction)) {
+			// ROLLBACK TRANSACTION
+			self.advance();
+			Ok(Statement::Rollback)
+		} else {
+			// Just ROLLBACK
+			Ok(Statement::Rollback)
+		}
+	}
+
+	fn parse_savepoint(&mut self) -> Result<Statement> {
+		// SAVEPOINT name
+		let name = self.parse_identifier()?;
+		Ok(Statement::Savepoint(name))
+	}
+
+	fn parse_release(&mut self) -> Result<Statement> {
+		// RELEASE [SAVEPOINT] name
+		
+		// Optional SAVEPOINT keyword
+		if matches!(self.current_token(), Some(Token::Savepoint)) {
+			self.advance();
+		}
+		
+		// Get savepoint name
+		let name = self.parse_identifier()?;
+		Ok(Statement::Release(name))
+	}
 }
 
 impl Default for Parser {
@@ -700,6 +753,76 @@ mod tests {
 		assert!(matches!(result.unwrap(), Statement::Commit));
 
 		let result = parser.parse("ROLLBACK");
+		assert!(result.is_ok());
+		assert!(matches!(result.unwrap(), Statement::Rollback));
+	}
+
+	#[test]
+	fn test_parse_savepoint() {
+		let mut parser = Parser::new();
+		
+		// Test SAVEPOINT name
+		let result = parser.parse("SAVEPOINT sp1");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::Savepoint(name) => {
+				assert_eq!(name, "sp1");
+			}
+			_ => panic!("Expected Savepoint statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_release() {
+		let mut parser = Parser::new();
+		
+		// Test RELEASE name
+		let result = parser.parse("RELEASE sp1");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::Release(name) => {
+				assert_eq!(name, "sp1");
+			}
+			_ => panic!("Expected Release statement"),
+		}
+
+		// Test RELEASE SAVEPOINT name
+		let result = parser.parse("RELEASE SAVEPOINT sp2");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::Release(name) => {
+				assert_eq!(name, "sp2");
+			}
+			_ => panic!("Expected Release statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_rollback_to_savepoint() {
+		let mut parser = Parser::new();
+		
+		// Test ROLLBACK TO name
+		let result = parser.parse("ROLLBACK TO sp1");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::RollbackToSavepoint(name) => {
+				assert_eq!(name, "sp1");
+			}
+			_ => panic!("Expected RollbackToSavepoint statement"),
+		}
+
+		// Test ROLLBACK TO SAVEPOINT name
+		let result = parser.parse("ROLLBACK TO SAVEPOINT sp2");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::RollbackToSavepoint(name) => {
+				assert_eq!(name, "sp2");
+			}
+			_ => panic!("Expected RollbackToSavepoint statement"),
+		}
+
+		// Test ROLLBACK TRANSACTION (should still parse as Rollback)
+		let result = parser.parse("ROLLBACK TRANSACTION");
 		assert!(result.is_ok());
 		assert!(matches!(result.unwrap(), Statement::Rollback));
 	}

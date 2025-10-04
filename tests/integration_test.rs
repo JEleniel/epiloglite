@@ -326,3 +326,46 @@ _ => panic!("Expected Select result"),
 db.close()?;
 Ok(())
 }
+
+#[test]
+fn test_savepoint_operations() -> Result<()> {
+let mut db = Database::open(":memory:")?;
+
+// Create table
+db.execute("CREATE TABLE test_table (id INTEGER, value TEXT)")?;
+db.execute("INSERT INTO test_table VALUES (1, 'initial')")?;
+
+// Test SAVEPOINT
+let result = db.execute("SAVEPOINT sp1");
+assert!(result.is_ok());
+match result.unwrap() {
+ExecutionResult::Success => {},
+_ => panic!("Expected Success result"),
+}
+
+// Test RELEASE
+let result = db.execute("RELEASE sp1");
+assert!(result.is_ok());
+match result.unwrap() {
+ExecutionResult::Success => {},
+_ => panic!("Expected Success result"),
+}
+
+// Test RELEASE SAVEPOINT
+db.execute("SAVEPOINT sp2")?;
+let result = db.execute("RELEASE SAVEPOINT sp2");
+assert!(result.is_ok());
+
+// Test ROLLBACK TO SAVEPOINT
+db.execute("SAVEPOINT sp3")?;
+let result = db.execute("ROLLBACK TO SAVEPOINT sp3");
+assert!(result.is_ok());
+
+// Test ROLLBACK TO (without SAVEPOINT keyword)
+db.execute("SAVEPOINT sp4")?;
+let result = db.execute("ROLLBACK TO sp4");
+assert!(result.is_ok());
+
+db.close()?;
+Ok(())
+}
