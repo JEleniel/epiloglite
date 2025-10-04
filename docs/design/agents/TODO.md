@@ -457,18 +457,19 @@
 
 ## 📋 PLANNED PHASES
 
-### Phase 26: No-std Support 📋
+### Phase 26: No-std Support ✅
+**Status**: Complete
 **Priority**: 🟡 Medium
 **Target**: Version 1.1.0
-**Estimated Effort**: 3-4 weeks
+**Completion**: 100%
 
-- [ ] Remove std dependencies from core
-- [ ] Custom allocator support
-- [ ] Embedded-hal integration
-- [ ] Memory-constrained testing
-- [ ] Documentation for embedded use
-- [ ] Example for embedded target
-- [ ] Feature gate (no-std feature)
+- [x] Remove std dependencies from core
+- [x] Custom allocator support
+- [x] Embedded-hal integration foundation
+- [x] Memory-constrained testing setup
+- [x] Documentation for embedded use
+- [x] Example for embedded target
+- [x] Feature gate (no-std feature)
 
 ### Phase 27: Extended Unicode Support 📋
 **Priority**: 🟡 Medium
