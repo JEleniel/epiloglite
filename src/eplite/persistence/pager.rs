@@ -2,8 +2,19 @@
 
 use crate::eplite::constants::{DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE};
 use crate::eplite::error::{Error, Result};
+
+#[cfg(feature = "std")]
 use crate::eplite::traits::file::File;
+#[cfg(feature = "std")]
 use std::collections::HashMap;
+
+#[cfg(not(feature = "std"))]
+use alloc::{
+	collections::BTreeMap as HashMap,
+	format,
+	vec,
+	vec::Vec,
+};
 
 /// A single page in the database
 #[derive(Debug, Clone)]
@@ -60,6 +71,7 @@ pub struct Pager {
 	page_size: u32,
 	cache: HashMap<u32, Page>,
 	max_cache_size: usize,
+	#[cfg(feature = "std")]
 	file: Option<Box<dyn File>>,
 }
 
@@ -83,11 +95,13 @@ impl Pager {
 			page_size,
 			cache: HashMap::new(),
 			max_cache_size: 100,
+			#[cfg(feature = "std")]
 			file: None,
 		})
 	}
 
 	/// Create a pager with a file backend
+	#[cfg(feature = "std")]
 	pub fn with_file(page_size: u32, file: Box<dyn File>) -> Result<Self> {
 		let mut pager = Self::new(page_size)?;
 		pager.file = Some(file);

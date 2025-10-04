@@ -4,7 +4,16 @@ use crate::eplite::command::parser::{ColumnDefinition, CreateTableStatement};
 use crate::eplite::error::{Error, Result};
 use crate::eplite::persistence::pager::Pager;
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "std")]
 use std::collections::HashMap;
+
+#[cfg(not(feature = "std"))]
+use alloc::{
+	collections::BTreeMap as HashMap,
+	string::{String, ToString},
+	vec::Vec,
+};
 
 /// WHERE clause evaluator
 mod where_clause {

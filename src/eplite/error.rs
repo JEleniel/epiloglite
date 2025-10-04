@@ -1,14 +1,23 @@
+#[cfg(feature = "std")]
 use std::fmt;
+#[cfg(feature = "std")]
 use std::io;
 
+#[cfg(not(feature = "std"))]
+use core::fmt;
+
 /// Result type for EpilogLite operations
-pub type Result<T> = std::result::Result<T, Error>;
+pub type Result<T> = core::result::Result<T, Error>;
 
 /// Main error type for EpilogLite
 #[derive(Debug)]
 pub enum Error {
 	/// I/O error
+	#[cfg(feature = "std")]
 	Io(io::Error),
+	/// I/O error (no-std variant)
+	#[cfg(not(feature = "std"))]
+	Io(i32),
 	/// File format error
 	InvalidFormat(String),
 	/// SQL syntax error
@@ -36,7 +45,10 @@ pub enum Error {
 impl fmt::Display for Error {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
+			#[cfg(feature = "std")]
 			Error::Io(e) => write!(f, "I/O error: {}", e),
+			#[cfg(not(feature = "std"))]
+			Error::Io(code) => write!(f, "I/O error: code {}", code),
 			Error::InvalidFormat(msg) => write!(f, "Invalid format: {}", msg),
 			Error::Syntax(msg) => write!(f, "Syntax error: {}", msg),
 			Error::Locked => write!(f, "Database is locked"),
@@ -52,6 +64,7 @@ impl fmt::Display for Error {
 	}
 }
 
+#[cfg(feature = "std")]
 impl std::error::Error for Error {
 	fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
 		match self {
@@ -61,6 +74,7 @@ impl std::error::Error for Error {
 	}
 }
 
+#[cfg(feature = "std")]
 impl From<io::Error> for Error {
 	fn from(err: io::Error) -> Self {
 		Error::Io(err)

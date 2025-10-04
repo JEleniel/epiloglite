@@ -3,10 +3,19 @@
 use crate::eplite::command::processor::{ExecutionResult, Processor};
 use crate::eplite::constants::DEFAULT_PAGE_SIZE;
 use crate::eplite::error::{Error, Result};
+
+#[cfg(feature = "std")]
 use crate::eplite::os::file::DefaultFile;
+#[cfg(feature = "std")]
 use crate::eplite::persistence::pager::Pager;
+
 use crate::eplite::storage::StorageManager;
+
+#[cfg(feature = "std")]
 use std::path::Path;
+
+#[cfg(not(feature = "std"))]
+use alloc::string::{String, ToString};
 
 /// Database connection
 pub struct Database {
@@ -16,6 +25,7 @@ pub struct Database {
 
 impl Database {
 	/// Open or create a database
+	#[cfg(feature = "std")]
 	pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
 		let path_str = path
 			.as_ref()
@@ -42,6 +52,15 @@ impl Database {
 		Ok(Database {
 			path: path_str,
 			processor,
+		})
+	}
+
+	/// Create a new in-memory database (no-std version)
+	#[cfg(not(feature = "std"))]
+	pub fn new() -> Result<Self> {
+		Ok(Database {
+			path: ":memory:".to_string(),
+			processor: Processor::new(),
 		})
 	}
 

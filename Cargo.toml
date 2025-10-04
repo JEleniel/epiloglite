@@ -37,8 +37,9 @@ bcrypt = { version = "0.15", optional = true }
 jsonwebtoken = { version = "9.3", optional = true }
 
 [features]
-default = ["async"]
-async = ["tokio"]
+default = ["std", "async"]
+std = []
+async = ["tokio", "std"]
 no-std = []
-capi = []
-server = ["axum", "tower", "tower-http", "tokio-rustls", "rustls", "async-graphql", "async-graphql-axum", "bcrypt", "jsonwebtoken", "tokio"]
+capi = ["std"]
+server = ["std", "axum", "tower", "tower-http", "tokio-rustls", "rustls", "async-graphql", "async-graphql-axum", "bcrypt", "jsonwebtoken", "tokio"]

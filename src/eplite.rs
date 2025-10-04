@@ -6,8 +6,10 @@ pub mod os;
 pub mod persistence;
 pub mod query_builder;
 pub mod storage;
+#[cfg(feature = "std")]
 pub mod config;
 pub mod index;
+#[cfg(feature = "std")]
 pub mod logging;
 pub mod orm;
 pub mod optimizer;

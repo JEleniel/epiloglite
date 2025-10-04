@@ -6,7 +6,16 @@ use crate::eplite::command::processor::ExecutionResult;
 use crate::eplite::database::Database;
 use crate::eplite::error::{Error, Result};
 use crate::eplite::types::column::ColumnType;
+
+#[cfg(feature = "std")]
 use std::collections::HashMap;
+
+#[cfg(not(feature = "std"))]
+use alloc::{
+	collections::BTreeMap as HashMap,
+	string::{String, ToString},
+	vec::Vec,
+};
 
 /// Trait for entities that can be persisted to the database
 pub trait Entity: Sized {
