@@ -140,6 +140,21 @@ impl Processor {
 			Statement::BeginTransaction => Ok(ExecutionResult::Success),
 			Statement::Commit => Ok(ExecutionResult::Success),
 			Statement::Rollback => Ok(ExecutionResult::Success),
+			Statement::Savepoint(_name) => {
+				// For now, savepoints are accepted but not enforced
+				// Full implementation requires transaction state tracking
+				Ok(ExecutionResult::Success)
+			}
+			Statement::Release(_name) => {
+				// For now, releases are accepted but not enforced
+				// Full implementation requires transaction state tracking
+				Ok(ExecutionResult::Success)
+			}
+			Statement::RollbackToSavepoint(_name) => {
+				// For now, rollback to savepoint is accepted but not enforced
+				// Full implementation requires transaction state tracking
+				Ok(ExecutionResult::Success)
+			}
 		}
 	}
 

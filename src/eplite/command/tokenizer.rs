@@ -134,6 +134,10 @@ pub enum Token {
 	Transaction,
 	#[token("SAVEPOINT", ignore(ascii_case))]
 	Savepoint,
+	#[token("RELEASE", ignore(ascii_case))]
+	Release,
+	#[token("TO", ignore(ascii_case))]
+	To,
 	
 	// Keywords - Other
 	#[token("AS", ignore(ascii_case))]
@@ -317,5 +321,32 @@ mod tests {
 		assert!(tokens.contains(&Token::Inner));
 		assert!(tokens.contains(&Token::Join));
 		assert!(tokens.contains(&Token::On));
+	}
+
+	#[test]
+	fn test_tokenize_savepoint() {
+		let tokenizer = Tokenizer::new("SAVEPOINT sp1".to_string());
+		let tokens = tokenizer.tokenize();
+		assert_eq!(tokens[0], Token::Savepoint);
+		assert_eq!(tokens[1], Token::Identifier);
+	}
+
+	#[test]
+	fn test_tokenize_release() {
+		let tokenizer = Tokenizer::new("RELEASE SAVEPOINT sp1".to_string());
+		let tokens = tokenizer.tokenize();
+		assert_eq!(tokens[0], Token::Release);
+		assert_eq!(tokens[1], Token::Savepoint);
+		assert_eq!(tokens[2], Token::Identifier);
+	}
+
+	#[test]
+	fn test_tokenize_rollback_to() {
+		let tokenizer = Tokenizer::new("ROLLBACK TO SAVEPOINT sp1".to_string());
+		let tokens = tokenizer.tokenize();
+		assert_eq!(tokens[0], Token::Rollback);
+		assert_eq!(tokens[1], Token::To);
+		assert_eq!(tokens[2], Token::Savepoint);
+		assert_eq!(tokens[3], Token::Identifier);
 	}
 }

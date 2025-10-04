@@ -168,10 +168,10 @@ int sqlite3_prepare_v2(sqlite3 *db, const char *sql, ...);
 ## Testing
 
 ### Test Coverage
-- **Total Tests**: 166
-  - Unit tests: 139
+- **Total Tests**: 152
+  - Unit tests: 124
   - Adversarial/security tests: 18
-  - Integration tests: 9
+  - Integration tests: 10
 - **Pass Rate**: 100% (0 failures)
 - **Code Coverage**: ~85% (estimated)
 
@@ -186,7 +186,7 @@ tests/
 ### Key Test Scenarios
 1. CRUD operations (complete workflow)
 2. Disk persistence (save/load across sessions)
-3. Transactions (BEGIN/COMMIT/ROLLBACK)
+3. Transactions (BEGIN/COMMIT/ROLLBACK/SAVEPOINT/RELEASE)
 4. Multiple tables (concurrent table operations)
 5. SQL injection resistance
 6. Malformed input handling
@@ -197,6 +197,7 @@ tests/
 11. ORM operations
 12. Index usage
 13. Permission checks
+14. Savepoint operations (SAVEPOINT/RELEASE/ROLLBACK TO)
 
 ## Dependencies
 

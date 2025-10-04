@@ -13,7 +13,7 @@ EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliabi
 - ✅ **Full SQL Support** - CREATE TABLE, INSERT, SELECT, UPDATE, DELETE
 - ✅ **Disk Persistence** - Data automatically saves to and loads from files
 - ✅ **In-Memory Databases** - Fast `:memory:` mode for temporary data
-- ✅ **Transactions** - BEGIN, COMMIT, ROLLBACK support
+- ✅ **Transactions** - BEGIN, COMMIT, ROLLBACK, SAVEPOINT, RELEASE support
 - ✅ **Multiple Tables** - Create and manage multiple tables simultaneously
 
 #### Query Builder Pattern
@@ -34,7 +34,7 @@ EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliabi
 - ✅ **100% Safe Rust** - No unsafe code blocks
 - ✅ **Modular Design** - Clean separation of concerns
 - ✅ **Error Handling** - Comprehensive Result types
-- ✅ **Test Coverage** - 111 tests (88 unit + 18 adversarial + 5 integration)
+- ✅ **Test Coverage** - 152 tests (124 unit + 18 adversarial + 10 integration)
 - ✅ **Security Tested** - SQL injection resistance, malformed input handling
 - ✅ **Idiomatic Rust** - Clippy-approved, modern patterns
 - ✅ **Type Safety** - ColumnType enum eliminates hardcoded strings
@@ -215,6 +215,7 @@ The `examples/` directory contains several examples:
 
 - `basic_usage.rs` - Complete workflow demonstration
 - `query_builder_example.rs` - Query builder pattern examples
+- `savepoint_example.rs` - Transaction savepoint operations
 - `embedded/no_std_basic.rs` - No-std embedded example
 
 Run examples with:
@@ -222,6 +223,7 @@ Run examples with:
 ```bash
 cargo run --example basic_usage
 cargo run --example query_builder_example
+cargo run --example savepoint_example
 
 # No-std build (won't run but demonstrates compilation)
 cargo build --example no_std_basic --no-default-features --features no-std
