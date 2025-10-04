@@ -1,18 +1,25 @@
 /// Default file implementation using standard library
 
+#[cfg(feature = "std")]
 use crate::eplite::traits::file::{File, LockType, SynchronizationType, UnlockType};
+#[cfg(feature = "std")]
 use flagset::FlagSet;
+#[cfg(feature = "std")]
 use std::fs::{File as StdFile, OpenOptions};
+#[cfg(feature = "std")]
 use std::io::{self, Read, Seek, SeekFrom, Write};
+#[cfg(feature = "std")]
 use std::path::Path;
 
 /// Default file implementation
+#[cfg(feature = "std")]
 #[derive(Debug)]
 pub struct DefaultFile {
 	file: StdFile,
 	path: String,
 }
 
+#[cfg(feature = "std")]
 impl DefaultFile {
 	/// Open a file
 	pub fn open<P: AsRef<Path>>(path: P, read: bool, write: bool, create: bool) -> io::Result<Self> {
@@ -35,6 +42,7 @@ impl DefaultFile {
 	}
 }
 
+#[cfg(feature = "std")]
 impl File for DefaultFile {
 	fn close(&mut self) -> io::Result<()> {
 		// File is automatically closed when dropped

@@ -2,6 +2,9 @@
 
 use logos::Logos;
 
+#[cfg(not(feature = "std"))]
+use alloc::{string::String, vec::Vec};
+
 /// SQL token types
 #[derive(Logos, Debug, Clone, PartialEq)]
 #[logos(skip r"[ \t\n\f]+")]

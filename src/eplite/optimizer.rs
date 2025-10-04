@@ -4,7 +4,18 @@
 //! join ordering, and cost estimation.
 
 use crate::eplite::error::{Error, Result};
+
+#[cfg(feature = "std")]
 use std::collections::HashMap;
+
+#[cfg(not(feature = "std"))]
+use alloc::{
+	collections::BTreeMap as HashMap,
+	format,
+	string::{String, ToString},
+	vec,
+	vec::Vec,
+};
 
 /// Statistics for a table
 #[derive(Debug, Clone)]

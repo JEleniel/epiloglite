@@ -4,7 +4,18 @@
 
 use crate::eplite::error::{Error, Result};
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "std")]
 use std::collections::BTreeMap;
+
+#[cfg(not(feature = "std"))]
+use alloc::{
+	collections::BTreeMap,
+	format,
+	string::{String, ToString},
+	vec,
+	vec::Vec,
+};
 
 /// Index type
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

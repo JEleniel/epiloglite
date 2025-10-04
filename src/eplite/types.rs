@@ -3,6 +3,9 @@ pub mod index;
 pub mod orderby;
 pub mod virtualtable;
 
+#[cfg(not(feature = "std"))]
+use alloc::{string::String, vec::Vec};
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]

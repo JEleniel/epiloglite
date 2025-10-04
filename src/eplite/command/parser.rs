@@ -6,6 +6,9 @@ use crate::eplite::types::column::ColumnType;
 use logos::Logos;
 use serde::{Deserialize, Serialize};
 
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::{String, ToString}, vec, vec::Vec};
+
 /// Parse tree node types
 #[derive(Debug, Clone)]
 pub enum Statement {

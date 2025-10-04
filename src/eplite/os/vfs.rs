@@ -1,10 +1,18 @@
 /// Virtual File System trait
 
 use crate::eplite::error::Result;
+
+#[cfg(feature = "std")]
 use crate::eplite::traits::file::File;
+
+#[cfg(feature = "std")]
 use std::path::Path;
 
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
+
 /// Virtual File System trait
+#[cfg(feature = "std")]
 pub trait VirtualFileSystem {
 	/// Open or create a file
 	fn open(&self, path: &Path, flags: OpenFlags) -> Result<Box<dyn File>>;
@@ -105,20 +113,24 @@ impl AccessFlags {
 }
 
 /// Default VFS implementation using standard library
+#[cfg(feature = "std")]
 pub struct DefaultVfs {}
 
+#[cfg(feature = "std")]
 impl DefaultVfs {
 	pub fn new() -> Self {
 		DefaultVfs {}
 	}
 }
 
+#[cfg(feature = "std")]
 impl Default for DefaultVfs {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
+#[cfg(feature = "std")]
 impl VirtualFileSystem for DefaultVfs {
 	fn open(&self, path: &Path, flags: OpenFlags) -> Result<Box<dyn File>> {
 		use super::file::DefaultFile;

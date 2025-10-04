@@ -3,6 +3,9 @@
 use super::code_generator::{Instruction, Opcode, PreparedStatement};
 use crate::eplite::error::{Error, Result};
 
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::String, vec, vec::Vec};
+
 /// Register in the virtual machine
 #[derive(Debug, Clone)]
 pub enum Register {

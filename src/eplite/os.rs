@@ -3,14 +3,27 @@
 pub mod file;
 pub mod vfs;
 
+#[cfg(feature = "std")]
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
 /// Get current time in milliseconds since Unix epoch
+#[cfg(feature = "std")]
 pub fn current_time_millis() -> u64 {
 	SystemTime::now()
 		.duration_since(UNIX_EPOCH)
 		.unwrap()
 		.as_millis() as u64
+}
+
+/// Get current time in milliseconds since Unix epoch (no-std version)
+#[cfg(not(feature = "std"))]
+pub fn current_time_millis() -> u64 {
+	// In no-std environments, this would need to be provided by the platform
+	// For now, return a placeholder value
+	0
 }
 
 /// Generate random bytes using a cryptographically secure RNG

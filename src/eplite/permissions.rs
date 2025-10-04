@@ -5,9 +5,21 @@
 
 use crate::eplite::error::{Error, Result};
 use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "std")]
 use std::collections::HashMap;
+#[cfg(feature = "std")]
 use std::fs;
+#[cfg(feature = "std")]
 use std::path::Path;
+
+#[cfg(not(feature = "std"))]
+use alloc::{
+	collections::BTreeMap as HashMap,
+	string::{String, ToString},
+	vec,
+	vec::Vec,
+};
 
 /// Permission types for database operations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -114,6 +126,7 @@ impl PermissionManager {
 	}
 
 	/// Save permissions to a file (for SQLite compatibility)
+	#[cfg(feature = "std")]
 	pub fn save_to_file(&self, path: &Path) -> Result<()> {
 		// Convert to serializable format
 		let entries: Vec<GrantEntry> = self
@@ -133,6 +146,7 @@ impl PermissionManager {
 	}
 
 	/// Load permissions from a file
+	#[cfg(feature = "std")]
 	pub fn load_from_file(path: &Path) -> Result<Self> {
 		let json = fs::read_to_string(path)?;
 		let entries: Vec<GrantEntry> = serde_json::from_str(&json)

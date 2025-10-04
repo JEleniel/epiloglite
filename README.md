@@ -46,6 +46,11 @@ EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliabi
 - 🚧 ORDER BY and GROUP BY implementation
 - 🚧 Index support
 
+#### Platform Support
+- ✅ **No-std Compatible** - Works without standard library for embedded systems
+- ✅ **In-memory Mode** - Available in no-std environments
+- ✅ **Custom Allocators** - Bring your own allocator support
+
 ### Planned
 - 📋 Unicode 16 support
 - 📋 Graph data structures
@@ -53,7 +58,7 @@ EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliabi
 - 📋 Lightweight ORM
 - 📋 REST/GraphQL API
 - 📋 SQLite C API compatibility
-- 📋 No-std support
+- 📋 Embedded VFS for flash storage
 
 ## 🚀 Quick Start
 
@@ -175,18 +180,51 @@ fn main() -> Result<()> {
 }
 ```
 
+### No-std / Embedded Usage
+
+EpilogLite can run without the standard library for embedded systems:
+
+```toml
+[dependencies]
+epiloglite = { version = "0.1", default-features = false, features = ["no-std"] }
+```
+
+```rust
+#![no_std]
+
+extern crate alloc;
+
+fn main() -> Result<(), epiloglite::Error> {
+    // Create an in-memory database (no file I/O in no-std)
+    let mut db = epiloglite::Database::new()?;
+    
+    db.execute("CREATE TABLE sensors (id INTEGER, value INTEGER)")?;
+    db.execute("INSERT INTO sensors VALUES (1, 23)")?;
+    
+    let result = db.execute("SELECT * FROM sensors")?;
+    
+    Ok(())
+}
+```
+
+See `docs/NO_STD.md` for detailed documentation and `examples/embedded/` for more examples.
+
 ## 📚 Examples
 
 The `examples/` directory contains several examples:
 
 - `basic_usage.rs` - Complete workflow demonstration
 - `query_builder_example.rs` - Query builder pattern examples
+- `embedded/no_std_basic.rs` - No-std embedded example
 
 Run examples with:
 
 ```bash
 cargo run --example basic_usage
 cargo run --example query_builder_example
+
+# No-std build (won't run but demonstrates compilation)
+cargo build --example no_std_basic --no-default-features --features no-std
 ```
 
 ## 🏗️ Architecture

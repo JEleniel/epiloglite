@@ -6,7 +6,18 @@ use crate::eplite::command::processor::ExecutionResult;
 use crate::eplite::database::Database;
 use crate::eplite::error::{Error, Result};
 use crate::eplite::types::column::ColumnType;
+
+#[cfg(feature = "std")]
 use std::collections::HashMap;
+
+#[cfg(not(feature = "std"))]
+use alloc::{
+	collections::BTreeMap as HashMap,
+	format,
+	string::{String, ToString},
+	vec,
+	vec::Vec,
+};
 
 /// Trait for entities that can be persisted to the database
 pub trait Entity: Sized {
@@ -69,7 +80,7 @@ impl ColumnDefinition {
 /// Repository pattern for working with entities
 pub struct Repository<'a, T: Entity> {
 	db: &'a mut Database,
-	_phantom: std::marker::PhantomData<T>,
+	_phantom: core::marker::PhantomData<T>,
 }
 
 impl<'a, T: Entity> Repository<'a, T> {
@@ -77,7 +88,7 @@ impl<'a, T: Entity> Repository<'a, T> {
 	pub fn new(db: &'a mut Database) -> Self {
 		Repository {
 			db,
-			_phantom: std::marker::PhantomData,
+			_phantom: core::marker::PhantomData,
 		}
 	}
 	
