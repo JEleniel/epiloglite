@@ -12,6 +12,7 @@ use std::collections::HashMap;
 use alloc::{
 	collections::BTreeMap as HashMap,
 	format,
+	string::{String, ToString},
 	vec,
 	vec::Vec,
 };
@@ -145,6 +146,7 @@ impl Pager {
 	fn load_page(&mut self, page_number: u32) -> Result<Page> {
 		let mut page = Page::new(page_number, self.page_size as usize);
 		
+		#[cfg(feature = "std")]
 		if let Some(file) = &mut self.file {
 			// Calculate offset in file
 			let offset = (page_number as u64) * (self.page_size as u64);
@@ -180,6 +182,7 @@ impl Pager {
 			if let Some((&page_num, _)) = self.cache.iter().next() {
 				// Write the page first
 				if let Some(page) = self.cache.get(&page_num) {
+					#[cfg(feature = "std")]
 					if let Some(file) = &mut self.file {
 						let offset = (page.page_number as u64) * (self.page_size as u64);
 						file.write(&page.data, offset)?;
@@ -204,6 +207,7 @@ impl Pager {
 		
 		// Write them
 		for (page_num, data) in dirty_pages {
+			#[cfg(feature = "std")]
 			if let Some(file) = &mut self.file {
 				let offset = (page_num as u64) * (self.page_size as u64);
 				file.write(&data, offset)?;
@@ -215,6 +219,7 @@ impl Pager {
 		}
 		
 		// Sync file to disk
+		#[cfg(feature = "std")]
 		if let Some(file) = &mut self.file {
 			use crate::eplite::traits::file::SynchronizationType;
 			use flagset::FlagSet;

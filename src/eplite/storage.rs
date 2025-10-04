@@ -11,6 +11,7 @@ use std::collections::HashMap;
 #[cfg(not(feature = "std"))]
 use alloc::{
 	collections::BTreeMap as HashMap,
+	format,
 	string::{String, ToString},
 	vec::Vec,
 };
@@ -217,7 +218,7 @@ impl Table {
 			
 			// Try numeric comparison first
 			if let (Ok(num_a), Ok(num_b)) = (val_a.parse::<f64>(), val_b.parse::<f64>()) {
-				let cmp = num_a.partial_cmp(&num_b).unwrap_or(std::cmp::Ordering::Equal);
+				let cmp = num_a.partial_cmp(&num_b).unwrap_or(core::cmp::Ordering::Equal);
 				if ascending { cmp } else { cmp.reverse() }
 			} else {
 				// String comparison

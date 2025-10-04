@@ -5,6 +5,8 @@ use std::io;
 
 #[cfg(not(feature = "std"))]
 use core::fmt;
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
 
 /// Result type for EpilogLite operations
 pub type Result<T> = core::result::Result<T, Error>;

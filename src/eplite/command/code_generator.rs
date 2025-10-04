@@ -3,6 +3,9 @@
 use super::parser::Statement;
 use crate::eplite::error::{Error, Result};
 
+#[cfg(not(feature = "std"))]
+use alloc::{string::{String, ToString}, vec::Vec};
+
 /// Bytecode instruction
 #[derive(Debug, Clone)]
 pub struct Instruction {

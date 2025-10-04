@@ -17,6 +17,7 @@ use std::path::Path;
 use alloc::{
 	collections::BTreeMap as HashMap,
 	string::{String, ToString},
+	vec,
 	vec::Vec,
 };
 

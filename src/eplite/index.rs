@@ -11,7 +11,9 @@ use std::collections::BTreeMap;
 #[cfg(not(feature = "std"))]
 use alloc::{
 	collections::BTreeMap,
+	format,
 	string::{String, ToString},
+	vec,
 	vec::Vec,
 };
 

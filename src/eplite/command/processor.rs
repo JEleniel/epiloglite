@@ -4,6 +4,9 @@ use crate::eplite::command::parser::{AggregateFunction, ColumnSelection, Parser,
 use crate::eplite::error::{Error, Result};
 use crate::eplite::storage::StorageManager;
 
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::{String, ToString}, vec, vec::Vec};
+
 /// Processes SQL commands
 #[derive(Debug)]
 pub struct Processor {

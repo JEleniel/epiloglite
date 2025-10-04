@@ -4,7 +4,7 @@ use crate::eplite::error::{Error, Result};
 use crate::eplite::types::column::ColumnType;
 
 #[cfg(not(feature = "std"))]
-use alloc::{format, string::{String, ToString}, vec::Vec};
+use alloc::{format, string::{String, ToString}, vec, vec::Vec};
 
 /// Trait for query builders
 pub trait QueryBuilder {

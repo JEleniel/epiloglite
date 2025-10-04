@@ -6,7 +6,7 @@ use crate::eplite::constants::{
 use crate::eplite::error::{Error, Result};
 
 #[cfg(not(feature = "std"))]
-use alloc::{vec, vec::Vec};
+use alloc::{string::ToString, vec, vec::Vec};
 
 /// Database file format type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

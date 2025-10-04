@@ -1,6 +1,8 @@
 /// Virtual File System trait
 
 use crate::eplite::error::Result;
+
+#[cfg(feature = "std")]
 use crate::eplite::traits::file::File;
 
 #[cfg(feature = "std")]

@@ -11,7 +11,9 @@ use std::collections::HashMap;
 #[cfg(not(feature = "std"))]
 use alloc::{
 	collections::BTreeMap as HashMap,
+	format,
 	string::{String, ToString},
+	vec,
 	vec::Vec,
 };
 

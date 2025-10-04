@@ -2,6 +2,9 @@
 
 use crate::eplite::error::{Error, Result};
 
+#[cfg(not(feature = "std"))]
+use alloc::{string::ToString, vec::Vec};
+
 /// B-tree node type
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NodeType {

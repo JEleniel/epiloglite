@@ -2,6 +2,9 @@
 
 use crate::eplite::error::{Error, Result};
 
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::{String, ToString}};
+
 /// Convert a string to uppercase
 pub fn to_uppercase(s: &str) -> String {
 	s.to_uppercase()
