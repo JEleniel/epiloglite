@@ -3,8 +3,8 @@
 This document details all of the features that must be implemented for release 1.0.0.
 
 **Last Updated**: 2024-12-XX
-**Last Completed Phase**: Phase 28
-**Overall Progress**: ~93% Complete
+**Last Completed Phase**: Phase 29
+**Overall Progress**: ~94% Complete
 
 ## Phase Status Legend
 - ✅ Complete
@@ -441,15 +441,17 @@ This document details all of the features that must be implemented for release 1
 - [ ] NATURAL JOIN (deferred - low priority)
 - [ ] Self-join optimization (deferred)
 
-### Phase 29: Subquery Optimization 📋
+### Phase 29: Subquery Optimization ✅
+**Status**: Complete
+**Completion**: 100%
 **Priority**: 🔴 Critical
 
-- [ ] Subquery flattening
-- [ ] Correlated subquery support
-- [ ] IN subquery optimization
-- [ ] EXISTS optimization
-- [ ] Subquery caching
-- [ ] Unit tests for subqueries
+- [x] Subquery flattening
+- [x] Correlated subquery support
+- [x] IN subquery optimization
+- [x] EXISTS optimization
+- [x] Subquery caching
+- [x] Unit tests for subqueries
 
 ### Phase 30: Write-Ahead Logging (WAL) 📋
 **Priority**: 🔴 Critical
