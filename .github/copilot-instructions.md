@@ -6,10 +6,10 @@ EpilogLite is a Rust implementation of a database engine inspired by SQLite. Thi
 
 ## Technology Stack
 
-- **Language**: Rust (Edition 2021)
-- **Build System**: Cargo
-- **License**: GNU Lesser General Public License 3.0 only (LGPL-3.0-only)
-- **Key Features**: Database engine, SQL support, relational database
+-   **Language**: Rust (Edition 2021)
+-   **Build System**: Cargo
+-   **License**: GNU Lesser General Public License 3.0 only (LGPL-3.0-only)
+-   **Key Features**: Database engine, SQL support, relational database
 
 ## Build and Test Commands
 
@@ -55,9 +55,9 @@ cargo fmt -- --check
 
 1. **Safety**: The project has `unsafe_code = "forbid"` in `Cargo.toml`. Never introduce unsafe code.
 2. **Naming Conventions**:
-   + Use UpperCamelCase for types, structs, enums, and variants
-   + Use snake_case for functions, variables, and modules
-   + Follow Rust standard naming conventions
+    - Use UpperCamelCase for types, structs, enums, and variants
+    - Use snake_case for functions, variables, and modules
+    - Follow Rust standard naming conventions
 3. **Code Organization**: The project is modular in design. Maintain this modularity.
 
 ### Documentation
@@ -88,11 +88,11 @@ epiloglite/
 
 When working on specific components, reference these design documents:
 
-- **Architecture**: `design/ARCHITECTURE.md` - Overall system design
-- **File Format**: `design/FILEFORMAT.md` - Database file format specification
-- **Query Planner**: `design/QUERYPLANNER.md` - Query optimization and planning
-- **Virtual Machine**: `design/VIRTUALMACHINE.md` - Bytecode execution engine
-- **Transactions**: `design/TRANSACTIONS.md` - Transaction handling
+-   **Architecture**: `design/ARCHITECTURE.md` - Overall system design
+-   **File Format**: `design/FILEFORMAT.md` - Database file format specification
+-   **Query Planner**: `design/QUERYPLANNER.md` - Query optimization and planning
+-   **Virtual Machine**: `design/VIRTUALMACHINE.md` - Bytecode execution engine
+-   **Transactions**: `design/TRANSACTIONS.md` - Transaction handling
 
 ## Best Practices
 
@@ -114,9 +114,9 @@ When working on specific components, reference these design documents:
 
 ### Dependencies
 
-- Minimize new dependencies
-- When adding dependencies, prefer well-maintained, popular crates
-- Check licensing compatibility (must be compatible with LGPL-3.0-only)
+-   Minimize new dependencies
+-   When adding dependencies, prefer well-maintained, popular crates
+-   Check licensing compatibility (must be compatible with LGPL-3.0-only)
 
 ## Common Tasks
 
@@ -144,9 +144,9 @@ When working on specific components, reference these design documents:
 
 ## Reporting Issues
 
-- Bug reports and enhancement requests: [GitHub Issues](https://github.com/jeleniel/epiloglite/issues)
-- Questions and discussions: [GitHub Discussions](https://github.com/jeleniel/epiloglite/discussions)
-- Security vulnerabilities: Use GitHub's private security vulnerability reporting
+-   Bug reports and enhancement requests: [GitHub Issues](https://github.com/jeleniel/epiloglite/issues)
+-   Questions and discussions: [GitHub Discussions](https://github.com/jeleniel/epiloglite/discussions)
+-   Security vulnerabilities: Use GitHub's private security vulnerability reporting
 
 ## Warnings to Address
 
@@ -154,5 +154,5 @@ The project currently has some naming convention warnings (e.g., enum variants s
 
 ## Additional Resources
 
-- [Online Documentation](https://github.com/jeleniel/epiloglite/wiki)
-- [Repository](https://github.com/jeleniel/epiloglite)
+-   [Online Documentation](https://github.com/jeleniel/epiloglite/wiki)
+-   [Repository](https://github.com/jeleniel/epiloglite)
