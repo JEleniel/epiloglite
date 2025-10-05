@@ -267,6 +267,7 @@ fn compute_checksum(data: &[u8], s0: u32, s1: u32, big_endian: bool) -> (u32, u3
 }
 
 /// WAL writer for appending frames
+#[derive(Debug)]
 pub struct WalWriter {
 	header: WalHeader,
 	frames: Vec<WalFrame>,
@@ -455,6 +456,134 @@ pub struct WalReader {
 	frames: Vec<WalFrame>,
 	/// Maximum frame index for this reader
 	max_frame: usize,
+}
+
+/// Checkpoint mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CheckpointMode {
+	/// Passive checkpoint - checkpoint what we can without blocking
+	Passive,
+	/// Full checkpoint - complete checkpoint even if readers exist
+	Full,
+	/// Restart checkpoint - checkpoint and restart the WAL
+	Restart,
+	/// Truncate checkpoint - checkpoint and truncate the WAL file
+	Truncate,
+}
+
+/// Checkpoint result information
+#[derive(Debug, Clone)]
+pub struct CheckpointResult {
+	/// Number of frames in WAL
+	pub wal_frames: usize,
+	/// Number of frames checkpointed
+	pub checkpointed_frames: usize,
+	/// Whether checkpoint completed fully
+	pub completed: bool,
+}
+
+/// WAL checkpoint manager
+pub struct WalCheckpoint {
+	page_size: u32,
+}
+
+impl WalCheckpoint {
+	/// Create a new checkpoint manager
+	pub fn new(page_size: u32) -> Self {
+		WalCheckpoint { page_size }
+	}
+
+	/// Perform a checkpoint operation
+	/// Transfers valid frames from WAL to the database
+	pub fn checkpoint(
+		&self,
+		reader: &WalReader,
+		mode: CheckpointMode,
+	) -> Result<(Vec<(u32, Vec<u8>)>, CheckpointResult)> {
+		let frames = reader.frames();
+		
+		// Build a map of page_number -> latest frame data
+		let mut page_updates: HashMap<u32, Vec<u8>> = HashMap::new();
+		
+		// Find the last commit
+		let mut last_commit_idx: Option<usize> = None;
+		for (idx, frame) in frames.iter().enumerate() {
+			if frame.header.is_commit() {
+				last_commit_idx = Some(idx);
+			}
+		}
+
+		let checkpointed_count = if let Some(last_commit) = last_commit_idx {
+			// Collect all pages up to and including the last commit
+			for (idx, frame) in frames.iter().enumerate() {
+				if idx > last_commit {
+					break;
+				}
+				page_updates.insert(frame.header.page_number, frame.data.clone());
+			}
+			last_commit + 1
+		} else {
+			0
+		};
+
+		// Convert to sorted vector for deterministic ordering
+		let mut updates: Vec<(u32, Vec<u8>)> = page_updates.into_iter().collect();
+		updates.sort_by_key(|(page_num, _)| *page_num);
+
+		let result = CheckpointResult {
+			wal_frames: frames.len(),
+			checkpointed_frames: checkpointed_count,
+			completed: match mode {
+				CheckpointMode::Passive => checkpointed_count > 0,
+				CheckpointMode::Full | CheckpointMode::Restart | CheckpointMode::Truncate => {
+					checkpointed_count == frames.len()
+				}
+			},
+		};
+
+		Ok((updates, result))
+	}
+}
+
+/// WAL recovery manager
+pub struct WalRecovery {
+	page_size: u32,
+}
+
+impl WalRecovery {
+	/// Create a new recovery manager
+	pub fn new(page_size: u32) -> Self {
+		WalRecovery { page_size }
+	}
+
+	/// Recover database state from WAL file
+	/// Returns list of (page_number, page_data) to apply to database
+	pub fn recover(&self, wal_bytes: &[u8]) -> Result<Vec<(u32, Vec<u8>)>> {
+		// Read the WAL
+		let reader = WalReader::from_bytes(wal_bytes)?;
+		
+		// Use checkpoint logic to extract committed pages
+		let checkpoint = WalCheckpoint::new(self.page_size);
+		let (updates, _result) = checkpoint.checkpoint(&reader, CheckpointMode::Full)?;
+		
+		Ok(updates)
+	}
+
+	/// Check if WAL needs recovery
+	pub fn needs_recovery(wal_bytes: &[u8]) -> bool {
+		if wal_bytes.len() < WAL_HEADER_SIZE {
+			return false;
+		}
+		
+		// Try to read the header
+		if let Ok(header) = WalHeader::from_bytes(wal_bytes) {
+			// Check if there's any frame data beyond the header
+			let min_frame_size = WAL_FRAME_HEADER_SIZE + header.page_size as usize;
+			wal_bytes.len() >= WAL_HEADER_SIZE + min_frame_size
+		} else {
+			false
+		}
+	}
 }
 
 impl WalReader {
@@ -790,5 +919,170 @@ mod tests {
 		// Should get the latest version
 		let page = reader.get_page(1).unwrap();
 		assert_eq!(page[0], 99);
+	}
+
+	#[test]
+	fn test_checkpoint_basic() {
+		let mut writer = WalWriter::new(4096);
+		
+		// Write some pages
+		for i in 1..=3 {
+			let mut data = vec![0u8; 4096];
+			data[0] = i as u8;
+			let frame = WalFrame::new(i, data, 0, 0);
+			writer.add_frame(frame).unwrap();
+		}
+		
+		writer.commit(3).unwrap();
+		
+		let bytes = writer.to_bytes();
+		let reader = WalReader::from_bytes(&bytes).unwrap();
+		
+		let checkpoint = WalCheckpoint::new(4096);
+		let (updates, result) = checkpoint.checkpoint(&reader, CheckpointMode::Full).unwrap();
+		
+		assert_eq!(updates.len(), 3);
+		assert_eq!(result.wal_frames, 3);
+		assert_eq!(result.checkpointed_frames, 3);
+		assert!(result.completed);
+		
+		// Verify the updates
+		for (page_num, data) in &updates {
+			assert_eq!(data[0], *page_num as u8);
+		}
+	}
+
+	#[test]
+	fn test_checkpoint_page_updates() {
+		let mut writer = WalWriter::new(4096);
+		
+		// Write page 1 twice
+		let frame1 = WalFrame::new(1, vec![42u8; 4096], 0, 0);
+		writer.add_frame(frame1).unwrap();
+		
+		let frame2 = WalFrame::new(1, vec![99u8; 4096], 0, 0);
+		writer.add_frame(frame2).unwrap();
+		
+		writer.commit(1).unwrap();
+		
+		let bytes = writer.to_bytes();
+		let reader = WalReader::from_bytes(&bytes).unwrap();
+		
+		let checkpoint = WalCheckpoint::new(4096);
+		let (updates, _result) = checkpoint.checkpoint(&reader, CheckpointMode::Full).unwrap();
+		
+		// Should only have one update for page 1 with the latest value
+		assert_eq!(updates.len(), 1);
+		assert_eq!(updates[0].0, 1);
+		assert_eq!(updates[0].1[0], 99);
+	}
+
+	#[test]
+	fn test_checkpoint_passive() {
+		let mut writer = WalWriter::new(4096);
+		
+		let frame = WalFrame::new(1, vec![42u8; 4096], 0, 0);
+		writer.add_frame(frame).unwrap();
+		writer.commit(1).unwrap();
+		
+		let bytes = writer.to_bytes();
+		let reader = WalReader::from_bytes(&bytes).unwrap();
+		
+		let checkpoint = WalCheckpoint::new(4096);
+		let (updates, result) = checkpoint.checkpoint(&reader, CheckpointMode::Passive).unwrap();
+		
+		assert_eq!(updates.len(), 1);
+		assert!(result.completed);
+	}
+
+	#[test]
+	fn test_recovery_basic() {
+		let mut writer = WalWriter::new(4096);
+		
+		// Write some pages
+		for i in 1..=3 {
+			let mut data = vec![0u8; 4096];
+			data[0] = i as u8;
+			let frame = WalFrame::new(i, data, 0, 0);
+			writer.add_frame(frame).unwrap();
+		}
+		
+		writer.commit(3).unwrap();
+		
+		let bytes = writer.to_bytes();
+		
+		let recovery = WalRecovery::new(4096);
+		let updates = recovery.recover(&bytes).unwrap();
+		
+		assert_eq!(updates.len(), 3);
+		
+		// Verify recovered data
+		for (page_num, data) in &updates {
+			assert_eq!(data[0], *page_num as u8);
+		}
+	}
+
+	#[test]
+	fn test_recovery_needs_recovery() {
+		let mut writer = WalWriter::new(4096);
+		
+		// Empty WAL
+		let bytes = writer.to_bytes();
+		assert!(!WalRecovery::needs_recovery(&bytes));
+		
+		// WAL with data
+		let frame = WalFrame::new(1, vec![0u8; 4096], 0, 0);
+		writer.add_frame(frame).unwrap();
+		writer.commit(1).unwrap();
+		
+		let bytes = writer.to_bytes();
+		assert!(WalRecovery::needs_recovery(&bytes));
+	}
+
+	#[test]
+	fn test_recovery_page_updates() {
+		let mut writer = WalWriter::new(4096);
+		
+		// Write page 1 multiple times
+		let frame1 = WalFrame::new(1, vec![1u8; 4096], 0, 0);
+		writer.add_frame(frame1).unwrap();
+		
+		let frame2 = WalFrame::new(1, vec![2u8; 4096], 0, 0);
+		writer.add_frame(frame2).unwrap();
+		
+		let frame3 = WalFrame::new(1, vec![3u8; 4096], 0, 0);
+		writer.add_frame(frame3).unwrap();
+		
+		writer.commit(1).unwrap();
+		
+		let bytes = writer.to_bytes();
+		
+		let recovery = WalRecovery::new(4096);
+		let updates = recovery.recover(&bytes).unwrap();
+		
+		// Should get only the latest version
+		assert_eq!(updates.len(), 1);
+		assert_eq!(updates[0].0, 1);
+		assert_eq!(updates[0].1[0], 3);
+	}
+
+	#[test]
+	fn test_checkpoint_no_commit() {
+		let mut writer = WalWriter::new(4096);
+		
+		// Write frames but don't commit
+		let frame = WalFrame::new(1, vec![42u8; 4096], 0, 0);
+		writer.add_frame(frame).unwrap();
+		
+		let bytes = writer.to_bytes();
+		let reader = WalReader::from_bytes(&bytes).unwrap();
+		
+		let checkpoint = WalCheckpoint::new(4096);
+		let (updates, result) = checkpoint.checkpoint(&reader, CheckpointMode::Full).unwrap();
+		
+		// No committed frames, so no updates
+		assert_eq!(updates.len(), 0);
+		assert_eq!(result.checkpointed_frames, 0);
+		assert!(!result.completed);
 	}
 }

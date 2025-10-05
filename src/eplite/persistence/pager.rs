@@ -2,6 +2,7 @@
 
 use crate::eplite::constants::{DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, MIN_PAGE_SIZE};
 use crate::eplite::error::{Error, Result};
+use crate::eplite::persistence::wal::{WalWriter, WalReader, WalFrame, WalCheckpoint, CheckpointMode};
 
 #[cfg(feature = "std")]
 use crate::eplite::traits::file::File;
@@ -16,6 +17,15 @@ use alloc::{
 	vec,
 	vec::Vec,
 };
+
+/// Journal mode for database
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum JournalMode {
+	/// Rollback journal mode (traditional)
+	Rollback,
+	/// Write-Ahead Log mode (concurrent access)
+	Wal,
+}
 
 /// A single page in the database
 #[derive(Debug, Clone)]
@@ -74,6 +84,11 @@ pub struct Pager {
 	max_cache_size: usize,
 	#[cfg(feature = "std")]
 	file: Option<Box<dyn File>>,
+	journal_mode: JournalMode,
+	#[cfg(feature = "std")]
+	wal_file: Option<Box<dyn File>>,
+	wal_writer: Option<WalWriter>,
+	in_transaction: bool,
 }
 
 impl Pager {
@@ -98,6 +113,11 @@ impl Pager {
 			max_cache_size: 100,
 			#[cfg(feature = "std")]
 			file: None,
+			journal_mode: JournalMode::Rollback,
+			#[cfg(feature = "std")]
+			wal_file: None,
+			wal_writer: None,
+			in_transaction: false,
 		})
 	}
 
@@ -144,6 +164,13 @@ impl Pager {
 	}
 
 	fn load_page(&mut self, page_number: u32) -> Result<Page> {
+		#[cfg(feature = "std")]
+		{
+			if self.journal_mode == JournalMode::Wal {
+				return self.load_page_with_wal(page_number);
+			}
+		}
+
 		let mut page = Page::new(page_number, self.page_size as usize);
 		
 		#[cfg(feature = "std")]
@@ -199,6 +226,13 @@ impl Pager {
 
 	/// Flush dirty pages to disk
 	pub fn flush(&mut self) -> Result<()> {
+		#[cfg(feature = "std")]
+		{
+			if self.journal_mode == JournalMode::Wal && self.in_transaction {
+				return self.flush_wal();
+			}
+		}
+
 		// Collect dirty pages to write
 		let dirty_pages: Vec<(u32, Vec<u8>)> = self.cache.iter()
 			.filter(|(_, p)| p.dirty)
@@ -252,6 +286,209 @@ impl Pager {
 		self.cache.insert(page_num, page);
 		
 		Ok(page_num)
+	}
+
+	/// Set journal mode
+	#[cfg(feature = "std")]
+	pub fn set_journal_mode(&mut self, mode: JournalMode, wal_file: Option<Box<dyn File>>) -> Result<()> {
+		// Flush any pending changes before switching modes
+		self.flush()?;
+		
+		self.journal_mode = mode;
+		
+		match mode {
+			JournalMode::Wal => {
+				self.wal_file = wal_file;
+				self.wal_writer = Some(WalWriter::new(self.page_size));
+			}
+			JournalMode::Rollback => {
+				self.wal_file = None;
+				self.wal_writer = None;
+			}
+		}
+		
+		Ok(())
+	}
+
+	/// Get current journal mode
+	pub fn journal_mode(&self) -> JournalMode {
+		self.journal_mode
+	}
+
+	/// Begin a transaction (WAL mode)
+	pub fn begin_transaction(&mut self) -> Result<()> {
+		if self.in_transaction {
+			return Err(Error::Internal("Already in transaction".to_string()));
+		}
+		self.in_transaction = true;
+		Ok(())
+	}
+
+	/// Commit a transaction (WAL mode)
+	pub fn commit_transaction(&mut self) -> Result<()> {
+		if !self.in_transaction {
+			return Err(Error::Internal("Not in transaction".to_string()));
+		}
+
+		if self.journal_mode == JournalMode::Wal {
+			self.flush_wal()?;
+		} else {
+			self.flush()?;
+		}
+
+		self.in_transaction = false;
+		Ok(())
+	}
+
+	/// Rollback a transaction
+	pub fn rollback_transaction(&mut self) -> Result<()> {
+		if !self.in_transaction {
+			return Err(Error::Internal("Not in transaction".to_string()));
+		}
+
+		// Collect page numbers that need reloading
+		let dirty_pages: Vec<u32> = self.cache.iter()
+			.filter(|(_, p)| p.dirty)
+			.map(|(num, _)| *num)
+			.collect();
+
+		// Reload pages from disk or WAL
+		for page_num in dirty_pages {
+			let reloaded_page = self.load_page(page_num)?;
+			if let Some(page) = self.cache.get_mut(&page_num) {
+				*page = reloaded_page;
+			}
+		}
+
+		self.in_transaction = false;
+		Ok(())
+	}
+
+	/// Flush dirty pages to WAL
+	#[cfg(feature = "std")]
+	fn flush_wal(&mut self) -> Result<()> {
+		if let Some(wal_writer) = &mut self.wal_writer {
+			// Collect dirty pages
+			let dirty_pages: Vec<(u32, Vec<u8>)> = self.cache.iter()
+				.filter(|(_, p)| p.dirty)
+				.map(|(num, p)| (*num, p.data.clone()))
+				.collect();
+
+			if dirty_pages.is_empty() {
+				return Ok(());
+			}
+
+			// Add frames to WAL
+			for (page_num, data) in dirty_pages {
+				let frame = WalFrame::new(page_num, data, 0, 0);
+				wal_writer.add_frame(frame)?;
+			}
+
+			// Commit the transaction
+			let db_size = self.cache.len() as u32;
+			wal_writer.commit(db_size)?;
+
+			// Write WAL to file
+			if let Some(wal_file) = &mut self.wal_file {
+				let wal_bytes = wal_writer.to_bytes();
+				wal_file.write(&wal_bytes, 0)?;
+				
+				use crate::eplite::traits::file::SynchronizationType;
+				use flagset::FlagSet;
+				wal_file.sync(FlagSet::from(SynchronizationType::SqliteSyncFull))?;
+			}
+
+			// Mark pages as clean
+			for page in self.cache.values_mut() {
+				page.dirty = false;
+			}
+		}
+
+		Ok(())
+	}
+
+	/// Perform a checkpoint (transfer WAL to database)
+	#[cfg(feature = "std")]
+	pub fn checkpoint(&mut self, mode: CheckpointMode) -> Result<()> {
+		if self.journal_mode != JournalMode::Wal {
+			return Ok(());
+		}
+
+		// Read the WAL file
+		if let Some(wal_file) = &mut self.wal_file {
+			let wal_bytes = wal_file.read(0)?;
+			
+			if wal_bytes.is_empty() {
+				return Ok(());
+			}
+
+			let reader = WalReader::from_bytes(&wal_bytes)?;
+			let checkpoint = WalCheckpoint::new(self.page_size);
+			let (updates, _result) = checkpoint.checkpoint(&reader, mode)?;
+
+			// Apply updates to database file
+			if let Some(file) = &mut self.file {
+				for (page_num, data) in updates {
+					let offset = (page_num as u64) * (self.page_size as u64);
+					file.write(&data, offset)?;
+				}
+				
+				use crate::eplite::traits::file::SynchronizationType;
+				use flagset::FlagSet;
+				file.sync(FlagSet::from(SynchronizationType::SqliteSyncFull))?;
+			}
+
+			// Reset WAL if requested
+			if mode == CheckpointMode::Restart || mode == CheckpointMode::Truncate {
+				if let Some(wal_writer) = &mut self.wal_writer {
+					wal_writer.reset();
+				}
+				// Truncate WAL file
+				wal_file.truncate(0)?;
+			}
+		}
+
+		Ok(())
+	}
+
+	/// Load page from database or WAL
+	#[cfg(feature = "std")]
+	fn load_page_with_wal(&mut self, page_number: u32) -> Result<Page> {
+		let mut page = Page::new(page_number, self.page_size as usize);
+
+		// Try to read from WAL first if in WAL mode
+		if self.journal_mode == JournalMode::Wal {
+			if let Some(wal_file) = &mut self.wal_file {
+				let wal_bytes = wal_file.read(0)?;
+				if !wal_bytes.is_empty() {
+					if let Ok(reader) = WalReader::from_bytes(&wal_bytes) {
+						if let Some(data) = reader.get_page(page_number) {
+							page.data[..data.len()].copy_from_slice(data);
+							return Ok(page);
+						}
+					}
+				}
+			}
+		}
+
+		// Fall back to reading from main database file
+		if let Some(file) = &mut self.file {
+			let offset = (page_number as u64) * (self.page_size as u64);
+			match file.read(offset) {
+				Ok(data) if !data.is_empty() => {
+					let len = data.len().min(page.data.len());
+					page.data[..len].copy_from_slice(&data[..len]);
+				}
+				Ok(_) => {
+					// Empty or beyond EOF
+				}
+				Err(_) => {
+					// Read failed, return empty page
+				}
+			}
+		}
+
+		Ok(page)
 	}
 }
 
