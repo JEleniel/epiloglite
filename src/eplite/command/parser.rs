@@ -376,6 +376,15 @@ impl Parser {
 		self.expect(Token::From)?;
 		let from = self.parse_identifier()?;
 
+		// Parse JOIN clauses
+		let mut joins = Vec::new();
+		while matches!(
+			self.current_token(),
+			Some(Token::Join) | Some(Token::Inner) | Some(Token::Left) | Some(Token::Right) | Some(Token::Cross)
+		) {
+			joins.push(self.parse_join_clause()?);
+		}
+
 		let where_clause = if matches!(self.current_token(), Some(Token::Where)) {
 			self.advance();
 			Some(self.parse_where_clause()?)
@@ -424,7 +433,7 @@ impl Parser {
 		Ok(Statement::Select(SelectStatement {
 			columns,
 			from,
-			joins: Vec::new(), // TODO: Parse JOIN clauses
+			joins,
 			where_clause,
 			group_by,
 			order_by,
@@ -653,6 +662,65 @@ impl Parser {
 		let name = self.parse_identifier()?;
 		Ok(Statement::Release(name))
 	}
+
+	fn parse_join_clause(&mut self) -> Result<JoinClause> {
+		// Determine join type
+		let join_type = match self.current_token() {
+			Some(Token::Cross) => {
+				self.advance();
+				self.expect(Token::Join)?;
+				JoinType::Cross
+			}
+			Some(Token::Inner) => {
+				self.advance();
+				self.expect(Token::Join)?;
+				JoinType::Inner
+			}
+			Some(Token::Left) => {
+				self.advance();
+				// Optional OUTER keyword
+				if matches!(self.current_token(), Some(Token::Outer)) {
+					self.advance();
+				}
+				self.expect(Token::Join)?;
+				JoinType::Left
+			}
+			Some(Token::Right) => {
+				self.advance();
+				// Optional OUTER keyword
+				if matches!(self.current_token(), Some(Token::Outer)) {
+					self.advance();
+				}
+				self.expect(Token::Join)?;
+				JoinType::Right
+			}
+			Some(Token::Join) => {
+				// Just JOIN defaults to INNER JOIN
+				self.advance();
+				JoinType::Inner
+			}
+			_ => {
+				return Err(Error::Syntax("Expected JOIN keyword".to_string()));
+			}
+		};
+
+		// Get table name
+		let table = self.parse_identifier()?;
+
+		// Parse ON condition (except for CROSS JOIN)
+		let on_condition = if join_type != JoinType::Cross {
+			self.expect(Token::On)?;
+			Some(self.parse_where_clause()?)
+		} else {
+			None
+		};
+
+		Ok(JoinClause {
+			join_type,
+			table,
+			on_condition,
+		})
+	}
 }
 
 impl Default for Parser {
@@ -832,5 +900,79 @@ mod tests {
 		let mut parser = Parser::new();
 		let result = parser.parse("INVALID STATEMENT");
 		assert!(result.is_err());
+	}
+
+	#[test]
+	fn test_parse_inner_join() {
+		let mut parser = Parser::new();
+		let result = parser.parse("SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::Select(stmt) => {
+				assert_eq!(stmt.from, "users");
+				assert_eq!(stmt.joins.len(), 1);
+				assert_eq!(stmt.joins[0].join_type, JoinType::Inner);
+				assert_eq!(stmt.joins[0].table, "orders");
+				assert!(stmt.joins[0].on_condition.is_some());
+			}
+			_ => panic!("Expected Select statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_left_join() {
+		let mut parser = Parser::new();
+		let result = parser.parse("SELECT * FROM users LEFT JOIN orders ON users.id = orders.user_id");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::Select(stmt) => {
+				assert_eq!(stmt.joins.len(), 1);
+				assert_eq!(stmt.joins[0].join_type, JoinType::Left);
+			}
+			_ => panic!("Expected Select statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_right_join() {
+		let mut parser = Parser::new();
+		let result = parser.parse("SELECT * FROM users RIGHT JOIN orders ON users.id = orders.user_id");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::Select(stmt) => {
+				assert_eq!(stmt.joins.len(), 1);
+				assert_eq!(stmt.joins[0].join_type, JoinType::Right);
+			}
+			_ => panic!("Expected Select statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_cross_join() {
+		let mut parser = Parser::new();
+		let result = parser.parse("SELECT * FROM users CROSS JOIN orders");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::Select(stmt) => {
+				assert_eq!(stmt.joins.len(), 1);
+				assert_eq!(stmt.joins[0].join_type, JoinType::Cross);
+				assert!(stmt.joins[0].on_condition.is_none());
+			}
+			_ => panic!("Expected Select statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_left_outer_join() {
+		let mut parser = Parser::new();
+		let result = parser.parse("SELECT * FROM users LEFT OUTER JOIN orders ON users.id = orders.user_id");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::Select(stmt) => {
+				assert_eq!(stmt.joins.len(), 1);
+				assert_eq!(stmt.joins[0].join_type, JoinType::Left);
+			}
+			_ => panic!("Expected Select statement"),
+		}
 	}
 }

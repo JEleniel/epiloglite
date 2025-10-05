@@ -369,3 +369,70 @@ assert!(result.is_ok());
 db.close()?;
 Ok(())
 }
+
+#[test]
+fn test_advanced_join_operations() -> Result<()> {
+let mut db = Database::open(":memory:")?;
+
+// Create tables
+db.execute("CREATE TABLE users (id INTEGER, name TEXT)")?;
+db.execute("CREATE TABLE orders (order_id INTEGER, user_id INTEGER, product TEXT)")?;
+
+// Insert data
+db.execute("INSERT INTO users VALUES (1, 'Alice')")?;
+db.execute("INSERT INTO users VALUES (2, 'Bob')")?;
+db.execute("INSERT INTO users VALUES (3, 'Charlie')")?;
+db.execute("INSERT INTO orders VALUES (101, 1, 'Widget')")?;
+db.execute("INSERT INTO orders VALUES (102, 1, 'Gadget')")?;
+db.execute("INSERT INTO orders VALUES (103, 2, 'Doohickey')")?;
+db.execute("INSERT INTO orders VALUES (104, 99, 'Orphan')")?; // No matching user
+
+// Test INNER JOIN
+let result = db.execute("SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id")?;
+match result {
+ExecutionResult::Select { rows, .. } => {
+assert_eq!(rows.len(), 3); // Only matching rows
+}
+_ => panic!("Expected Select result"),
+}
+
+// Test LEFT JOIN
+let result = db.execute("SELECT * FROM users LEFT JOIN orders ON users.id = orders.user_id")?;
+match result {
+ExecutionResult::Select { rows, .. } => {
+assert_eq!(rows.len(), 4); // All users, some with multiple orders
+// Check that Charlie has a row with NULLs for order data
+let charlie_row = rows.iter().find(|r| r.len() > 1 && r[1] == "'Charlie'");
+assert!(charlie_row.is_some(), "Charlie row not found");
+let charlie_row = charlie_row.unwrap();
+assert_eq!(charlie_row[2], "NULL"); // order_id should be NULL
+assert_eq!(charlie_row[3], "NULL"); // user_id should be NULL
+}
+_ => panic!("Expected Select result"),
+}
+
+// Test RIGHT JOIN
+let result = db.execute("SELECT * FROM users RIGHT JOIN orders ON users.id = orders.user_id")?;
+match result {
+ExecutionResult::Select { rows, .. } => {
+assert_eq!(rows.len(), 4); // All orders
+// Order 104 should have NULLs for user data
+let orphan_orders: Vec<_> = rows.iter().filter(|r| r[2] == "104").collect();
+assert!(orphan_orders.len() > 0);
+assert!(orphan_orders[0][0] == "NULL"); // user id should be NULL
+}
+_ => panic!("Expected Select result"),
+}
+
+// Test CROSS JOIN
+let result = db.execute("SELECT * FROM users CROSS JOIN orders")?;
+match result {
+ExecutionResult::Select { rows, .. } => {
+assert_eq!(rows.len(), 12); // 3 users * 4 orders = 12 rows
+}
+_ => panic!("Expected Select result"),
+}
+
+db.close()?;
+Ok(())
+}

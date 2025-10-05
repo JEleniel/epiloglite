@@ -58,7 +58,7 @@ epiloglite/
 
 #### Advanced Features (100%)
 11. **WHERE Clause**: Filtering with comparison operators, LIKE
-12. **JOIN Operations**: CROSS JOIN, INNER JOIN with ON conditions
+12. **JOIN Operations**: INNER JOIN, LEFT JOIN, RIGHT JOIN, CROSS JOIN with ON conditions
 13. **Aggregates**: COUNT, SUM, AVG, MIN, MAX with GROUP BY
 14. **Sorting**: ORDER BY single/multiple columns, ASC/DESC
 15. **Query Builder**: Fluent API for all SQL operations
@@ -81,7 +81,8 @@ epiloglite/
 
 #### Advanced Features
 - Graph data structures
-- LEFT/RIGHT JOIN operations
+- FULL OUTER JOIN operations (deferred - low priority)
+- NATURAL JOIN operations (deferred - low priority)
 - Subquery optimization
 
 ### 📋 PLANNED (Future Versions)
@@ -168,12 +169,13 @@ int sqlite3_prepare_v2(sqlite3 *db, const char *sql, ...);
 ## Testing
 
 ### Test Coverage
-- **Total Tests**: 152
-  - Unit tests: 124
+- **Total Tests**: 161
+  - Unit tests: 131
   - Adversarial/security tests: 18
-  - Integration tests: 10
+  - Integration tests: 11
+  - Debug tests: 1
 - **Pass Rate**: 100% (0 failures)
-- **Code Coverage**: ~85% (estimated)
+- **Code Coverage**: ~86% (estimated)
 
 ### Test Organization
 ```
@@ -191,13 +193,14 @@ tests/
 5. SQL injection resistance
 6. Malformed input handling
 7. WHERE clause filtering
-8. JOIN operations
+8. JOIN operations (INNER, LEFT, RIGHT, CROSS)
 9. Aggregate functions
 10. Query builder pattern
 11. ORM operations
 12. Index usage
 13. Permission checks
 14. Savepoint operations (SAVEPOINT/RELEASE/ROLLBACK TO)
+15. Advanced JOIN integration tests
 
 ## Dependencies
 

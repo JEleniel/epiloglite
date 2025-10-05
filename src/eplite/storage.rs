@@ -527,6 +527,111 @@ impl StorageManager {
 		Ok((result_rows, column_names))
 	}
 
+	/// Perform LEFT JOIN between two tables with ON condition
+	pub fn left_join(&self, table1_name: &str, table2_name: &str, on_condition: &str) -> Result<(Vec<Vec<String>>, Vec<String>)> {
+		let table1 = self.tables.get(table1_name)
+			.ok_or_else(|| Error::NotFound(format!("Table '{}' not found", table1_name)))?;
+		let table2 = self.tables.get(table2_name)
+			.ok_or_else(|| Error::NotFound(format!("Table '{}' not found", table2_name)))?;
+
+		// Parse ON condition (e.g., "table1.id = table2.user_id")
+		let (left_col, right_col) = self.parse_join_condition(on_condition)?;
+
+		// Find column indices
+		let left_idx = self.find_column_in_table(table1, table1_name, &left_col)?;
+		let right_idx = self.find_column_in_table(table2, table2_name, &right_col)?;
+
+		// Get all rows from both tables
+		let rows1 = table1.select_all();
+		let rows2 = table2.select_all();
+
+		// Build column names with table prefixes
+		let mut column_names = Vec::new();
+		for col in &table1.columns {
+			column_names.push(format!("{}.{}", table1_name, col.name));
+		}
+		for col in &table2.columns {
+			column_names.push(format!("{}.{}", table2_name, col.name));
+		}
+
+		// Left join - all rows from left table, matched rows from right table
+		let mut result_rows = Vec::new();
+		for row1 in &rows1 {
+			let mut matched = false;
+			for row2 in &rows2 {
+				if left_idx < row1.len() && right_idx < row2.len() && row1[left_idx] == row2[right_idx] {
+					let mut combined_row = row1.clone();
+					combined_row.extend(row2.clone());
+					result_rows.push(combined_row);
+					matched = true;
+				}
+			}
+			// If no match, add row with NULLs for right table
+			if !matched {
+				let mut combined_row = row1.clone();
+				for _ in 0..table2.columns.len() {
+					combined_row.push("NULL".to_string());
+				}
+				result_rows.push(combined_row);
+			}
+		}
+
+		Ok((result_rows, column_names))
+	}
+
+	/// Perform RIGHT JOIN between two tables with ON condition
+	pub fn right_join(&self, table1_name: &str, table2_name: &str, on_condition: &str) -> Result<(Vec<Vec<String>>, Vec<String>)> {
+		let table1 = self.tables.get(table1_name)
+			.ok_or_else(|| Error::NotFound(format!("Table '{}' not found", table1_name)))?;
+		let table2 = self.tables.get(table2_name)
+			.ok_or_else(|| Error::NotFound(format!("Table '{}' not found", table2_name)))?;
+
+		// Parse ON condition (e.g., "table1.id = table2.user_id")
+		let (left_col, right_col) = self.parse_join_condition(on_condition)?;
+
+		// Find column indices
+		let left_idx = self.find_column_in_table(table1, table1_name, &left_col)?;
+		let right_idx = self.find_column_in_table(table2, table2_name, &right_col)?;
+
+		// Get all rows from both tables
+		let rows1 = table1.select_all();
+		let rows2 = table2.select_all();
+
+		// Build column names with table prefixes
+		let mut column_names = Vec::new();
+		for col in &table1.columns {
+			column_names.push(format!("{}.{}", table1_name, col.name));
+		}
+		for col in &table2.columns {
+			column_names.push(format!("{}.{}", table2_name, col.name));
+		}
+
+		// Right join - all rows from right table, matched rows from left table
+		let mut result_rows = Vec::new();
+		for row2 in &rows2 {
+			let mut matched = false;
+			for row1 in &rows1 {
+				if left_idx < row1.len() && right_idx < row2.len() && row1[left_idx] == row2[right_idx] {
+					let mut combined_row = row1.clone();
+					combined_row.extend(row2.clone());
+					result_rows.push(combined_row);
+					matched = true;
+				}
+			}
+			// If no match, add row with NULLs for left table
+			if !matched {
+				let mut combined_row = Vec::new();
+				for _ in 0..table1.columns.len() {
+					combined_row.push("NULL".to_string());
+				}
+				combined_row.extend(row2.clone());
+				result_rows.push(combined_row);
+			}
+		}
+
+		Ok((result_rows, column_names))
+	}
+
 	/// Parse JOIN ON condition like "table1.col1 = table2.col2"
 	fn parse_join_condition(&self, condition: &str) -> Result<(String, String)> {
 		let parts: Vec<&str> = condition.split('=').map(|s| s.trim()).collect();
@@ -539,8 +644,9 @@ impl StorageManager {
 	/// Find column index in table, supporting table.column notation
 	fn find_column_in_table(&self, table: &Table, table_name: &str, column_ref: &str) -> Result<usize> {
 		// Handle table.column or just column
+		let column_ref = column_ref.trim();
 		let column_name = if column_ref.contains('.') {
-			let parts: Vec<&str> = column_ref.split('.').collect();
+			let parts: Vec<&str> = column_ref.split('.').map(|s| s.trim()).collect();
 			if parts.len() == 2 {
 				// Verify table name matches
 				if parts[0] != table_name {
@@ -744,5 +850,125 @@ mod tests {
 		// Verify Bob is gone
 		let rows = table.select(None).unwrap();
 		assert!(!rows.iter().any(|r| r[1] == "Bob"));
+	}
+
+	#[test]
+	fn test_left_join() {
+		let mut manager = StorageManager::new();
+
+		// Create users table
+		let users_def = CreateTableStatement {
+			name: "users".to_string(),
+			columns: vec![
+				ColumnDefinition {
+					name: "id".to_string(),
+					data_type: ColumnType::Int32,
+					constraints: vec![],
+				},
+				ColumnDefinition {
+					name: "name".to_string(),
+					data_type: ColumnType::Text,
+					constraints: vec![],
+				},
+			],
+		};
+		manager.create_table(users_def).unwrap();
+
+		// Create orders table
+		let orders_def = CreateTableStatement {
+			name: "orders".to_string(),
+			columns: vec![
+				ColumnDefinition {
+					name: "order_id".to_string(),
+					data_type: ColumnType::Int32,
+					constraints: vec![],
+				},
+				ColumnDefinition {
+					name: "user_id".to_string(),
+					data_type: ColumnType::Int32,
+					constraints: vec![],
+				},
+			],
+		};
+		manager.create_table(orders_def).unwrap();
+
+		// Insert test data
+		manager.get_table_mut("users").unwrap().insert(vec!["1".to_string(), "Alice".to_string()]).unwrap();
+		manager.get_table_mut("users").unwrap().insert(vec!["2".to_string(), "Bob".to_string()]).unwrap();
+		manager.get_table_mut("users").unwrap().insert(vec!["3".to_string(), "Charlie".to_string()]).unwrap();
+		manager.get_table_mut("orders").unwrap().insert(vec!["101".to_string(), "1".to_string()]).unwrap();
+		manager.get_table_mut("orders").unwrap().insert(vec!["102".to_string(), "2".to_string()]).unwrap();
+
+		// Perform LEFT JOIN
+		let (rows, columns) = manager.left_join("users", "orders", "users.id = orders.user_id").unwrap();
+
+		// Should have 3 rows (all users, Charlie with NULL for orders)
+		assert_eq!(rows.len(), 3);
+		assert_eq!(columns.len(), 4); // 2 from users + 2 from orders
+
+		// Check that Charlie (id=3) has NULLs for order data
+		let charlie_row = rows.iter().find(|r| r[0] == "3").unwrap();
+		assert_eq!(charlie_row[2], "NULL"); // order_id should be NULL
+		assert_eq!(charlie_row[3], "NULL"); // user_id should be NULL
+	}
+
+	#[test]
+	fn test_right_join() {
+		let mut manager = StorageManager::new();
+
+		// Create users table
+		let users_def = CreateTableStatement {
+			name: "users".to_string(),
+			columns: vec![
+				ColumnDefinition {
+					name: "id".to_string(),
+					data_type: ColumnType::Int32,
+					constraints: vec![],
+				},
+				ColumnDefinition {
+					name: "name".to_string(),
+					data_type: ColumnType::Text,
+					constraints: vec![],
+				},
+			],
+		};
+		manager.create_table(users_def).unwrap();
+
+		// Create orders table
+		let orders_def = CreateTableStatement {
+			name: "orders".to_string(),
+			columns: vec![
+				ColumnDefinition {
+					name: "order_id".to_string(),
+					data_type: ColumnType::Int32,
+					constraints: vec![],
+				},
+				ColumnDefinition {
+					name: "user_id".to_string(),
+					data_type: ColumnType::Int32,
+					constraints: vec![],
+				},
+			],
+		};
+		manager.create_table(orders_def).unwrap();
+
+		// Insert test data - note order 103 has no matching user
+		manager.get_table_mut("users").unwrap().insert(vec!["1".to_string(), "Alice".to_string()]).unwrap();
+		manager.get_table_mut("users").unwrap().insert(vec!["2".to_string(), "Bob".to_string()]).unwrap();
+		manager.get_table_mut("orders").unwrap().insert(vec!["101".to_string(), "1".to_string()]).unwrap();
+		manager.get_table_mut("orders").unwrap().insert(vec!["102".to_string(), "2".to_string()]).unwrap();
+		manager.get_table_mut("orders").unwrap().insert(vec!["103".to_string(), "99".to_string()]).unwrap(); // No matching user
+
+		// Perform RIGHT JOIN
+		let (rows, columns) = manager.right_join("users", "orders", "users.id = orders.user_id").unwrap();
+
+		// Should have 3 rows (all orders, order 103 with NULL for user data)
+		assert_eq!(rows.len(), 3);
+		assert_eq!(columns.len(), 4); // 2 from users + 2 from orders
+
+		// Check that order 103 has NULLs for user data
+		let orphan_order = rows.iter().find(|r| r[2] == "103").unwrap();
+		assert_eq!(orphan_order[0], "NULL"); // user id should be NULL
+		assert_eq!(orphan_order[1], "NULL"); // user name should be NULL
 	}
 }
