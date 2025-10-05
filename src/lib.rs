@@ -16,6 +16,15 @@ pub use eplite::query_builder::{
 };
 pub use eplite::{SchemaFormat, TextEncoding};
 
+#[cfg(feature = "async")]
+pub use eplite::os::{async_file, async_vfs, backpressure, performance};
+
+#[cfg(feature = "async")]
+pub use eplite::traits::async_file::AsyncFile;
+
+pub use eplite::traits::file::{File, LockType, SynchronizationType, UnlockType};
+pub use eplite::os::vfs::{AccessFlags, OpenFlags, VirtualFileSystem};
+
 #[cfg(feature = "server")]
 pub use eplite::server::{
 	AuthHandler, AuthManager, BackupCode, BatchConfig, BatchProcessor, BatchRequest,
