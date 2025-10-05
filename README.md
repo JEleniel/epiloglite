@@ -34,10 +34,11 @@ EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliabi
 - ✅ **100% Safe Rust** - No unsafe code blocks
 - ✅ **Modular Design** - Clean separation of concerns
 - ✅ **Error Handling** - Comprehensive Result types
-- ✅ **Test Coverage** - 152 tests (124 unit + 18 adversarial + 10 integration)
+- ✅ **Test Coverage** - 148 tests including async I/O operations
 - ✅ **Security Tested** - SQL injection resistance, malformed input handling
 - ✅ **Idiomatic Rust** - Clippy-approved, modern patterns
 - ✅ **Type Safety** - ColumnType enum eliminates hardcoded strings
+- ✅ **Async I/O** - Non-blocking file operations with Tokio integration
 
 ### In Progress
 - 🚧 WHERE clause filtering
