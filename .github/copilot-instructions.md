@@ -1,55 +1,158 @@
-# Common Agent Instructions
+# Copilot Instructions for EpilogLite
 
-## Scope
+## Project Overview
 
--   You may use any MCP servers you have access to.
--   Respect the `.gitignore` file; do not read or modify files listed in it.
--   Do not modify files in the `.github` or `.prompts` folders.
+EpilogLite is a Rust implementation of a database engine inspired by SQLite. This repository contains the complete source code for the EpilogLite database engine, including test scripts.
 
-### Version Control Guidelines
+## Technology Stack
 
--   Write clear, descriptive commit messages.
--   Each commit should represent a single logical change.
--   Keep commits small and focused.
--   Branch names should be descriptive and follow project conventions.
--   Include relevant issue/ticket numbers in commit messages when applicable.
+-   **Language**: Rust (Edition 2021)
+-   **Build System**: Cargo
+-   **License**: GNU Lesser General Public License 3.0 only (LGPL-3.0-only)
+-   **Key Features**: Database engine, SQL support, relational database
+
+## Build and Test Commands
+
+### Building the Project
+
+```bash
+# Check the project for errors
+cargo check
+
+# Build in debug mode
+cargo build
+
+# Build in release mode
+cargo build --release
+```
+
+### Testing
+
+```bash
+# Run all tests
+cargo test
+
+# Run tests with output
+cargo test -- --nocapture
+```
+
+### Linting
+
+```bash
+# Run clippy for linting
+cargo clippy
+
+# Format code
+cargo fmt
+
+# Check formatting without making changes
+cargo fmt -- --check
+```
+
+## Code Style Guidelines
+
+### Rust Conventions
+
+1. **Safety**: The project has `unsafe_code = "forbid"` in `Cargo.toml`. Never introduce unsafe code.
+2. **Naming Conventions**:
+    - Use UpperCamelCase for types, structs, enums, and variants
+    - Use snake_case for functions, variables, and modules
+    - Follow Rust standard naming conventions
+3. **Code Organization**: The project is modular in design. Maintain this modularity.
+
+### Documentation
+
+1. Always add doc comments (`///`) for public APIs
+2. Reference existing documentation in the `design/` folder when working on architecture-related changes
+3. Keep documentation up-to-date with code changes
 
 ## Project Structure
 
--   The following documents should exist in the root of the workspace: `.gitignore`, `.markdownlint.json`, `.prettierrc.json`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `DCO.md`, `LICENSE*.md` (there may be multiple), `README.md`, `SECURITY.md`. Templates for these files are available in the GitHub repository at <http://github.com/JEleniel/template/>.
--   All other documentation must be in the `docs/` folder. Design documentation must be in the `docs/design/` folder. Files in the `docs/design/agents/` folder are for machine agent use.
--   The SQLite 3 libraries are available for use in this project.
+```text
+epiloglite/
+├── src/              # Source code
+│   ├── eplite/       # Core database engine implementation
+│   └── lib.rs        # Library entry point
+├── design/           # Architecture and design documentation
+│   ├── ARCHITECTURE.md
+│   ├── FILEFORMAT.md
+│   ├── QUERYPLANNER.md
+│   ├── TRANSACTIONS.md
+│   ├── VIRTUALMACHINE.md
+│   └── sql_syntax/   # SQL syntax documentation
+├── artwork/          # Project artwork
+└── Cargo.toml        # Rust package manifest
+```
 
-## Prerequisites
+## Important Documentation
 
-Before starting, familiarize yourself with:
+When working on specific components, reference these design documents:
 
--   [README.md](README.md) - Project overview and architecture. Do not modify this file unless otherwise instructed.
--   All files in the `docs/` folder, especially the `docs/design/` subfolder - Design documentation. Do not modify these files unless otherwise instructed.
+-   **Architecture**: `design/ARCHITECTURE.md` - Overall system design
+-   **File Format**: `design/FILEFORMAT.md` - Database file format specification
+-   **Query Planner**: `design/QUERYPLANNER.md` - Query optimization and planning
+-   **Virtual Machine**: `design/VIRTUALMACHINE.md` - Bytecode execution engine
+-   **Transactions**: `design/TRANSACTIONS.md` - Transaction handling
 
-## Development and tools
+## Best Practices
 
--   Use the project's linters, formatters, and type checkers (prettier, markdownlint, eslint/tsc as applicable). Fix violations before committing.
--   Run unit/integration tests locally and update or add tests for new behavior.
--   Do not commit generated artifacts or build outputs; rely on .gitignore for exclusions.
+### Code Changes
 
-## Secrets and security
+1. **Minimal Changes**: Make the smallest possible changes to achieve the goal
+2. **Test First**: Write tests for new functionality
+3. **Backward Compatibility**: Maintain compatibility with existing APIs unless explicitly changing them
+4. **Performance**: Consider performance implications, especially for database operations
+5. **Error Handling**: Use Rust's Result type for error handling; avoid panics in library code
 
--   Never store secrets, credentials, or private keys in the repository. Use environment variables or a secrets manager.
--   Report security issues privately via the SECURITY.md process.
+### Pull Requests
 
-## Pull requests and commits
+1. Run `cargo test` before submitting
+2. Run `cargo clippy` and address warnings
+3. Run `cargo fmt` to ensure consistent formatting
+4. Update relevant documentation in `design/` if architecture changes
+5. Reference related issues in commit messages
 
--   Keep commits focused and atomic; each PR should implement a single logical change.
--   Write descriptive commit messages and PR descriptions; reference issue/ticket numbers where relevant.
--   Include testing, changelog, and documentation updates in the same PR when applicable.
+### Dependencies
 
-## Documentation and design
+-   Minimize new dependencies
+-   When adding dependencies, prefer well-maintained, popular crates
+-   Check licensing compatibility (must be compatible with LGPL-3.0-only)
 
--   Place user-facing docs in docs/ and design docs in docs/design/.
--   Update README.md only when changes affect project-level details; otherwise update relevant docs in docs/.
+## Common Tasks
 
-## Communication
+### Adding a New Feature
 
--   Open an issue for ambiguous or large-scope changes before implementation.
--   If in doubt about architecture or conventions, ask maintainers or follow existing patterns in the codebase.
+1. Review relevant design documentation
+2. Write tests for the new feature
+3. Implement the feature in the appropriate module
+4. Update documentation if needed
+5. Ensure all tests pass
+
+### Fixing a Bug
+
+1. Write a test that reproduces the bug
+2. Fix the bug with minimal changes
+3. Verify the test now passes
+4. Ensure no regressions in other tests
+
+### Refactoring
+
+1. Ensure full test coverage of the area being refactored
+2. Make incremental changes
+3. Run tests after each change
+4. Maintain the same external API unless intentionally changing it
+
+## Reporting Issues
+
+-   Bug reports and enhancement requests: [GitHub Issues](https://github.com/jeleniel/epiloglite/issues)
+-   Questions and discussions: [GitHub Discussions](https://github.com/jeleniel/epiloglite/discussions)
+-   Security vulnerabilities: Use GitHub's private security vulnerability reporting
+
+## Warnings to Address
+
+The project currently has some naming convention warnings (e.g., enum variants should be UpperCamelCase). When working on files with these warnings, consider fixing them as part of your changes if appropriate.
+
+## Additional Resources
+
+-   [Online Documentation](https://github.com/jeleniel/epiloglite/wiki)
+-   [Repository](https://github.com/jeleniel/epiloglite)
