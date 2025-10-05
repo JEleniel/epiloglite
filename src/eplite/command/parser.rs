@@ -17,6 +17,11 @@ pub enum Statement {
 	Update(UpdateStatement),
 	Delete(DeleteStatement),
 	CreateTable(CreateTableStatement),
+	CreateGraph(CreateGraphStatement),
+	DropGraph(DropGraphStatement),
+	AddNode(AddNodeStatement),
+	AddEdge(AddEdgeStatement),
+	MatchPath(MatchPathStatement),
 	BeginTransaction,
 	Commit,
 	Rollback,
@@ -99,6 +104,49 @@ pub struct CreateTableStatement {
 	pub columns: Vec<ColumnDefinition>,
 }
 
+#[derive(Debug, Clone)]
+pub struct CreateGraphStatement {
+	pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DropGraphStatement {
+	pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AddNodeStatement {
+	pub graph: String,
+	pub label: String,
+	pub properties: Vec<(String, String)>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AddEdgeStatement {
+	pub graph: String,
+	pub from_node: String,
+	pub to_node: String,
+	pub label: String,
+	pub weight: Option<f64>,
+	pub properties: Vec<(String, String)>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MatchPathStatement {
+	pub graph: String,
+	pub start_node: String,
+	pub end_node: String,
+	pub algorithm: PathAlgorithm,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum PathAlgorithm {
+	Shortest,
+	All { max_depth: usize },
+	Bfs,
+	Dfs,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColumnDefinition {
 	pub name: String,
@@ -144,6 +192,9 @@ impl Parser {
 			Some(Token::Update) => self.parse_update()?,
 			Some(Token::Delete) => self.parse_delete()?,
 			Some(Token::Create) => self.parse_create()?,
+			Some(Token::Drop) => self.parse_drop()?,
+			Some(Token::Add) => self.parse_add()?,
+			Some(Token::Match) => self.parse_match()?,
 			Some(Token::Begin) => {
 				self.advance();
 				Statement::BeginTransaction
@@ -538,6 +589,12 @@ impl Parser {
 
 	fn parse_create(&mut self) -> Result<Statement> {
 		self.expect(Token::Create)?;
+		
+		// Check if it's CREATE GRAPH or CREATE TABLE
+		if matches!(self.current_token(), Some(Token::Graph)) {
+			return self.parse_create_graph();
+		}
+		
 		self.expect(Token::Table)?;
 		
 		let name = self.parse_identifier()?;
@@ -720,6 +777,194 @@ impl Parser {
 			table,
 			on_condition,
 		})
+	}
+	
+	/// Parse CREATE GRAPH statement
+	fn parse_create_graph(&mut self) -> Result<Statement> {
+		self.expect(Token::Graph)?;
+		let name = self.parse_identifier()?;
+		
+		Ok(Statement::CreateGraph(CreateGraphStatement { name }))
+	}
+	
+	/// Parse DROP statement (currently only DROP GRAPH)
+	fn parse_drop(&mut self) -> Result<Statement> {
+		self.expect(Token::Drop)?;
+		self.expect(Token::Graph)?;
+		let name = self.parse_identifier()?;
+		
+		Ok(Statement::DropGraph(DropGraphStatement { name }))
+	}
+	
+	/// Parse ADD statement (ADD NODE or ADD EDGE)
+	fn parse_add(&mut self) -> Result<Statement> {
+		self.expect(Token::Add)?;
+		
+		if matches!(self.current_token(), Some(Token::Node)) {
+			self.parse_add_node()
+		} else if matches!(self.current_token(), Some(Token::Edge)) {
+			self.parse_add_edge()
+		} else {
+			Err(Error::Syntax("Expected NODE or EDGE after ADD".to_string()))
+		}
+	}
+	
+	/// Parse ADD NODE statement
+	/// Syntax: ADD NODE TO graph LABEL 'label' [PROPERTIES (key = 'value', ...)]
+	fn parse_add_node(&mut self) -> Result<Statement> {
+		self.expect(Token::Node)?;
+		self.expect(Token::To)?;
+		let graph = self.parse_identifier()?;
+		
+		self.expect(Token::Label)?;
+		let label = self.parse_value()?;
+		
+		let mut properties = Vec::new();
+		
+		// Parse optional PROPERTIES clause
+		if matches!(self.current_token(), Some(Token::Properties)) {
+			self.advance();
+			self.expect(Token::LeftParen)?;
+			
+			loop {
+				let key = self.parse_identifier()?;
+				self.expect(Token::Equals)?;
+				let value = self.parse_value()?;
+				properties.push((key, value));
+				
+				if matches!(self.current_token(), Some(Token::Comma)) {
+					self.advance();
+				} else {
+					break;
+				}
+			}
+			
+			self.expect(Token::RightParen)?;
+		}
+		
+		Ok(Statement::AddNode(AddNodeStatement {
+			graph,
+			label,
+			properties,
+		}))
+	}
+	
+	/// Parse ADD EDGE statement
+	/// Syntax: ADD EDGE TO graph FROM node_id TO node_id LABEL 'label' [WEIGHT weight] [PROPERTIES (...)]
+	fn parse_add_edge(&mut self) -> Result<Statement> {
+		self.expect(Token::Edge)?;
+		self.expect(Token::To)?;
+		let graph = self.parse_identifier()?;
+		
+		self.expect(Token::From)?;
+		let from_node = self.parse_value()?;
+		
+		self.expect(Token::To)?;
+		let to_node = self.parse_value()?;
+		
+		self.expect(Token::Label)?;
+		let label = self.parse_value()?;
+		
+		// Parse optional WEIGHT clause
+		let mut weight = None;
+		if matches!(self.current_token(), Some(Token::Weight)) {
+			self.advance();
+			let weight_str = self.parse_value()?;
+			// Remove quotes if present
+			let weight_str_clean = weight_str.trim_matches('\'').trim_matches('"');
+			weight = Some(weight_str_clean.parse::<f64>().map_err(|_| {
+				Error::Syntax(format!("Invalid weight value: {}", weight_str))
+			})?);
+		}
+		
+		// Parse optional PROPERTIES clause
+		let mut properties = Vec::new();
+		if matches!(self.current_token(), Some(Token::Properties)) {
+			self.advance();
+			self.expect(Token::LeftParen)?;
+			
+			loop {
+				let key = self.parse_identifier()?;
+				self.expect(Token::Equals)?;
+				let value = self.parse_value()?;
+				properties.push((key, value));
+				
+				if matches!(self.current_token(), Some(Token::Comma)) {
+					self.advance();
+				} else {
+					break;
+				}
+			}
+			
+			self.expect(Token::RightParen)?;
+		}
+		
+		Ok(Statement::AddEdge(AddEdgeStatement {
+			graph,
+			from_node,
+			to_node,
+			label,
+			weight,
+			properties,
+		}))
+	}
+	
+	/// Parse MATCH PATH statement
+	/// Syntax: MATCH PATH IN graph FROM node_id TO node_id [USING algorithm]
+	fn parse_match(&mut self) -> Result<Statement> {
+		self.expect(Token::Match)?;
+		self.expect(Token::Path)?;
+		self.expect(Token::In)?;
+		let graph = self.parse_identifier()?;
+		
+		self.expect(Token::From)?;
+		let start_node = self.parse_value()?;
+		
+		self.expect(Token::To)?;
+		let end_node = self.parse_value()?;
+		
+		// Parse optional USING clause for algorithm
+		let algorithm = if matches!(self.current_token(), Some(Token::Using)) {
+			self.advance();
+			match self.current_token() {
+				Some(Token::Identifier) => {
+					let algo_name = self.parse_identifier()?;
+					match algo_name.to_uppercase().as_str() {
+						"SHORTEST" => PathAlgorithm::Shortest,
+						"BFS" => PathAlgorithm::Bfs,
+						"DFS" => PathAlgorithm::Dfs,
+						"ALL" => {
+							// Parse optional max depth
+							let max_depth = if matches!(self.current_token(), Some(Token::LeftParen)) {
+								self.advance();
+								let depth_str = self.parse_value()?;
+								self.expect(Token::RightParen)?;
+								depth_str.parse::<usize>().unwrap_or(10)
+							} else {
+								10
+							};
+							PathAlgorithm::All { max_depth }
+						}
+						_ => {
+							return Err(Error::Syntax(format!(
+								"Unknown path algorithm: {}",
+								algo_name
+							)))
+						}
+					}
+				}
+				_ => return Err(Error::Syntax("Expected algorithm name".to_string())),
+			}
+		} else {
+			PathAlgorithm::Shortest
+		};
+		
+		Ok(Statement::MatchPath(MatchPathStatement {
+			graph,
+			start_node,
+			end_node,
+			algorithm,
+		}))
 	}
 }
 
@@ -973,6 +1218,137 @@ mod tests {
 				assert_eq!(stmt.joins[0].join_type, JoinType::Left);
 			}
 			_ => panic!("Expected Select statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_create_graph() {
+		let mut parser = Parser::new();
+		let result = parser.parse("CREATE GRAPH social");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateGraph(stmt) => {
+				assert_eq!(stmt.name, "social");
+			}
+			_ => panic!("Expected CreateGraph statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_drop_graph() {
+		let mut parser = Parser::new();
+		let result = parser.parse("DROP GRAPH social");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::DropGraph(stmt) => {
+				assert_eq!(stmt.name, "social");
+			}
+			_ => panic!("Expected DropGraph statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_add_node() {
+		let mut parser = Parser::new();
+		let result = parser.parse("ADD NODE TO social LABEL 'Person'");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::AddNode(stmt) => {
+				assert_eq!(stmt.graph, "social");
+				assert_eq!(stmt.label, "'Person'");
+				assert_eq!(stmt.properties.len(), 0);
+			}
+			_ => panic!("Expected AddNode statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_add_node_with_properties() {
+		let mut parser = Parser::new();
+		let result = parser.parse("ADD NODE TO social LABEL 'Person' PROPERTIES (name = 'Alice', age = '30')");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::AddNode(stmt) => {
+				assert_eq!(stmt.graph, "social");
+				assert_eq!(stmt.label, "'Person'");
+				assert_eq!(stmt.properties.len(), 2);
+			}
+			_ => panic!("Expected AddNode statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_add_edge() {
+		let mut parser = Parser::new();
+		let result = parser.parse("ADD EDGE TO social FROM '1' TO '2' LABEL 'KNOWS'");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::AddEdge(stmt) => {
+				assert_eq!(stmt.graph, "social");
+				assert_eq!(stmt.from_node, "'1'");
+				assert_eq!(stmt.to_node, "'2'");
+				assert_eq!(stmt.label, "'KNOWS'");
+				assert!(stmt.weight.is_none());
+			}
+			_ => panic!("Expected AddEdge statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_add_weighted_edge() {
+		let mut parser = Parser::new();
+		let result = parser.parse("ADD EDGE TO social FROM '1' TO '2' LABEL 'DISTANCE' WEIGHT '5.5'");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::AddEdge(stmt) => {
+				assert_eq!(stmt.graph, "social");
+				assert!(stmt.weight.is_some());
+				assert!((stmt.weight.unwrap() - 5.5).abs() < 0.01);
+			}
+			_ => panic!("Expected AddEdge statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_match_path_shortest() {
+		let mut parser = Parser::new();
+		let result = parser.parse("MATCH PATH IN social FROM '1' TO '5' USING SHORTEST");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::MatchPath(stmt) => {
+				assert_eq!(stmt.graph, "social");
+				assert_eq!(stmt.start_node, "'1'");
+				assert_eq!(stmt.end_node, "'5'");
+				assert!(matches!(stmt.algorithm, PathAlgorithm::Shortest));
+			}
+			_ => panic!("Expected MatchPath statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_match_path_bfs() {
+		let mut parser = Parser::new();
+		let result = parser.parse("MATCH PATH IN social FROM '1' TO '5' USING BFS");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::MatchPath(stmt) => {
+				assert!(matches!(stmt.algorithm, PathAlgorithm::Bfs));
+			}
+			_ => panic!("Expected MatchPath statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_match_path_default() {
+		let mut parser = Parser::new();
+		let result = parser.parse("MATCH PATH IN social FROM '1' TO '5'");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::MatchPath(stmt) => {
+				// Default algorithm should be Shortest
+				assert!(matches!(stmt.algorithm, PathAlgorithm::Shortest));
+			}
+			_ => panic!("Expected MatchPath statement"),
 		}
 	}
 }
