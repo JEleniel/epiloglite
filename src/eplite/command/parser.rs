@@ -298,7 +298,8 @@ impl Parser {
 				Some(Token::Order) |
 				Some(Token::Group) |
 				Some(Token::Limit) |
-				Some(Token::Offset) => break,
+				Some(Token::Offset) |
+				Some(Token::Begin) => break, // Stop at BEGIN for trigger WHEN clauses
 				Some(_) => {
 					if self.position < token_texts.len() {
 						parts.push(token_texts[self.position].clone());
@@ -1169,6 +1170,134 @@ mod tests {
 				assert_eq!(stmt.joins[0].join_type, JoinType::Left);
 			}
 			_ => panic!("Expected Select statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_before_insert() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER audit_insert BEFORE INSERT ON users BEGIN INSERT INTO audit VALUES ('insert'); END";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "audit_insert");
+				assert_eq!(stmt.timing, TriggerTiming::Before);
+				assert_eq!(stmt.event, TriggerEvent::Insert);
+				assert_eq!(stmt.table, "users");
+				assert!(!stmt.for_each_row);
+				assert!(stmt.when_condition.is_none());
+				assert_eq!(stmt.actions.len(), 1);
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_after_update() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER log_update AFTER UPDATE ON products FOR EACH ROW BEGIN INSERT INTO log VALUES ('update'); END";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "log_update");
+				assert_eq!(stmt.timing, TriggerTiming::After);
+				assert_eq!(stmt.event, TriggerEvent::Update(None));
+				assert_eq!(stmt.table, "products");
+				assert!(stmt.for_each_row);
+				assert!(stmt.when_condition.is_none());
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_update_of_columns() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER price_update AFTER UPDATE OF price, quantity ON products BEGIN INSERT INTO changes VALUES ('price changed'); END";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "price_update");
+				assert_eq!(stmt.timing, TriggerTiming::After);
+				match stmt.event {
+					TriggerEvent::Update(Some(cols)) => {
+						assert_eq!(cols.len(), 2);
+						assert!(cols.contains(&"price".to_string()));
+						assert!(cols.contains(&"quantity".to_string()));
+					}
+					_ => panic!("Expected UPDATE OF event"),
+				}
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_with_when() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER high_price_alert AFTER INSERT ON products FOR EACH ROW WHEN price > 1000 BEGIN INSERT INTO alerts VALUES ('high price'); END";
+		let result = parser.parse(sql);
+		if result.is_err() {
+			eprintln!("Parse error: {:?}", result.as_ref().unwrap_err());
+		}
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "high_price_alert");
+				assert!(stmt.when_condition.is_some());
+				assert_eq!(stmt.when_condition.unwrap(), "price > 1000");
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_instead_of() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER view_insert INSTEAD OF INSERT ON view_name BEGIN INSERT INTO base_table VALUES ('data'); END";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "view_insert");
+				assert_eq!(stmt.timing, TriggerTiming::InsteadOf);
+				assert_eq!(stmt.event, TriggerEvent::Insert);
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_before_delete() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER prevent_delete BEFORE DELETE ON important_data BEGIN INSERT INTO delete_log VALUES ('attempt'); END";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "prevent_delete");
+				assert_eq!(stmt.timing, TriggerTiming::Before);
+				assert_eq!(stmt.event, TriggerEvent::Delete);
+				assert_eq!(stmt.table, "important_data");
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_drop_trigger() {
+		let mut parser = Parser::new();
+		let sql = "DROP TRIGGER audit_insert";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::DropTrigger(stmt) => {
+				assert_eq!(stmt.name, "audit_insert");
+			}
+			_ => panic!("Expected DropTrigger statement"),
 		}
 	}
 }
