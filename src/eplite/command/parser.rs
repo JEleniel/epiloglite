@@ -17,6 +17,8 @@ pub enum Statement {
 	Update(UpdateStatement),
 	Delete(DeleteStatement),
 	CreateTable(CreateTableStatement),
+	CreateTrigger(CreateTriggerStatement),
+	DropTrigger(DropTriggerStatement),
 	BeginTransaction,
 	Commit,
 	Rollback,
@@ -106,6 +108,47 @@ pub struct ColumnDefinition {
 	pub constraints: Vec<String>,
 }
 
+/// Trigger timing
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum TriggerTiming {
+	Before,
+	After,
+	InsteadOf,
+}
+
+/// Trigger event
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum TriggerEvent {
+	Insert,
+	Update(Option<Vec<String>>), // Optional column list for UPDATE OF
+	Delete,
+}
+
+/// Trigger action (SQL statement to execute)
+#[derive(Debug, Clone)]
+pub enum TriggerAction {
+	Insert(InsertStatement),
+	Update(UpdateStatement),
+	Delete(DeleteStatement),
+	Select(SelectStatement),
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateTriggerStatement {
+	pub name: String,
+	pub timing: TriggerTiming,
+	pub event: TriggerEvent,
+	pub table: String,
+	pub for_each_row: bool,
+	pub when_condition: Option<String>,
+	pub actions: Vec<TriggerAction>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DropTriggerStatement {
+	pub name: String,
+}
+
 /// SQL parser
 #[derive(Debug)]
 pub struct Parser {
@@ -144,6 +187,7 @@ impl Parser {
 			Some(Token::Update) => self.parse_update()?,
 			Some(Token::Delete) => self.parse_delete()?,
 			Some(Token::Create) => self.parse_create()?,
+			Some(Token::Drop) => self.parse_drop()?,
 			Some(Token::Begin) => {
 				self.advance();
 				Statement::BeginTransaction
@@ -538,6 +582,16 @@ impl Parser {
 
 	fn parse_create(&mut self) -> Result<Statement> {
 		self.expect(Token::Create)?;
+		
+		// Check if it's CREATE TABLE or CREATE TRIGGER
+		match self.current_token() {
+			Some(Token::Table) => self.parse_create_table(),
+			Some(Token::Trigger) => self.parse_create_trigger(),
+			_ => Err(Error::Syntax("Expected TABLE or TRIGGER after CREATE".to_string())),
+		}
+	}
+
+	fn parse_create_table(&mut self) -> Result<Statement> {
 		self.expect(Token::Table)?;
 		
 		let name = self.parse_identifier()?;
@@ -619,6 +673,148 @@ impl Parser {
 			name,
 			columns,
 		}))
+	}
+
+	fn parse_create_trigger(&mut self) -> Result<Statement> {
+		self.expect(Token::Trigger)?;
+		
+		let name = self.parse_identifier()?;
+		
+		// Parse timing: BEFORE, AFTER, or INSTEAD OF
+		let timing = match self.current_token() {
+			Some(Token::Before) => {
+				self.advance();
+				TriggerTiming::Before
+			}
+			Some(Token::After) => {
+				self.advance();
+				TriggerTiming::After
+			}
+			Some(Token::Instead) => {
+				self.advance();
+				self.expect(Token::Of)?;
+				TriggerTiming::InsteadOf
+			}
+			_ => return Err(Error::Syntax("Expected BEFORE, AFTER, or INSTEAD OF".to_string())),
+		};
+		
+		// Parse event: INSERT, UPDATE [OF columns], DELETE
+		let event = match self.current_token() {
+			Some(Token::Insert) => {
+				self.advance();
+				TriggerEvent::Insert
+			}
+			Some(Token::Update) => {
+				self.advance();
+				// Check for OF columns
+				if matches!(self.current_token(), Some(Token::Of)) {
+					self.advance();
+					let mut columns = vec![self.parse_identifier()?];
+					while matches!(self.current_token(), Some(Token::Comma)) {
+						self.advance();
+						columns.push(self.parse_identifier()?);
+					}
+					TriggerEvent::Update(Some(columns))
+				} else {
+					TriggerEvent::Update(None)
+				}
+			}
+			Some(Token::Delete) => {
+				self.advance();
+				TriggerEvent::Delete
+			}
+			_ => return Err(Error::Syntax("Expected INSERT, UPDATE, or DELETE".to_string())),
+		};
+		
+		// Parse ON table_name
+		self.expect(Token::On)?;
+		let table = self.parse_identifier()?;
+		
+		// Parse optional FOR EACH ROW
+		let for_each_row = if matches!(self.current_token(), Some(Token::For)) {
+			self.advance();
+			self.expect(Token::Each)?;
+			self.expect(Token::Row)?;
+			true
+		} else {
+			false
+		};
+		
+		// Parse optional WHEN condition
+		let when_condition = if matches!(self.current_token(), Some(Token::When)) {
+			self.advance();
+			Some(self.parse_where_clause()?)
+		} else {
+			None
+		};
+		
+		// Parse BEGIN ... END block
+		self.expect(Token::Begin)?;
+		
+		let mut actions = Vec::new();
+		loop {
+			// Parse trigger action statements
+			match self.current_token() {
+				Some(Token::Insert) => {
+					let stmt = self.parse_insert()?;
+					if let Statement::Insert(insert_stmt) = stmt {
+						actions.push(TriggerAction::Insert(insert_stmt));
+					}
+				}
+				Some(Token::Update) => {
+					let stmt = self.parse_update()?;
+					if let Statement::Update(update_stmt) = stmt {
+						actions.push(TriggerAction::Update(update_stmt));
+					}
+				}
+				Some(Token::Delete) => {
+					let stmt = self.parse_delete()?;
+					if let Statement::Delete(delete_stmt) = stmt {
+						actions.push(TriggerAction::Delete(delete_stmt));
+					}
+				}
+				Some(Token::Select) => {
+					let stmt = self.parse_select()?;
+					if let Statement::Select(select_stmt) = stmt {
+						actions.push(TriggerAction::Select(select_stmt));
+					}
+				}
+				Some(Token::End) => {
+					self.advance();
+					break;
+				}
+				_ => return Err(Error::Syntax("Expected trigger action or END".to_string())),
+			}
+			
+			// Check for optional semicolon between statements
+			if matches!(self.current_token(), Some(Token::Semicolon)) {
+				self.advance();
+			}
+		}
+		
+		Ok(Statement::CreateTrigger(CreateTriggerStatement {
+			name,
+			timing,
+			event,
+			table,
+			for_each_row,
+			when_condition,
+			actions,
+		}))
+	}
+
+	fn parse_drop(&mut self) -> Result<Statement> {
+		self.expect(Token::Drop)?;
+		
+		// For now, only support DROP TRIGGER
+		match self.current_token() {
+			Some(Token::Trigger) => {
+				self.advance();
+				let name = self.parse_identifier()?;
+				Ok(Statement::DropTrigger(DropTriggerStatement { name }))
+			}
+			_ => Err(Error::Syntax("Expected TRIGGER after DROP".to_string())),
+		}
 	}
 
 	fn parse_rollback(&mut self) -> Result<Statement> {

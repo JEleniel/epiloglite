@@ -139,6 +139,14 @@ impl Processor {
 				self.storage.create_table(stmt)?;
 				Ok(ExecutionResult::Success)
 			}
+			Statement::CreateTrigger(stmt) => {
+				self.storage.create_trigger(stmt)?;
+				Ok(ExecutionResult::Success)
+			}
+			Statement::DropTrigger(stmt) => {
+				self.storage.drop_trigger(&stmt.name)?;
+				Ok(ExecutionResult::Success)
+			}
 			Statement::BeginTransaction => Ok(ExecutionResult::Success),
 			Statement::Commit => Ok(ExecutionResult::Success),
 			Statement::Rollback => Ok(ExecutionResult::Success),

@@ -316,6 +316,7 @@ impl Table {
 #[derive(Debug)]
 pub struct StorageManager {
 	tables: HashMap<String, Table>,
+	triggers: HashMap<String, crate::eplite::command::parser::CreateTriggerStatement>,
 	pager: Option<Pager>,
 	dirty: bool,
 }
@@ -324,6 +325,7 @@ impl StorageManager {
 	pub fn new() -> Self {
 		StorageManager {
 			tables: HashMap::new(),
+			triggers: HashMap::new(),
 			pager: None,
 			dirty: false,
 		}
@@ -333,6 +335,7 @@ impl StorageManager {
 	pub fn with_pager(pager: Pager) -> Self {
 		StorageManager {
 			tables: HashMap::new(),
+			triggers: HashMap::new(),
 			pager: Some(pager),
 			dirty: false,
 		}
@@ -445,6 +448,42 @@ impl StorageManager {
 		} else {
 			Err(Error::NotFound(format!("Table '{}' not found", name)))
 		}
+	}
+
+	/// Create a trigger
+	pub fn create_trigger(&mut self, stmt: crate::eplite::command::parser::CreateTriggerStatement) -> Result<()> {
+		if self.triggers.contains_key(&stmt.name) {
+			return Err(Error::Constraint(format!("Trigger '{}' already exists", stmt.name)));
+		}
+		
+		// Check if the target table exists
+		if !self.tables.contains_key(&stmt.table) {
+			return Err(Error::NotFound(format!("Table '{}' not found", stmt.table)));
+		}
+		
+		self.triggers.insert(stmt.name.clone(), stmt);
+		Ok(())
+	}
+
+	/// Drop a trigger
+	pub fn drop_trigger(&mut self, name: &str) -> Result<()> {
+		if self.triggers.remove(name).is_some() {
+			Ok(())
+		} else {
+			Err(Error::NotFound(format!("Trigger '{}' not found", name)))
+		}
+	}
+
+	/// List all trigger names
+	pub fn list_triggers(&self) -> Vec<String> {
+		self.triggers.keys().cloned().collect()
+	}
+
+	/// Get triggers for a specific table and event
+	pub fn get_triggers_for_table(&self, table: &str, event: &crate::eplite::command::parser::TriggerEvent, timing: &crate::eplite::command::parser::TriggerTiming) -> Vec<&crate::eplite::command::parser::CreateTriggerStatement> {
+		self.triggers.values()
+			.filter(|t| t.table == table && t.event == *event && t.timing == *timing)
+			.collect()
 	}
 
 	/// Flush any pending changes to disk
