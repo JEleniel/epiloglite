@@ -17,6 +17,8 @@ pub enum Statement {
 	Update(UpdateStatement),
 	Delete(DeleteStatement),
 	CreateTable(CreateTableStatement),
+	CreateView(CreateViewStatement),
+	DropView(DropViewStatement),
 	BeginTransaction,
 	Commit,
 	Rollback,
@@ -100,6 +102,17 @@ pub struct CreateTableStatement {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateViewStatement {
+	pub name: String,
+	pub query: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DropViewStatement {
+	pub name: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColumnDefinition {
 	pub name: String,
 	pub data_type: ColumnType,
@@ -144,6 +157,7 @@ impl Parser {
 			Some(Token::Update) => self.parse_update()?,
 			Some(Token::Delete) => self.parse_delete()?,
 			Some(Token::Create) => self.parse_create()?,
+			Some(Token::Drop) => self.parse_drop()?,
 			Some(Token::Begin) => {
 				self.advance();
 				Statement::BeginTransaction
@@ -538,6 +552,16 @@ impl Parser {
 
 	fn parse_create(&mut self) -> Result<Statement> {
 		self.expect(Token::Create)?;
+		
+		// Check if it's a TABLE or VIEW
+		match self.current_token() {
+			Some(Token::Table) => self.parse_create_table(),
+			Some(Token::View) => self.parse_create_view(),
+			_ => Err(Error::Syntax("Expected TABLE or VIEW after CREATE".to_string())),
+		}
+	}
+
+	fn parse_create_table(&mut self) -> Result<Statement> {
 		self.expect(Token::Table)?;
 		
 		let name = self.parse_identifier()?;
@@ -619,6 +643,49 @@ impl Parser {
 			name,
 			columns,
 		}))
+	}
+
+	fn parse_create_view(&mut self) -> Result<Statement> {
+		self.expect(Token::View)?;
+		
+		let name = self.parse_identifier()?;
+		self.expect(Token::As)?;
+		
+		// Extract the query from the source SQL
+		// Find "AS" in the source and extract everything after it (excluding semicolon)
+		let query = if let Some(as_pos) = self.source.to_uppercase().rfind(" AS ") {
+			let after_as = &self.source[as_pos + 4..];
+			// Trim semicolon if present
+			after_as.trim_end_matches(';').trim().to_string()
+		} else {
+			return Err(Error::Syntax("Could not extract view query".to_string()));
+		};
+		
+		// Advance past the query tokens
+		while self.position < self.tokens.len() {
+			if matches!(self.current_token(), Some(Token::Semicolon)) {
+				break;
+			}
+			self.advance();
+		}
+		
+		Ok(Statement::CreateView(CreateViewStatement {
+			name,
+			query,
+		}))
+	}
+
+	fn parse_drop(&mut self) -> Result<Statement> {
+		self.expect(Token::Drop)?;
+		
+		match self.current_token() {
+			Some(Token::View) => {
+				self.advance();
+				let name = self.parse_identifier()?;
+				Ok(Statement::DropView(DropViewStatement { name }))
+			}
+			_ => Err(Error::Syntax("Expected VIEW after DROP".to_string())),
+		}
 	}
 
 	fn parse_rollback(&mut self) -> Result<Statement> {

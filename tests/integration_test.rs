@@ -436,3 +436,187 @@ _ => panic!("Expected Select result"),
 db.close()?;
 Ok(())
 }
+
+#[test]
+fn test_view_creation_and_query() -> Result<()> {
+let mut db = Database::open(":memory:")?;
+
+// Create base table
+db.execute("CREATE TABLE users (id INTEGER, name TEXT, age INTEGER)")?;
+db.execute("INSERT INTO users VALUES (1, 'Alice', 30)")?;
+db.execute("INSERT INTO users VALUES (2, 'Bob', 25)")?;
+db.execute("INSERT INTO users VALUES (3, 'Charlie', 35)")?;
+
+// Create a view
+let result = db.execute("CREATE VIEW young_users AS SELECT * FROM users");
+assert!(result.is_ok());
+match result.unwrap() {
+ExecutionResult::Success => {},
+_ => panic!("Expected Success result"),
+}
+
+// Query the view
+let result = db.execute("SELECT * FROM young_users")?;
+match result {
+ExecutionResult::Select { rows, columns } => {
+assert_eq!(columns.len(), 1); // "*"
+assert_eq!(rows.len(), 3);
+// Verify data is correct
+assert!(rows.iter().any(|r| r[0] == "1" && r[1] == "Alice" && r[2] == "30"));
+}
+_ => panic!("Expected Select result"),
+}
+
+db.close()?;
+Ok(())
+}
+
+#[test]
+fn test_view_with_where_clause() -> Result<()> {
+let mut db = Database::open(":memory:")?;
+
+// Create base table
+db.execute("CREATE TABLE products (id INTEGER, name TEXT, price INTEGER)")?;
+db.execute("INSERT INTO products VALUES (1, 'Widget', 100)")?;
+db.execute("INSERT INTO products VALUES (2, 'Gadget', 200)")?;
+db.execute("INSERT INTO products VALUES (3, 'Doohickey', 150)")?;
+
+// Create a view with a WHERE clause
+db.execute("CREATE VIEW expensive_products AS SELECT * FROM products WHERE price > 120")?;
+
+// Query the view
+let result = db.execute("SELECT * FROM expensive_products")?;
+match result {
+ExecutionResult::Select { rows, .. } => {
+// Should only return Gadget (200) and Doohickey (150)
+assert_eq!(rows.len(), 2);
+assert!(rows.iter().any(|r| r[1] == "Gadget"));
+assert!(rows.iter().any(|r| r[1] == "Doohickey"));
+}
+_ => panic!("Expected Select result"),
+}
+
+db.close()?;
+Ok(())
+}
+
+#[test]
+fn test_view_drop() -> Result<()> {
+let mut db = Database::open(":memory:")?;
+
+// Create base table and view
+db.execute("CREATE TABLE test_table (id INTEGER, value TEXT)")?;
+db.execute("INSERT INTO test_table VALUES (1, 'test')")?;
+db.execute("CREATE VIEW test_view AS SELECT * FROM test_table")?;
+
+// Verify view exists
+let result = db.execute("SELECT * FROM test_view");
+assert!(result.is_ok());
+
+// Drop the view
+let result = db.execute("DROP VIEW test_view");
+assert!(result.is_ok());
+match result.unwrap() {
+ExecutionResult::Success => {},
+_ => panic!("Expected Success result"),
+}
+
+// Verify view no longer exists
+let result = db.execute("SELECT * FROM test_view");
+assert!(result.is_err());
+
+db.close()?;
+Ok(())
+}
+
+#[test]
+fn test_view_name_conflict() -> Result<()> {
+let mut db = Database::open(":memory:")?;
+
+// Create a table
+db.execute("CREATE TABLE users (id INTEGER, name TEXT)")?;
+
+// Try to create a view with the same name as an existing table
+let result = db.execute("CREATE VIEW users AS SELECT * FROM users");
+assert!(result.is_err());
+
+// Create a view
+db.execute("CREATE VIEW user_view AS SELECT * FROM users")?;
+
+// Try to create a view with the same name as an existing view
+let result = db.execute("CREATE VIEW user_view AS SELECT * FROM users");
+assert!(result.is_err());
+
+db.close()?;
+Ok(())
+}
+
+#[test]
+fn test_view_with_specific_columns() -> Result<()> {
+let mut db = Database::open(":memory:")?;
+
+// Create base table
+db.execute("CREATE TABLE employees (id INTEGER, name TEXT, salary INTEGER, department TEXT)")?;
+db.execute("INSERT INTO employees VALUES (1, 'Alice', 50000, 'Engineering')")?;
+db.execute("INSERT INTO employees VALUES (2, 'Bob', 60000, 'Sales')")?;
+db.execute("INSERT INTO employees VALUES (3, 'Charlie', 55000, 'Engineering')")?;
+
+// Create a view selecting specific columns
+db.execute("CREATE VIEW employee_names AS SELECT name FROM employees")?;
+
+// Query the view
+let result = db.execute("SELECT * FROM employee_names")?;
+match result {
+ExecutionResult::Select { rows, .. } => {
+assert_eq!(rows.len(), 3);
+// Each row should have only one column (name)
+assert_eq!(rows[0].len(), 1);
+}
+_ => panic!("Expected Select result"),
+}
+
+db.close()?;
+Ok(())
+}
+
+#[test]
+fn test_view_persistence() -> Result<()> {
+use std::fs;
+let db_path = "/tmp/test_view_persistence.db";
+
+// Clean up any existing test database
+let _ = fs::remove_file(db_path);
+
+{
+let mut db = Database::open(db_path)?;
+
+// Create table and view
+db.execute("CREATE TABLE items (id INTEGER, name TEXT)")?;
+db.execute("INSERT INTO items VALUES (1, 'Item1')")?;
+db.execute("CREATE VIEW items_view AS SELECT * FROM items")?;
+
+db.close()?;
+}
+
+{
+// Reopen database and check if view persists
+let mut db = Database::open(db_path)?;
+
+// Query the view
+let result = db.execute("SELECT * FROM items_view")?;
+match result {
+ExecutionResult::Select { rows, .. } => {
+assert_eq!(rows.len(), 1);
+assert_eq!(rows[0][1], "Item1");
+}
+_ => panic!("Expected Select result"),
+}
+
+db.close()?;
+}
+
+// Clean up
+let _ = fs::remove_file(db_path);
+
+Ok(())
+}

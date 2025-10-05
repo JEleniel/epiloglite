@@ -149,6 +149,13 @@ pub struct Table {
 	pub rows: Vec<Row>,
 }
 
+/// View definition
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct View {
+	pub name: String,
+	pub query: String,
+}
+
 impl Table {
 	pub fn new(name: String, columns: Vec<ColumnDefinition>) -> Self {
 		Table {
@@ -316,6 +323,7 @@ impl Table {
 #[derive(Debug)]
 pub struct StorageManager {
 	tables: HashMap<String, Table>,
+	views: HashMap<String, View>,
 	pager: Option<Pager>,
 	dirty: bool,
 }
@@ -324,6 +332,7 @@ impl StorageManager {
 	pub fn new() -> Self {
 		StorageManager {
 			tables: HashMap::new(),
+			views: HashMap::new(),
 			pager: None,
 			dirty: false,
 		}
@@ -333,6 +342,7 @@ impl StorageManager {
 	pub fn with_pager(pager: Pager) -> Self {
 		StorageManager {
 			tables: HashMap::new(),
+			views: HashMap::new(),
 			pager: Some(pager),
 			dirty: false,
 		}
@@ -345,13 +355,25 @@ impl StorageManager {
 			if let Ok(page) = pager.get_page(1) {
 				// Deserialize the tables from the page data
 				if !page.data.is_empty() && page.data[0] != 0 {
-					match bincode::deserialize::<HashMap<String, Table>>(&page.data) {
-						Ok(tables) => {
+					// Try to deserialize as a tuple of (tables, views)
+					match bincode::deserialize::<(HashMap<String, Table>, HashMap<String, View>)>(&page.data) {
+						Ok((tables, views)) => {
 							self.tables = tables;
+							self.views = views;
 							return Ok(());
 						}
 						Err(_) => {
-							// Page exists but can't deserialize - might be empty/new database
+							// Try legacy format (just tables)
+							match bincode::deserialize::<HashMap<String, Table>>(&page.data) {
+								Ok(tables) => {
+									self.tables = tables;
+									self.views = HashMap::new();
+									return Ok(());
+								}
+								Err(_) => {
+									// Page exists but can't deserialize - might be empty/new database
+								}
+							}
 						}
 					}
 				}
@@ -364,9 +386,9 @@ impl StorageManager {
 	pub fn save_to_disk(&mut self) -> Result<()> {
 		if self.dirty && self.pager.is_some() {
 			if let Some(pager) = &mut self.pager {
-				// Serialize the tables
-				let serialized = bincode::serialize(&self.tables).map_err(|e| {
-					Error::Internal(format!("Failed to serialize tables: {}", e))
+				// Serialize both tables and views
+				let serialized = bincode::serialize(&(&self.tables, &self.views)).map_err(|e| {
+					Error::Internal(format!("Failed to serialize tables and views: {}", e))
 				})?;
 
 				// Get or create page 1
@@ -444,6 +466,56 @@ impl StorageManager {
 			Ok(())
 		} else {
 			Err(Error::NotFound(format!("Table '{}' not found", name)))
+		}
+	}
+
+	/// Create a view
+	pub fn create_view(&mut self, name: String, query: String) -> Result<()> {
+		if self.views.contains_key(&name) {
+			return Err(Error::Constraint(format!(
+				"View '{}' already exists",
+				name
+			)));
+		}
+		
+		// Check that the view name doesn't conflict with a table
+		if self.tables.contains_key(&name) {
+			return Err(Error::Constraint(format!(
+				"A table named '{}' already exists",
+				name
+			)));
+		}
+
+		let view = View { name: name.clone(), query };
+		self.views.insert(name, view);
+		self.mark_dirty();
+		self.save_to_disk()?;
+		Ok(())
+	}
+
+	/// Get a view
+	pub fn get_view(&self, name: &str) -> Option<&View> {
+		self.views.get(name)
+	}
+
+	/// Check if a view exists
+	pub fn view_exists(&self, name: &str) -> bool {
+		self.views.contains_key(name)
+	}
+
+	/// List all view names
+	pub fn list_views(&self) -> Vec<String> {
+		self.views.keys().cloned().collect()
+	}
+
+	/// Drop a view
+	pub fn drop_view(&mut self, name: &str) -> Result<()> {
+		if self.views.remove(name).is_some() {
+			self.mark_dirty();
+			self.save_to_disk()?;
+			Ok(())
+		} else {
+			Err(Error::NotFound(format!("View '{}' not found", name)))
 		}
 	}
 
