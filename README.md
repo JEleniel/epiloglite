@@ -209,6 +209,50 @@ fn main() -> Result<(), epiloglite::Error> {
 
 See `docs/NO_STD.md` for detailed documentation and `examples/embedded/` for more examples.
 
+### Async I/O Support
+
+EpilogLite supports asynchronous I/O operations for non-blocking database access:
+
+```toml
+[dependencies]
+epiloglite = { version = "0.1", features = ["async"] }
+tokio = { version = "1", features = ["full"] }
+```
+
+```rust
+use epiloglite::{AsyncFile, async_file::AsyncDefaultFile};
+use epiloglite::SynchronizationType;
+use flagset::FlagSet;
+
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
+    // Open file asynchronously
+    let mut file = AsyncDefaultFile::open("/tmp/test.db", true, true, true).await?;
+    
+    // Write data asynchronously (non-blocking)
+    let data = b"Hello, async world!";
+    file.write(data, 0).await?;
+    
+    // Sync to disk asynchronously
+    file.sync(FlagSet::from(SynchronizationType::SqliteSyncFull)).await?;
+    
+    // Read data back asynchronously
+    let read_data = file.read(0).await?;
+    println!("Read {} bytes", read_data.len());
+    
+    Ok(())
+}
+```
+
+**Key Features:**
+- Non-blocking file operations
+- Tokio integration
+- Backpressure control for concurrent operations
+- Performance benchmarking utilities
+- Async VFS trait for custom implementations
+
+See `docs/design/ASYNC_IO.md` for detailed documentation and `examples/async_io.rs` for more examples.
+
 ## 📚 Examples
 
 The `examples/` directory contains several examples:
