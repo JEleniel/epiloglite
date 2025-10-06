@@ -402,7 +402,7 @@ match result {
 ExecutionResult::Select { rows, .. } => {
 assert_eq!(rows.len(), 4); // All users, some with multiple orders
 // Check that Charlie has a row with NULLs for order data
-let charlie_row = rows.iter().find(|r| r.len() > 1 && r[1] == "'Charlie'");
+let charlie_row = rows.iter().find(|r| r.len() > 1 && r[1] == "Charlie");
 assert!(charlie_row.is_some(), "Charlie row not found");
 let charlie_row = charlie_row.unwrap();
 assert_eq!(charlie_row[2], "NULL"); // order_id should be NULL

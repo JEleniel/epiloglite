@@ -299,6 +299,14 @@ impl Parser {
 		if self.position < token_texts.len() {
 			let val = token_texts[self.position].clone();
 			self.advance();
+			
+			// Strip quotes from string literals
+			if (val.starts_with('\'') && val.ends_with('\'')) || (val.starts_with('"') && val.ends_with('"')) {
+				if val.len() >= 2 {
+					return Ok(val[1..val.len()-1].to_string());
+				}
+			}
+			
 			Ok(val)
 		} else {
 			self.advance();
