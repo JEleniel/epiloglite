@@ -16,6 +16,8 @@ pub mod optimizer;
 pub mod permissions;
 #[cfg(feature = "server")]
 pub mod server;
+pub mod traits;
+pub mod graph;
 mod traits;
 mod types;
 pub mod utility;

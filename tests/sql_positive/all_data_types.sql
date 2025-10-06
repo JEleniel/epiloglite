@@ -1,0 +1,50 @@
+-- CREATE TABLE with NULL type
+CREATE TABLE nullable (id INTEGER, value NULL)
+
+-- CREATE TABLE with BOOLEAN type
+CREATE TABLE flags (id INTEGER, is_active BOOLEAN)
+
+-- CREATE TABLE with INT8
+CREATE TABLE tiny_ints (id INTEGER, value INT8)
+
+-- CREATE TABLE with UINT8
+CREATE TABLE unsigned_tiny (id INTEGER, value UINT8)
+
+-- CREATE TABLE with INT16
+CREATE TABLE small_ints (id INTEGER, value INT16)
+
+-- CREATE TABLE with UINT16
+CREATE TABLE unsigned_small (id INTEGER, value UINT16)
+
+-- CREATE TABLE with INTEGER (INT32)
+CREATE TABLE integers (id INTEGER, value INTEGER)
+
+-- CREATE TABLE with UINT32
+CREATE TABLE unsigned_ints (id INTEGER, value UINT32)
+
+-- CREATE TABLE with BIGINT (INT64)
+CREATE TABLE big_ints (id INTEGER, value BIGINT)
+
+-- CREATE TABLE with UINT64
+CREATE TABLE unsigned_big (id INTEGER, value UINT64)
+
+-- CREATE TABLE with INT128
+CREATE TABLE huge_ints (id INTEGER, value INT128)
+
+-- CREATE TABLE with UINT128
+CREATE TABLE unsigned_huge (id INTEGER, value UINT128)
+
+-- CREATE TABLE with REAL (FLOAT32)
+CREATE TABLE floats (id INTEGER, value REAL)
+
+-- CREATE TABLE with DOUBLE (FLOAT64)
+CREATE TABLE doubles (id INTEGER, value DOUBLE)
+
+-- CREATE TABLE with TEXT
+CREATE TABLE texts (id INTEGER, value TEXT)
+
+-- CREATE TABLE with BLOB
+CREATE TABLE blobs (id INTEGER, value BLOB)
+
+-- CREATE TABLE with mixed types
+CREATE TABLE mixed (id INTEGER, name TEXT, age INT16, salary DOUBLE, data BLOB, active BOOLEAN)
