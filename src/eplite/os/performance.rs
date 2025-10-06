@@ -4,8 +4,6 @@
 /// of synchronous and asynchronous file operations.
 
 #[cfg(all(feature = "async", feature = "std"))]
-use std::path::Path;
-#[cfg(all(feature = "async", feature = "std"))]
 use std::time::{Duration, Instant};
 
 #[cfg(all(feature = "async", feature = "std"))]

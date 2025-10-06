@@ -111,24 +111,24 @@ pub struct CreateTableStatement {
 	pub columns: Vec<ColumnDefinition>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateGraphStatement {
 	pub name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DropGraphStatement {
 	pub name: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddNodeStatement {
 	pub graph: String,
 	pub label: String,
 	pub properties: Vec<(String, String)>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AddEdgeStatement {
 	pub graph: String,
 	pub from_node: String,
@@ -138,7 +138,7 @@ pub struct AddEdgeStatement {
 	pub properties: Vec<(String, String)>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MatchPathStatement {
 	pub graph: String,
 	pub start_node: String,
@@ -146,7 +146,7 @@ pub struct MatchPathStatement {
 	pub algorithm: PathAlgorithm,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum PathAlgorithm {
 	Shortest,
 	All { max_depth: usize },
@@ -160,7 +160,7 @@ pub struct CreateViewStatement {
 	pub query: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DropViewStatement {
 	pub name: String,
 }
@@ -232,6 +232,8 @@ pub struct CreateProcedureStatement {
 pub struct CallProcedureStatement {
 	pub name: String,
 	pub arguments: Vec<String>,
+}
+
 /// Trigger timing
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TriggerTiming {
@@ -249,7 +251,7 @@ pub enum TriggerEvent {
 }
 
 /// Trigger action (SQL statement to execute)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TriggerAction {
 	Insert(InsertStatement),
 	Update(UpdateStatement),
@@ -257,7 +259,7 @@ pub enum TriggerAction {
 	Select(SelectStatement),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTriggerStatement {
 	pub name: String,
 	pub timing: TriggerTiming,
@@ -268,7 +270,7 @@ pub struct CreateTriggerStatement {
 	pub actions: Vec<TriggerAction>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DropTriggerStatement {
 	pub name: String,
 }
@@ -719,21 +721,13 @@ impl Parser {
 	fn parse_create(&mut self) -> Result<Statement> {
 		self.expect(Token::Create)?;
 		
-		// Check if this is CREATE TABLE or CREATE PROCEDURE
 		match self.current_token() {
 			Some(Token::Table) => self.parse_create_table(),
 			Some(Token::Procedure) => self.parse_create_procedure(),
-			_ => Err(Error::Syntax("Expected TABLE or PROCEDURE after CREATE".to_string())),
-		// Check if it's a TABLE or VIEW
-		match self.current_token() {
-			Some(Token::Table) => self.parse_create_table(),
 			Some(Token::View) => self.parse_create_view(),
-			_ => Err(Error::Syntax("Expected TABLE or VIEW after CREATE".to_string())),
-		// Check if it's CREATE TABLE or CREATE TRIGGER
-		match self.current_token() {
-			Some(Token::Table) => self.parse_create_table(),
 			Some(Token::Trigger) => self.parse_create_trigger(),
-			_ => Err(Error::Syntax("Expected TABLE or TRIGGER after CREATE".to_string())),
+			Some(Token::Graph) => self.parse_create_graph(),
+			_ => Err(Error::Syntax("Expected TABLE, PROCEDURE, VIEW, TRIGGER, or GRAPH after CREATE".to_string())),
 		}
 	}
 
@@ -853,6 +847,9 @@ impl Parser {
 		Ok(Statement::CreateView(CreateViewStatement {
 			name,
 			query,
+		}))
+	}
+
 	fn parse_create_trigger(&mut self) -> Result<Statement> {
 		self.expect(Token::Trigger)?;
 		
@@ -990,15 +987,22 @@ impl Parser {
 				let name = self.parse_identifier()?;
 				Ok(Statement::DropView(DropViewStatement { name }))
 			}
-			_ => Err(Error::Syntax("Expected VIEW after DROP".to_string())),
-		// For now, only support DROP TRIGGER
-		match self.current_token() {
 			Some(Token::Trigger) => {
 				self.advance();
 				let name = self.parse_identifier()?;
 				Ok(Statement::DropTrigger(DropTriggerStatement { name }))
 			}
-			_ => Err(Error::Syntax("Expected TRIGGER after DROP".to_string())),
+			Some(Token::Procedure) => {
+				self.advance();
+				let name = self.parse_identifier()?;
+				Ok(Statement::DropProcedure(name))
+			}
+			Some(Token::Graph) => {
+				self.advance();
+				let name = self.parse_identifier()?;
+				Ok(Statement::DropGraph(DropGraphStatement { name }))
+			}
+			_ => Err(Error::Syntax("Expected VIEW, TRIGGER, PROCEDURE, or GRAPH after DROP".to_string())),
 		}
 	}
 
@@ -1099,21 +1103,6 @@ impl Parser {
 			parameters,
 			body,
 		}))
-	}
-
-	fn parse_drop(&mut self) -> Result<Statement> {
-		self.expect(Token::Drop)?;
-		
-		match self.current_token() {
-			Some(Token::Procedure) => {
-				self.advance();
-				let name = self.parse_identifier()?;
-				Ok(Statement::DropProcedure(name))
-			}
-			_ => Err(Error::Syntax(
-				"Expected PROCEDURE after DROP (only DROP PROCEDURE is currently supported)".to_string(),
-			)),
-		}
 	}
 
 	fn parse_call(&mut self) -> Result<Statement> {
@@ -1542,15 +1531,6 @@ impl Parser {
 		let name = self.parse_identifier()?;
 		
 		Ok(Statement::CreateGraph(CreateGraphStatement { name }))
-	}
-	
-	/// Parse DROP statement (currently only DROP GRAPH)
-	fn parse_drop(&mut self) -> Result<Statement> {
-		self.expect(Token::Drop)?;
-		self.expect(Token::Graph)?;
-		let name = self.parse_identifier()?;
-		
-		Ok(Statement::DropGraph(DropGraphStatement { name }))
 	}
 	
 	/// Parse ADD statement (ADD NODE or ADD EDGE)
@@ -2103,11 +2083,16 @@ mod tests {
 				assert_eq!(stmt.name, "audit_insert");
 			}
 			_ => panic!("Expected DropTrigger statement"),
-	
+		}
+	}
+
 	#[test]
 	fn test_parse_create_graph() {
 		let mut parser = Parser::new();
 		let result = parser.parse("CREATE GRAPH social");
+		if let Err(e) = &result {
+			eprintln!("Parse error: {:?}", e);
+		}
 		assert!(result.is_ok());
 		match result.unwrap() {
 			Statement::CreateGraph(stmt) => {
@@ -2138,7 +2123,7 @@ mod tests {
 		match result.unwrap() {
 			Statement::AddNode(stmt) => {
 				assert_eq!(stmt.graph, "social");
-				assert_eq!(stmt.label, "'Person'");
+				assert_eq!(stmt.label, "Person");
 				assert_eq!(stmt.properties.len(), 0);
 			}
 			_ => panic!("Expected AddNode statement"),
@@ -2153,7 +2138,7 @@ mod tests {
 		match result.unwrap() {
 			Statement::AddNode(stmt) => {
 				assert_eq!(stmt.graph, "social");
-				assert_eq!(stmt.label, "'Person'");
+				assert_eq!(stmt.label, "Person");
 				assert_eq!(stmt.properties.len(), 2);
 			}
 			_ => panic!("Expected AddNode statement"),
@@ -2168,9 +2153,9 @@ mod tests {
 		match result.unwrap() {
 			Statement::AddEdge(stmt) => {
 				assert_eq!(stmt.graph, "social");
-				assert_eq!(stmt.from_node, "'1'");
-				assert_eq!(stmt.to_node, "'2'");
-				assert_eq!(stmt.label, "'KNOWS'");
+				assert_eq!(stmt.from_node, "1");
+				assert_eq!(stmt.to_node, "2");
+				assert_eq!(stmt.label, "KNOWS");
 				assert!(stmt.weight.is_none());
 			}
 			_ => panic!("Expected AddEdge statement"),
@@ -2200,8 +2185,8 @@ mod tests {
 		match result.unwrap() {
 			Statement::MatchPath(stmt) => {
 				assert_eq!(stmt.graph, "social");
-				assert_eq!(stmt.start_node, "'1'");
-				assert_eq!(stmt.end_node, "'5'");
+				assert_eq!(stmt.start_node, "1");
+				assert_eq!(stmt.end_node, "5");
 				assert!(matches!(stmt.algorithm, PathAlgorithm::Shortest));
 			}
 			_ => panic!("Expected MatchPath statement"),

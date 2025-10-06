@@ -2,10 +2,13 @@
 //!
 //! Provides a drop-in replacement for the SQLite C API,
 //! allowing EpilogLite to be used as a library from C/C++ applications.
+//!
+//! Note: This module requires unsafe code for FFI and is incompatible
+//! with the unsafe_code = "forbid" lint in Cargo.toml. It should only
+//! be compiled when the "capi" feature is explicitly enabled.
 
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
-#![cfg_attr(test, allow(unsafe_code))]
 
 use crate::eplite::database::Database;
 use crate::eplite::error::Result as EplResult;
