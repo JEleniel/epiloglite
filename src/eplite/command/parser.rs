@@ -726,7 +726,8 @@ impl Parser {
 			Some(Token::Procedure) => self.parse_create_procedure(),
 			Some(Token::View) => self.parse_create_view(),
 			Some(Token::Trigger) => self.parse_create_trigger(),
-			_ => Err(Error::Syntax("Expected TABLE, PROCEDURE, VIEW, or TRIGGER after CREATE".to_string())),
+			Some(Token::Graph) => self.parse_create_graph(),
+			_ => Err(Error::Syntax("Expected TABLE, PROCEDURE, VIEW, TRIGGER, or GRAPH after CREATE".to_string())),
 		}
 	}
 
@@ -2089,6 +2090,9 @@ mod tests {
 	fn test_parse_create_graph() {
 		let mut parser = Parser::new();
 		let result = parser.parse("CREATE GRAPH social");
+		if let Err(e) = &result {
+			eprintln!("Parse error: {:?}", e);
+		}
 		assert!(result.is_ok());
 		match result.unwrap() {
 			Statement::CreateGraph(stmt) => {
@@ -2119,7 +2123,7 @@ mod tests {
 		match result.unwrap() {
 			Statement::AddNode(stmt) => {
 				assert_eq!(stmt.graph, "social");
-				assert_eq!(stmt.label, "'Person'");
+				assert_eq!(stmt.label, "Person");
 				assert_eq!(stmt.properties.len(), 0);
 			}
 			_ => panic!("Expected AddNode statement"),
@@ -2134,7 +2138,7 @@ mod tests {
 		match result.unwrap() {
 			Statement::AddNode(stmt) => {
 				assert_eq!(stmt.graph, "social");
-				assert_eq!(stmt.label, "'Person'");
+				assert_eq!(stmt.label, "Person");
 				assert_eq!(stmt.properties.len(), 2);
 			}
 			_ => panic!("Expected AddNode statement"),
@@ -2149,9 +2153,9 @@ mod tests {
 		match result.unwrap() {
 			Statement::AddEdge(stmt) => {
 				assert_eq!(stmt.graph, "social");
-				assert_eq!(stmt.from_node, "'1'");
-				assert_eq!(stmt.to_node, "'2'");
-				assert_eq!(stmt.label, "'KNOWS'");
+				assert_eq!(stmt.from_node, "1");
+				assert_eq!(stmt.to_node, "2");
+				assert_eq!(stmt.label, "KNOWS");
 				assert!(stmt.weight.is_none());
 			}
 			_ => panic!("Expected AddEdge statement"),
@@ -2181,8 +2185,8 @@ mod tests {
 		match result.unwrap() {
 			Statement::MatchPath(stmt) => {
 				assert_eq!(stmt.graph, "social");
-				assert_eq!(stmt.start_node, "'1'");
-				assert_eq!(stmt.end_node, "'5'");
+				assert_eq!(stmt.start_node, "1");
+				assert_eq!(stmt.end_node, "5");
 				assert!(matches!(stmt.algorithm, PathAlgorithm::Shortest));
 			}
 			_ => panic!("Expected MatchPath statement"),
