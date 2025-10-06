@@ -44,6 +44,10 @@ pub enum Token {
 	View,
 	#[token("DATABASE", ignore(ascii_case))]
 	Database,
+	#[token("PROCEDURE", ignore(ascii_case))]
+	Procedure,
+	#[token("CALL", ignore(ascii_case))]
+	Call,
 	#[token("TRIGGER", ignore(ascii_case))]
 	Trigger,
 	#[token("GRAPH", ignore(ascii_case))]
@@ -184,6 +188,28 @@ pub enum Token {
 	Else,
 	#[token("END", ignore(ascii_case))]
 	End,
+	#[token("IF", ignore(ascii_case))]
+	If,
+	#[token("WHILE", ignore(ascii_case))]
+	While,
+	#[token("LOOP", ignore(ascii_case))]
+	Loop,
+	#[token("REPEAT", ignore(ascii_case))]
+	Repeat,
+	#[token("UNTIL", ignore(ascii_case))]
+	Until,
+	#[token("RETURN", ignore(ascii_case))]
+	Return,
+	#[token("DECLARE", ignore(ascii_case))]
+	Declare,
+	#[token("OUT", ignore(ascii_case))]
+	Out,
+	#[token("INOUT", ignore(ascii_case))]
+	Inout,
+	#[token("SIGNAL", ignore(ascii_case))]
+	Signal,
+	#[token("SQLSTATE", ignore(ascii_case))]
+	Sqlstate,
 	#[token("BEFORE", ignore(ascii_case))]
 	Before,
 	#[token("AFTER", ignore(ascii_case))]

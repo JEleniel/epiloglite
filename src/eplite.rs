@@ -4,6 +4,7 @@ pub mod database;
 pub mod error;
 pub mod os;
 pub mod persistence;
+pub mod procedures;
 pub mod query_builder;
 pub mod storage;
 #[cfg(feature = "std")]

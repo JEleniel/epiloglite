@@ -8,7 +8,7 @@ pub mod eplite;
 #[cfg(feature = "capi")]
 pub mod capi;
 
-pub use eplite::command::processor::ExecutionResult;
+pub use eplite::command::processor::{ExecutionResult, Processor};
 pub use eplite::database::Database;
 pub use eplite::error::{Error, Result};
 pub use eplite::query_builder::{

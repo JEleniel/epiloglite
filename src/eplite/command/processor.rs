@@ -311,6 +311,39 @@ impl Processor {
 				// Full implementation requires transaction state tracking
 				Ok(ExecutionResult::Success)
 			}
+			Statement::CreateProcedure(stmt) => {
+				self.storage.get_procedures_mut().create_procedure(stmt)?;
+				Ok(ExecutionResult::Success)
+			}
+			Statement::DropProcedure(name) => {
+				self.storage.get_procedures_mut().drop_procedure(&name)?;
+				Ok(ExecutionResult::Success)
+			}
+			Statement::CallProcedure(stmt) => {
+				// Get the procedure
+				let proc = self.storage
+					.get_procedures()
+					.get_procedure(&stmt.name)
+					.ok_or_else(|| Error::NotFound(format!("Procedure '{}' not found", stmt.name)))?
+					.clone();
+				
+				// Validate parameter count
+				if stmt.arguments.len() != proc.definition.parameters.len() {
+					return Err(Error::InvalidOperation(format!(
+						"Procedure '{}' expects {} arguments, but {} were provided",
+						stmt.name,
+						proc.definition.parameters.len(),
+						stmt.arguments.len()
+					)));
+				}
+				
+				// For now, just return success - full execution to be implemented
+				// TODO: Create execution context
+				// TODO: Parse argument values and bind to parameters
+				// TODO: Execute procedure body statements
+				
+				Ok(ExecutionResult::Success)
+			}
 		}
 	}
 
@@ -632,9 +665,9 @@ impl Processor {
 		};
 
 		// Apply WHERE clause if present
-		let filtered_rows = if let Some(where_clause) = &stmt.where_clause {
-			// For now, simple filtering - would need proper WHERE evaluation for joins
-			// This is a simplified implementation
+		let filtered_rows = if let Some(_where_clause) = &stmt.where_clause {
+			// TODO: For now, simple filtering - would need proper WHERE evaluation for joins
+			// This is a simplified implementation that doesn't yet filter
 			rows
 		} else {
 			rows
