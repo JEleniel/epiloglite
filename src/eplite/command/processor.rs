@@ -215,6 +215,21 @@ impl Processor {
 			Statement::DropTrigger(stmt) => {
 				self.storage.drop_trigger(&stmt.name)?;
 				Ok(ExecutionResult::Success)
+			Statement::CreateGraph(_stmt) => {
+				// Graph operations will be implemented when storage integration is complete
+				Err(Error::NotImplemented("Graph operations not yet integrated with storage".to_string()))
+			}
+			Statement::DropGraph(_stmt) => {
+				Err(Error::NotImplemented("Graph operations not yet integrated with storage".to_string()))
+			}
+			Statement::AddNode(_stmt) => {
+				Err(Error::NotImplemented("Graph operations not yet integrated with storage".to_string()))
+			}
+			Statement::AddEdge(_stmt) => {
+				Err(Error::NotImplemented("Graph operations not yet integrated with storage".to_string()))
+			}
+			Statement::MatchPath(_stmt) => {
+				Err(Error::NotImplemented("Graph operations not yet integrated with storage".to_string()))
 			}
 			Statement::BeginTransaction => Ok(ExecutionResult::Success),
 			Statement::Commit => Ok(ExecutionResult::Success),
