@@ -6,8 +6,7 @@
 /// - Query paths between nodes
 /// - Use graph traversal algorithms
 
-use epiloglite::eplite::graph::GraphManager;
-use epiloglite::eplite::error::Result;
+use epiloglite::{GraphManager, Result};
 
 fn main() -> Result<()> {
 	println!("=== EpilogLite Graph Data Structures Example ===\n");

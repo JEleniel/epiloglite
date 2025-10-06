@@ -11,6 +11,7 @@ pub mod capi;
 pub use eplite::command::processor::ExecutionResult;
 pub use eplite::database::Database;
 pub use eplite::error::{Error, Result};
+pub use eplite::graph::{Edge, EdgeId, Graph, GraphManager, Node, NodeId};
 pub use eplite::query_builder::{
 	CreateTableBuilder, DeleteBuilder, InsertBuilder, SelectBuilder, UpdateBuilder,
 };

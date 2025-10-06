@@ -2,6 +2,7 @@ pub mod command;
 mod constants;
 pub mod database;
 pub mod error;
+pub mod graph;
 pub mod os;
 pub mod persistence;
 pub mod query_builder;
