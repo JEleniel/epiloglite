@@ -23,7 +23,7 @@ regex = "1.11"
 tokio = { version = "1", features = ["full"], optional = true }
 config = "0.14"
 log = "0.4"
-fern = { version = "0.6", features = ["colored"] }
+fern = { version = "0.7", features = ["colored"] }
 chrono = "0.4"
 # Server dependencies
 axum = { version = "0.7", optional = true }
