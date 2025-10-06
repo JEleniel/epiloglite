@@ -14,6 +14,7 @@ EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliabi
 - ✅ **Disk Persistence** - Data automatically saves to and loads from files
 - ✅ **In-Memory Databases** - Fast `:memory:` mode for temporary data
 - ✅ **Transactions** - BEGIN, COMMIT, ROLLBACK, SAVEPOINT, RELEASE support
+- ✅ **Write-Ahead Logging (WAL)** - Concurrent readers, improved crash recovery
 - ✅ **Multiple Tables** - Create and manage multiple tables simultaneously
 
 #### Query Builder Pattern
@@ -34,7 +35,7 @@ EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliabi
 - ✅ **100% Safe Rust** - No unsafe code blocks
 - ✅ **Modular Design** - Clean separation of concerns
 - ✅ **Error Handling** - Comprehensive Result types
-- ✅ **Test Coverage** - 152 tests (124 unit + 18 adversarial + 10 integration)
+- ✅ **Test Coverage** - 196 tests (165 unit + 18 adversarial + 11 integration + 9 WAL integration)
 - ✅ **Security Tested** - SQL injection resistance, malformed input handling
 - ✅ **Idiomatic Rust** - Clippy-approved, modern patterns
 - ✅ **Type Safety** - ColumnType enum eliminates hardcoded strings
@@ -229,6 +230,29 @@ cargo run --example savepoint_example
 cargo build --example no_std_basic --no-default-features --features no-std
 ```
 
+### WAL Mode Example
+
+```rust
+use epiloglite::{Database, eplite::persistence::wal::CheckpointMode};
+
+// Open database with Write-Ahead Logging
+let mut db = Database::open_with_wal("mydata.db")?;
+
+// Begin transaction
+db.begin_transaction()?;
+
+// Perform operations
+db.execute("CREATE TABLE items (id INTEGER, name TEXT)")?;
+db.execute("INSERT INTO items VALUES (1, 'Item 1')")?;
+db.execute("INSERT INTO items VALUES (2, 'Item 2')")?;
+
+// Commit transaction
+db.commit_transaction()?;
+
+// Perform checkpoint to transfer WAL to main database
+db.checkpoint(CheckpointMode::Full)?;
+```
+
 ## 🏗️ Architecture
 
 EpilogLite follows a modular architecture:
@@ -243,7 +267,8 @@ eplite/
 ├── persistence/     # Storage engine
 │   ├── pager        # Page cache management
 │   ├── btree        # B-tree implementation
-│   └── header       # Database header
+│   ├── header       # Database header
+│   └── wal          # Write-Ahead Logging
 ├── storage/         # Table and row management
 ├── query_builder/   # Fluent query interface
 ├── os/              # OS abstraction layer
@@ -273,6 +298,7 @@ Current test coverage: **93 tests passing** (88 unit + 5 integration)
 - [Architecture](design/ARCHITECTURE.md) - System architecture overview
 - [File Format](design/FILEFORMAT.md) - Database file format specification
 - [Virtual Machine](design/VIRTUALMACHINE.md) - Bytecode execution engine
+- [WAL Implementation](docs/WAL_IMPLEMENTATION.md) - Write-Ahead Logging guide
 - [C/C++ Interface](design/C-CPP-Interface.md) - C API design (planned)
 - [Status](STATUS.md) - Current implementation status
 - [Contributing](CONTRIBUTING.md) - Contribution guidelines
