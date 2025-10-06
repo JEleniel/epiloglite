@@ -10,13 +10,16 @@ use serde::{Deserialize, Serialize};
 use alloc::{format, string::{String, ToString}, vec, vec::Vec};
 
 /// Parse tree node types
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Statement {
 	Select(SelectStatement),
 	Insert(InsertStatement),
 	Update(UpdateStatement),
 	Delete(DeleteStatement),
 	CreateTable(CreateTableStatement),
+	CreateProcedure(CreateProcedureStatement),
+	DropProcedure(String),
+	CallProcedure(CallProcedureStatement),
 	BeginTransaction,
 	Commit,
 	Rollback,
@@ -26,7 +29,7 @@ pub enum Statement {
 }
 
 /// Aggregate function type
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum AggregateFunction {
 	Count,
 	Sum,
@@ -36,7 +39,7 @@ pub enum AggregateFunction {
 }
 
 /// Column selection - either a regular column or an aggregate
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ColumnSelection {
 	Column(String),
 	Aggregate {
@@ -47,7 +50,7 @@ pub enum ColumnSelection {
 }
 
 /// Join type
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum JoinType {
 	Inner,
 	Left,
@@ -56,14 +59,14 @@ pub enum JoinType {
 }
 
 /// Join clause
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JoinClause {
 	pub join_type: JoinType,
 	pub table: String,
 	pub on_condition: Option<String>, // e.g., "table1.id = table2.id"
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SelectStatement {
 	pub columns: Vec<ColumnSelection>,
 	pub from: String,
@@ -73,21 +76,21 @@ pub struct SelectStatement {
 	pub order_by: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InsertStatement {
 	pub table: String,
 	pub columns: Vec<String>,
 	pub values: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateStatement {
 	pub table: String,
 	pub set_clauses: Vec<(String, String)>,
 	pub where_clause: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteStatement {
 	pub table: String,
 	pub where_clause: Option<String>,
@@ -104,6 +107,68 @@ pub struct ColumnDefinition {
 	pub name: String,
 	pub data_type: ColumnType,
 	pub constraints: Vec<String>,
+}
+
+/// Parameter mode for stored procedures
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum ParameterMode {
+	In,
+	Out,
+	Inout,
+}
+
+/// Stored procedure parameter
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcedureParameter {
+	pub name: String,
+	pub data_type: ColumnType,
+	pub mode: ParameterMode,
+}
+
+/// Stored procedure body statement
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ProcedureBodyStatement {
+	Declare {
+		name: String,
+		data_type: ColumnType,
+		default_value: Option<String>,
+	},
+	Set {
+		name: String,
+		value: String,
+	},
+	If {
+		condition: String,
+		then_body: Vec<ProcedureBodyStatement>,
+		else_body: Option<Vec<ProcedureBodyStatement>>,
+	},
+	While {
+		condition: String,
+		body: Vec<ProcedureBodyStatement>,
+	},
+	Return {
+		value: Option<String>,
+	},
+	Signal {
+		sqlstate: String,
+		message: Option<String>,
+	},
+	Sql(String), // Embedded SQL statement as string (to be parsed when executed)
+}
+
+/// CREATE PROCEDURE statement
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateProcedureStatement {
+	pub name: String,
+	pub parameters: Vec<ProcedureParameter>,
+	pub body: Vec<ProcedureBodyStatement>,
+}
+
+/// CALL PROCEDURE statement
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CallProcedureStatement {
+	pub name: String,
+	pub arguments: Vec<String>,
 }
 
 /// SQL parser
@@ -144,6 +209,8 @@ impl Parser {
 			Some(Token::Update) => self.parse_update()?,
 			Some(Token::Delete) => self.parse_delete()?,
 			Some(Token::Create) => self.parse_create()?,
+			Some(Token::Drop) => self.parse_drop()?,
+			Some(Token::Call) => self.parse_call()?,
 			Some(Token::Begin) => {
 				self.advance();
 				Statement::BeginTransaction
@@ -538,6 +605,16 @@ impl Parser {
 
 	fn parse_create(&mut self) -> Result<Statement> {
 		self.expect(Token::Create)?;
+		
+		// Check if this is CREATE TABLE or CREATE PROCEDURE
+		match self.current_token() {
+			Some(Token::Table) => self.parse_create_table(),
+			Some(Token::Procedure) => self.parse_create_procedure(),
+			_ => Err(Error::Syntax("Expected TABLE or PROCEDURE after CREATE".to_string())),
+		}
+	}
+
+	fn parse_create_table(&mut self) -> Result<Statement> {
 		self.expect(Token::Table)?;
 		
 		let name = self.parse_identifier()?;
@@ -661,6 +738,439 @@ impl Parser {
 		// Get savepoint name
 		let name = self.parse_identifier()?;
 		Ok(Statement::Release(name))
+	}
+
+	fn parse_create_procedure(&mut self) -> Result<Statement> {
+		self.expect(Token::Procedure)?;
+		
+		let name = self.parse_identifier()?;
+		self.expect(Token::LeftParen)?;
+		
+		// Parse parameters
+		let mut parameters = Vec::new();
+		if !matches!(self.current_token(), Some(Token::RightParen)) {
+			loop {
+				// Parse parameter mode (IN, OUT, INOUT) - default is IN
+				let mode = match self.current_token() {
+					Some(Token::In) => {
+						self.advance();
+						ParameterMode::In
+					}
+					Some(Token::Out) => {
+						self.advance();
+						ParameterMode::Out
+					}
+					Some(Token::Inout) => {
+						self.advance();
+						ParameterMode::Inout
+					}
+					_ => ParameterMode::In, // Default to IN
+				};
+				
+				let param_name = self.parse_identifier()?;
+				
+				// Parse data type
+				let data_type = self.parse_data_type()?;
+				
+				parameters.push(ProcedureParameter {
+					name: param_name,
+					data_type,
+					mode,
+				});
+				
+				if !matches!(self.current_token(), Some(Token::Comma)) {
+					break;
+				}
+				self.advance();
+			}
+		}
+		
+		self.expect(Token::RightParen)?;
+		
+		// Parse procedure body
+		let body = self.parse_procedure_body()?;
+		
+		Ok(Statement::CreateProcedure(CreateProcedureStatement {
+			name,
+			parameters,
+			body,
+		}))
+	}
+
+	fn parse_drop(&mut self) -> Result<Statement> {
+		self.expect(Token::Drop)?;
+		
+		match self.current_token() {
+			Some(Token::Procedure) => {
+				self.advance();
+				let name = self.parse_identifier()?;
+				Ok(Statement::DropProcedure(name))
+			}
+			_ => Err(Error::Syntax(
+				"Expected PROCEDURE after DROP (only DROP PROCEDURE is currently supported)".to_string(),
+			)),
+		}
+	}
+
+	fn parse_call(&mut self) -> Result<Statement> {
+		self.expect(Token::Call)?;
+		
+		let name = self.parse_identifier()?;
+		self.expect(Token::LeftParen)?;
+		
+		// Parse arguments
+		let mut arguments = Vec::new();
+		if !matches!(self.current_token(), Some(Token::RightParen)) {
+			loop {
+				let arg = self.parse_expression_limited()?;
+				arguments.push(arg);
+				
+				if !matches!(self.current_token(), Some(Token::Comma)) {
+					break;
+				}
+				self.advance();
+			}
+		}
+		
+		self.expect(Token::RightParen)?;
+		
+		Ok(Statement::CallProcedure(CallProcedureStatement {
+			name,
+			arguments,
+		}))
+	}
+
+	fn parse_expression_limited(&mut self) -> Result<String> {
+		// Parse expression until comma or right paren
+		let mut expr = String::new();
+		let mut depth = 0;
+		
+		loop {
+			match self.current_token() {
+				Some(Token::LeftParen) => {
+					depth += 1;
+					expr.push_str("(");
+					self.advance();
+				}
+				Some(Token::RightParen) if depth > 0 => {
+					depth -= 1;
+					expr.push_str(")");
+					self.advance();
+				}
+				Some(Token::Comma) | Some(Token::RightParen) if depth == 0 => {
+					break;
+				}
+				Some(token) => {
+					if !expr.is_empty() {
+						expr.push_str(" ");
+					}
+					expr.push_str(&self.token_to_string(token));
+					self.advance();
+				}
+				None => break,
+			}
+		}
+		
+		Ok(expr.trim().to_string())
+	}
+
+	fn parse_data_type(&mut self) -> Result<ColumnType> {
+		let data_type = match self.current_token() {
+			Some(Token::Integer) => {
+				self.advance();
+				ColumnType::Int32
+			}
+			Some(Token::Text) => {
+				self.advance();
+				ColumnType::Text
+			}
+			Some(Token::Real) => {
+				self.advance();
+				ColumnType::Float32
+			}
+			Some(Token::Blob) => {
+				self.advance();
+				ColumnType::Blob
+			}
+			Some(Token::Boolean) => {
+				self.advance();
+				ColumnType::Boolean
+			}
+			_ => return Err(Error::Syntax("Expected data type".to_string())),
+		};
+		Ok(data_type)
+	}
+
+	fn parse_procedure_body(&mut self) -> Result<Vec<ProcedureBodyStatement>> {
+		// Expect BEGIN
+		self.expect(Token::Begin)?;
+		
+		let mut body = Vec::new();
+		
+		// Parse statements until END
+		while !matches!(self.current_token(), Some(Token::End)) {
+			let stmt = self.parse_procedure_statement()?;
+			body.push(stmt);
+			
+			// Optional semicolon between statements
+			if matches!(self.current_token(), Some(Token::Semicolon)) {
+				self.advance();
+			}
+		}
+		
+		self.expect(Token::End)?;
+		
+		Ok(body)
+	}
+
+	fn parse_procedure_statement(&mut self) -> Result<ProcedureBodyStatement> {
+		match self.current_token() {
+			Some(Token::Declare) => {
+				self.advance();
+				let name = self.parse_identifier()?;
+				let data_type = self.parse_data_type()?;
+				
+				// Optional default value
+				let default_value = if matches!(self.current_token(), Some(Token::Default)) {
+					self.advance();
+					Some(self.parse_expression()?)
+				} else {
+					None
+				};
+				
+				Ok(ProcedureBodyStatement::Declare {
+					name,
+					data_type,
+					default_value,
+				})
+			}
+			Some(Token::Set) => {
+				self.advance();
+				let name = self.parse_identifier()?;
+				self.expect(Token::Equals)?;
+				let value = self.parse_expression()?;
+				
+				Ok(ProcedureBodyStatement::Set { name, value })
+			}
+			Some(Token::If) => {
+				self.advance();
+				let condition = self.parse_expression()?;
+				self.expect(Token::Then)?;
+				
+				let mut then_body = Vec::new();
+				while !matches!(self.current_token(), Some(Token::Else) | Some(Token::End)) {
+					then_body.push(self.parse_procedure_statement()?);
+					if matches!(self.current_token(), Some(Token::Semicolon)) {
+						self.advance();
+					}
+				}
+				
+				let else_body = if matches!(self.current_token(), Some(Token::Else)) {
+					self.advance();
+					let mut else_stmts = Vec::new();
+					while !matches!(self.current_token(), Some(Token::End)) {
+						else_stmts.push(self.parse_procedure_statement()?);
+						if matches!(self.current_token(), Some(Token::Semicolon)) {
+							self.advance();
+						}
+					}
+					Some(else_stmts)
+				} else {
+					None
+				};
+				
+				self.expect(Token::End)?;
+				self.expect(Token::If)?;
+				
+				Ok(ProcedureBodyStatement::If {
+					condition,
+					then_body,
+					else_body,
+				})
+			}
+			Some(Token::While) => {
+				self.advance();
+				let condition = self.parse_expression()?;
+				self.expect(Token::Loop)?;
+				
+				let mut body = Vec::new();
+				while !matches!(self.current_token(), Some(Token::End)) {
+					body.push(self.parse_procedure_statement()?);
+					if matches!(self.current_token(), Some(Token::Semicolon)) {
+						self.advance();
+					}
+				}
+				
+				self.expect(Token::End)?;
+				self.expect(Token::Loop)?;
+				
+				Ok(ProcedureBodyStatement::While { condition, body })
+			}
+			Some(Token::Return) => {
+				self.advance();
+				let value = if matches!(
+					self.current_token(),
+					Some(Token::Semicolon) | Some(Token::End)
+				) {
+					None
+				} else {
+					Some(self.parse_expression()?)
+				};
+				
+				Ok(ProcedureBodyStatement::Return { value })
+			}
+			Some(Token::Signal) => {
+				self.advance();
+				self.expect(Token::Sqlstate)?;
+				
+				// Parse SQLSTATE value (should be a string literal)
+				let sqlstate = self.parse_string_literal()?;
+				
+				// Optional MESSAGE clause
+				let message = if matches!(self.current_token(), Some(Token::Set)) {
+					self.advance();
+					// Expect MESSAGE_TEXT = 'message'
+					// For simplicity, just parse an identifier and string
+					self.advance(); // Skip MESSAGE_TEXT identifier
+					self.expect(Token::Equals)?;
+					Some(self.parse_string_literal()?)
+				} else {
+					None
+				};
+				
+				Ok(ProcedureBodyStatement::Signal { sqlstate, message })
+			}
+			// Embedded SQL statement
+			Some(Token::Select) | Some(Token::Insert) | Some(Token::Update) | Some(Token::Delete) => {
+				// Collect SQL statement as string until semicolon or END
+				let mut sql = String::new();
+				let mut depth = 0;
+				
+				loop {
+					match self.current_token() {
+						Some(Token::LeftParen) => {
+							depth += 1;
+							sql.push_str(&self.token_to_string(&Token::LeftParen));
+							self.advance();
+						}
+						Some(Token::RightParen) if depth > 0 => {
+							depth -= 1;
+							sql.push_str(&self.token_to_string(&Token::RightParen));
+							self.advance();
+						}
+						Some(Token::Semicolon) | Some(Token::End) if depth == 0 => {
+							break;
+						}
+						Some(token) => {
+							if !sql.is_empty() {
+								sql.push(' ');
+							}
+							sql.push_str(&self.token_to_string(token));
+							self.advance();
+						}
+						None => break,
+					}
+				}
+				
+				Ok(ProcedureBodyStatement::Sql(sql))
+			}
+			_ => Err(Error::Syntax(format!(
+				"Unexpected token in procedure body: {:?}",
+				self.current_token()
+			))),
+		}
+	}
+
+	fn parse_expression(&mut self) -> Result<String> {
+		// Simple expression parsing - collect tokens until we hit a delimiter
+		let mut expr = String::new();
+		let mut depth = 0;
+		
+		loop {
+			match self.current_token() {
+				Some(Token::LeftParen) => {
+					depth += 1;
+					expr.push_str("(");
+					self.advance();
+				}
+				Some(Token::RightParen) if depth > 0 => {
+					depth -= 1;
+					expr.push_str(")");
+					self.advance();
+				}
+				Some(Token::Then) | Some(Token::Loop) | Some(Token::Semicolon) | Some(Token::End)
+					if depth == 0 =>
+				{
+					break;
+				}
+				Some(token) => {
+					if !expr.is_empty() {
+						expr.push_str(" ");
+					}
+					expr.push_str(&self.token_to_string(token));
+					self.advance();
+				}
+				None => break,
+			}
+		}
+		
+		Ok(expr)
+	}
+
+	fn extract_current_token_text(&self) -> String {
+		// Extract text for the current token from source
+		let mut lex = Token::lexer(&self.source);
+		let mut idx = 0;
+		while let Some(token) = lex.next() {
+			if idx == self.position {
+				if token.is_ok() {
+					return lex.slice().to_string();
+				}
+			}
+			idx += 1;
+		}
+		// Fallback
+		"".to_string()
+	}
+
+	fn token_to_string(&self, token: &Token) -> String {
+		// Convert token to string representation
+		match token {
+			Token::Identifier | Token::StringLiteral | Token::QuotedIdentifier
+			| Token::IntegerLiteral | Token::FloatLiteral => {
+				// Extract from source
+				self.extract_current_token_text()
+			}
+			Token::Equals => "=".to_string(),
+			Token::NotEquals | Token::NotEquals2 => "!=".to_string(),
+			Token::LessThan => "<".to_string(),
+			Token::GreaterThan => ">".to_string(),
+			Token::LessThanOrEqual => "<=".to_string(),
+			Token::GreaterThanOrEqual => ">=".to_string(),
+			Token::Plus => "+".to_string(),
+			Token::Minus => "-".to_string(),
+			Token::Star => "*".to_string(),
+			Token::Slash => "/".to_string(),
+			Token::And => "AND".to_string(),
+			Token::Or => "OR".to_string(),
+			Token::Not => "NOT".to_string(),
+			Token::Like => "LIKE".to_string(),
+			Token::Is => "IS".to_string(),
+			Token::Null => "NULL".to_string(),
+			_ => format!("{:?}", token),
+		}
+	}
+
+	fn parse_string_literal(&mut self) -> Result<String> {
+		match self.current_token() {
+			Some(Token::StringLiteral) => {
+				let value = self.extract_current_token_text();
+				self.advance();
+				// Remove surrounding quotes
+				Ok(value.trim_matches('\'').to_string())
+			}
+			_ => Err(Error::Syntax("Expected string literal".to_string())),
+		}
 	}
 
 	fn parse_join_clause(&mut self) -> Result<JoinClause> {

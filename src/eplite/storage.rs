@@ -316,6 +316,7 @@ impl Table {
 #[derive(Debug)]
 pub struct StorageManager {
 	tables: HashMap<String, Table>,
+	procedures: crate::eplite::procedures::ProcedureRegistry,
 	pager: Option<Pager>,
 	dirty: bool,
 }
@@ -324,6 +325,7 @@ impl StorageManager {
 	pub fn new() -> Self {
 		StorageManager {
 			tables: HashMap::new(),
+			procedures: crate::eplite::procedures::ProcedureRegistry::new(),
 			pager: None,
 			dirty: false,
 		}
@@ -333,6 +335,7 @@ impl StorageManager {
 	pub fn with_pager(pager: Pager) -> Self {
 		StorageManager {
 			tables: HashMap::new(),
+			procedures: crate::eplite::procedures::ProcedureRegistry::new(),
 			pager: Some(pager),
 			dirty: false,
 		}
@@ -434,6 +437,16 @@ impl StorageManager {
 	/// List all table names
 	pub fn list_tables(&self) -> Vec<String> {
 		self.tables.keys().cloned().collect()
+	}
+
+	/// Get procedure registry (immutable)
+	pub fn get_procedures(&self) -> &crate::eplite::procedures::ProcedureRegistry {
+		&self.procedures
+	}
+
+	/// Get procedure registry (mutable)
+	pub fn get_procedures_mut(&mut self) -> &mut crate::eplite::procedures::ProcedureRegistry {
+		&mut self.procedures
 	}
 
 	/// Drop a table

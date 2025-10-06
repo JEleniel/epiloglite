@@ -34,17 +34,26 @@ EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliabi
 - ✅ **100% Safe Rust** - No unsafe code blocks
 - ✅ **Modular Design** - Clean separation of concerns
 - ✅ **Error Handling** - Comprehensive Result types
-- ✅ **Test Coverage** - 152 tests (124 unit + 18 adversarial + 10 integration)
+- ✅ **Test Coverage** - 182 tests (137 unit + 18 adversarial + 11 integration + 16 stored procedures)
 - ✅ **Security Tested** - SQL injection resistance, malformed input handling
 - ✅ **Idiomatic Rust** - Clippy-approved, modern patterns
 - ✅ **Type Safety** - ColumnType enum eliminates hardcoded strings
 
-### In Progress
-- 🚧 WHERE clause filtering
-- 🚧 JOIN operations
-- 🚧 Aggregate functions (COUNT, SUM, AVG, MIN, MAX)
-- 🚧 ORDER BY and GROUP BY implementation
-- 🚧 Index support
+#### Query Features
+- ✅ **WHERE Clause** - Filtering with comparison operators (=, !=, <, >, <=, >=, LIKE)
+- ✅ **JOIN Operations** - INNER JOIN, LEFT JOIN, RIGHT JOIN, CROSS JOIN with ON conditions
+- ✅ **Aggregate Functions** - COUNT, COUNT(*), SUM, AVG, MIN, MAX
+- ✅ **ORDER BY** - Single and multiple column sorting with ASC/DESC
+- ✅ **GROUP BY** - Grouping with aggregate functions
+- ✅ **Indexing** - B-tree indexes (primary, unique, regular, composite)
+- ✅ **Query Optimizer** - Cost-based optimization with index selection
+
+#### Advanced Features
+- ✅ **Stored Procedures** - CREATE/DROP/CALL procedures with parameters, control flow, and error handling
+- ✅ **ORM Layer** - Entity trait and Repository pattern for type-safe operations
+- ✅ **RBAC** - Role-based access control with table/operation-level permissions
+- ✅ **C API** - SQLite-compatible C API (feature-gated)
+- ✅ **Server Mode** - REST API with OAuth, MFA, TLS, client library (feature-gated)
 
 #### Platform Support
 - ✅ **No-std Compatible** - Works without standard library for embedded systems
