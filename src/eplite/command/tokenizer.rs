@@ -44,6 +44,28 @@ pub enum Token {
 	View,
 	#[token("DATABASE", ignore(ascii_case))]
 	Database,
+	#[token("GRAPH", ignore(ascii_case))]
+	Graph,
+	
+	// Keywords - Graph Operations
+	#[token("NODE", ignore(ascii_case))]
+	Node,
+	#[token("EDGE", ignore(ascii_case))]
+	Edge,
+	#[token("ADD", ignore(ascii_case))]
+	Add,
+	#[token("MATCH", ignore(ascii_case))]
+	Match,
+	#[token("PATH", ignore(ascii_case))]
+	Path,
+	#[token("TRAVERSE", ignore(ascii_case))]
+	Traverse,
+	#[token("LABEL", ignore(ascii_case))]
+	Label,
+	#[token("WEIGHT", ignore(ascii_case))]
+	Weight,
+	#[token("PROPERTIES", ignore(ascii_case))]
+	Properties,
 	
 	// Keywords - Constraints
 	#[token("PRIMARY", ignore(ascii_case))]
@@ -80,6 +102,12 @@ pub enum Token {
 	Cross,
 	#[token("ON", ignore(ascii_case))]
 	On,
+	#[token("TO", ignore(ascii_case))]
+	To,
+	#[token("IN", ignore(ascii_case))]
+	In,
+	#[token("USING", ignore(ascii_case))]
+	Using,
 	
 	// Keywords - Sorting and Grouping
 	#[token("ORDER", ignore(ascii_case))]
@@ -100,8 +128,6 @@ pub enum Token {
 	And,
 	#[token("OR", ignore(ascii_case))]
 	Or,
-	#[token("IN", ignore(ascii_case))]
-	In,
 	#[token("BETWEEN", ignore(ascii_case))]
 	Between,
 	#[token("LIKE", ignore(ascii_case))]
@@ -136,8 +162,6 @@ pub enum Token {
 	Savepoint,
 	#[token("RELEASE", ignore(ascii_case))]
 	Release,
-	#[token("TO", ignore(ascii_case))]
-	To,
 	
 	// Keywords - Other
 	#[token("AS", ignore(ascii_case))]
