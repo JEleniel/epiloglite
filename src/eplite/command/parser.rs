@@ -17,6 +17,8 @@ pub enum Statement {
 	Update(UpdateStatement),
 	Delete(DeleteStatement),
 	CreateTable(CreateTableStatement),
+	CreateView(CreateViewStatement),
+	DropView(DropViewStatement),
 	CreateTrigger(CreateTriggerStatement),
 	DropTrigger(DropTriggerStatement),
 	CreateGraph(CreateGraphStatement),
@@ -147,6 +149,17 @@ pub enum PathAlgorithm {
 	All { max_depth: usize },
 	Bfs,
 	Dfs,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateViewStatement {
+	pub name: String,
+	pub query: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DropViewStatement {
+	pub name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -380,6 +393,14 @@ impl Parser {
 		if self.position < token_texts.len() {
 			let val = token_texts[self.position].clone();
 			self.advance();
+			
+			// Strip quotes from string literals
+			if (val.starts_with('\'') && val.ends_with('\'')) || (val.starts_with('"') && val.ends_with('"')) {
+				if val.len() >= 2 {
+					return Ok(val[1..val.len()-1].to_string());
+				}
+			}
+			
 			Ok(val)
 		} else {
 			self.advance();
@@ -634,6 +655,11 @@ impl Parser {
 	fn parse_create(&mut self) -> Result<Statement> {
 		self.expect(Token::Create)?;
 		
+		// Check if it's a TABLE or VIEW
+		match self.current_token() {
+			Some(Token::Table) => self.parse_create_table(),
+			Some(Token::View) => self.parse_create_view(),
+			_ => Err(Error::Syntax("Expected TABLE or VIEW after CREATE".to_string())),
 		// Check if it's CREATE TABLE or CREATE TRIGGER
 		match self.current_token() {
 			Some(Token::Table) => self.parse_create_table(),
@@ -731,6 +757,33 @@ impl Parser {
 		}))
 	}
 
+	fn parse_create_view(&mut self) -> Result<Statement> {
+		self.expect(Token::View)?;
+		
+		let name = self.parse_identifier()?;
+		self.expect(Token::As)?;
+		
+		// Extract the query from the source SQL
+		// Find "AS" in the source and extract everything after it (excluding semicolon)
+		let query = if let Some(as_pos) = self.source.to_uppercase().rfind(" AS ") {
+			let after_as = &self.source[as_pos + 4..];
+			// Trim semicolon if present
+			after_as.trim_end_matches(';').trim().to_string()
+		} else {
+			return Err(Error::Syntax("Could not extract view query".to_string()));
+		};
+		
+		// Advance past the query tokens
+		while self.position < self.tokens.len() {
+			if matches!(self.current_token(), Some(Token::Semicolon)) {
+				break;
+			}
+			self.advance();
+		}
+		
+		Ok(Statement::CreateView(CreateViewStatement {
+			name,
+			query,
 	fn parse_create_trigger(&mut self) -> Result<Statement> {
 		self.expect(Token::Trigger)?;
 		
@@ -862,6 +915,13 @@ impl Parser {
 	fn parse_drop(&mut self) -> Result<Statement> {
 		self.expect(Token::Drop)?;
 		
+		match self.current_token() {
+			Some(Token::View) => {
+				self.advance();
+				let name = self.parse_identifier()?;
+				Ok(Statement::DropView(DropViewStatement { name }))
+			}
+			_ => Err(Error::Syntax("Expected VIEW after DROP".to_string())),
 		// For now, only support DROP TRIGGER
 		match self.current_token() {
 			Some(Token::Trigger) => {

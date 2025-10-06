@@ -64,6 +64,14 @@ impl Processor {
 		// Execute based on statement type
 		match statement {
 			Statement::Select(stmt) => {
+				// Check if FROM references a view - if so, expand it
+				if let Some(view) = self.storage.get_view(&stmt.from) {
+					// Clone the view to avoid borrowing issues
+					let view_query = view.query.clone();
+					// Execute the view's query and apply any additional filters
+					return self.execute_view_select(&stmt, &view_query);
+				}
+				
 				// Check if this is a JOIN query
 				if !stmt.joins.is_empty() {
 					self.execute_join_select(&stmt)
@@ -79,7 +87,7 @@ impl Processor {
 						self.execute_aggregate_select(table, &stmt)
 					} else {
 						// Regular SELECT - check for ORDER BY
-						let rows: Vec<Vec<String>> = if let Some(order_cols) = &stmt.order_by {
+						let mut rows: Vec<Vec<String>> = if let Some(order_cols) = &stmt.order_by {
 							// ORDER BY present - use first column
 							if !order_cols.is_empty() {
 								table
@@ -103,13 +111,39 @@ impl Processor {
 								.collect()
 						};
 						
-						// Extract column names for display
-						let column_names: Vec<String> = stmt.columns.iter().map(|col| {
-							match col {
-								ColumnSelection::Column(name) => name.clone(),
-								_ => "*".to_string(),
-							}
-						}).collect();
+						// Check if specific columns are requested (not *)
+						let is_star = stmt.columns.len() == 1 && matches!(stmt.columns[0], ColumnSelection::Column(ref name) if name == "*");
+						
+						// Extract column names and filter rows if needed
+						let column_names: Vec<String> = if is_star {
+							vec!["*".to_string()]
+						} else {
+							stmt.columns.iter().map(|col| {
+								match col {
+									ColumnSelection::Column(name) => name.clone(),
+									_ => "*".to_string(),
+								}
+							}).collect()
+						};
+						
+						// Filter columns if specific columns are requested
+						if !is_star && !column_names.is_empty() && column_names[0] != "*" {
+							// Find column indices for the requested columns
+							let col_indices: Vec<usize> = column_names.iter().filter_map(|col_name| {
+								table.columns.iter().position(|c| &c.name == col_name)
+							}).collect();
+							
+							// Filter each row to only include requested columns
+							rows = rows.into_iter().map(|row| {
+								col_indices.iter().filter_map(|&idx| {
+									if idx < row.len() {
+										Some(row[idx].clone())
+									} else {
+										None
+									}
+								}).collect()
+							}).collect();
+						}
 						
 						Ok(ExecutionResult::Select {
 							rows,
@@ -229,6 +263,13 @@ impl Processor {
 				self.storage.create_table(stmt)?;
 				Ok(ExecutionResult::Success)
 			}
+			Statement::CreateView(stmt) => {
+				self.storage.create_view(stmt.name, stmt.query)?;
+				Ok(ExecutionResult::Success)
+			}
+			Statement::DropView(stmt) => {
+				self.storage.drop_view(&stmt.name)?;
+				Ok(ExecutionResult::Success)
 			Statement::CreateTrigger(stmt) => {
 				self.storage.create_trigger(stmt)?;
 				Ok(ExecutionResult::Success)
@@ -271,6 +312,38 @@ impl Processor {
 				Ok(ExecutionResult::Success)
 			}
 		}
+	}
+
+	/// Execute SELECT on a view by expanding the view's query
+	fn execute_view_select(
+		&mut self,
+		stmt: &crate::eplite::command::parser::SelectStatement,
+		view_query: &str,
+	) -> Result<ExecutionResult> {
+		// Execute the view's underlying query
+		let view_result = self.execute(view_query)?;
+		
+		// Extract rows from view result
+		match view_result {
+			ExecutionResult::Select { rows, columns: view_columns } => {
+				// Apply WHERE clause if present in the outer query
+				let filtered_rows = if stmt.where_clause.is_some() {
+					// For now, we execute the view query as-is
+					// A full implementation would merge WHERE clauses
+					rows
+				} else {
+					rows
+				};
+				
+				// Use the view's columns, not the outer query's column spec
+				// The view defines what columns are available
+				return Ok(ExecutionResult::Select {
+					rows: filtered_rows,
+					columns: view_columns,
+				});
+			}
+			_ => return Err(Error::Internal("View query did not return rows".to_string())),
+		};
 	}
 
 	/// Execute aggregate SELECT query
