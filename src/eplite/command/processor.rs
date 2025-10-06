@@ -35,6 +35,27 @@ impl Processor {
 		self.storage.flush()
 	}
 
+	/// Begin a transaction
+	pub fn begin_transaction(&mut self) -> Result<()> {
+		self.storage.begin_transaction()
+	}
+
+	/// Commit a transaction
+	pub fn commit_transaction(&mut self) -> Result<()> {
+		self.storage.commit_transaction()
+	}
+
+	/// Rollback a transaction
+	pub fn rollback_transaction(&mut self) -> Result<()> {
+		self.storage.rollback_transaction()
+	}
+
+	/// Perform a checkpoint (WAL mode only)
+	#[cfg(feature = "std")]
+	pub fn checkpoint(&mut self, mode: crate::eplite::persistence::wal::CheckpointMode) -> Result<()> {
+		self.storage.checkpoint(mode)
+	}
+
 	/// Execute a SQL statement
 	pub fn execute(&mut self, sql: &str) -> Result<ExecutionResult> {
 		// Parse the SQL
