@@ -44,6 +44,8 @@ pub enum Token {
 	View,
 	#[token("DATABASE", ignore(ascii_case))]
 	Database,
+	#[token("TRIGGER", ignore(ascii_case))]
+	Trigger,
 	#[token("GRAPH", ignore(ascii_case))]
 	Graph,
 	
@@ -182,6 +184,24 @@ pub enum Token {
 	Else,
 	#[token("END", ignore(ascii_case))]
 	End,
+	#[token("BEFORE", ignore(ascii_case))]
+	Before,
+	#[token("AFTER", ignore(ascii_case))]
+	After,
+	#[token("INSTEAD", ignore(ascii_case))]
+	Instead,
+	#[token("OF", ignore(ascii_case))]
+	Of,
+	#[token("FOR", ignore(ascii_case))]
+	For,
+	#[token("EACH", ignore(ascii_case))]
+	Each,
+	#[token("ROW", ignore(ascii_case))]
+	Row,
+	#[token("NEW", ignore(ascii_case))]
+	New,
+	#[token("OLD", ignore(ascii_case))]
+	Old,
 	
 	// Data Types
 	#[token("INTEGER", ignore(ascii_case))]

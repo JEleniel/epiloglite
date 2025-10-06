@@ -100,9 +100,32 @@ impl Processor {
 				}
 			}
 			Statement::Insert(stmt) => {
+				use crate::eplite::command::parser::{TriggerEvent, TriggerTiming};
+				
+				// Execute BEFORE INSERT triggers
+				let before_triggers = self.storage.get_triggers_for_table(
+					&stmt.table,
+					&TriggerEvent::Insert,
+					&TriggerTiming::Before
+				);
+				for trigger in before_triggers {
+					self.execute_trigger_actions(&trigger.actions)?;
+				}
+				
 				// Get the table
 				if let Some(table) = self.storage.get_table_mut(&stmt.table) {
-					table.insert(stmt.values)?;
+					table.insert(stmt.values.clone())?;
+					
+					// Execute AFTER INSERT triggers
+					let after_triggers = self.storage.get_triggers_for_table(
+						&stmt.table,
+						&TriggerEvent::Insert,
+						&TriggerTiming::After
+					);
+					for trigger in after_triggers {
+						self.execute_trigger_actions(&trigger.actions)?;
+					}
+					
 					// Flush to disk after insert
 					self.storage.flush()?;
 					Ok(ExecutionResult::RowsAffected(1))
@@ -111,12 +134,35 @@ impl Processor {
 				}
 			}
 			Statement::Update(stmt) => {
+				use crate::eplite::command::parser::{TriggerEvent, TriggerTiming};
+				
+				// Execute BEFORE UPDATE triggers
+				let before_triggers = self.storage.get_triggers_for_table(
+					&stmt.table,
+					&TriggerEvent::Update(None),
+					&TriggerTiming::Before
+				);
+				for trigger in before_triggers {
+					self.execute_trigger_actions(&trigger.actions)?;
+				}
+				
 				// Get the table
 				if let Some(table) = self.storage.get_table_mut(&stmt.table) {
 					let count = table.update(
 						stmt.where_clause.as_deref(),
 						&stmt.set_clauses,
 					)?;
+					
+					// Execute AFTER UPDATE triggers
+					let after_triggers = self.storage.get_triggers_for_table(
+						&stmt.table,
+						&TriggerEvent::Update(None),
+						&TriggerTiming::After
+					);
+					for trigger in after_triggers {
+						self.execute_trigger_actions(&trigger.actions)?;
+					}
+					
 					// Flush to disk after update
 					self.storage.flush()?;
 					Ok(ExecutionResult::RowsAffected(count))
@@ -125,9 +171,32 @@ impl Processor {
 				}
 			}
 			Statement::Delete(stmt) => {
+				use crate::eplite::command::parser::{TriggerEvent, TriggerTiming};
+				
+				// Execute BEFORE DELETE triggers
+				let before_triggers = self.storage.get_triggers_for_table(
+					&stmt.table,
+					&TriggerEvent::Delete,
+					&TriggerTiming::Before
+				);
+				for trigger in before_triggers {
+					self.execute_trigger_actions(&trigger.actions)?;
+				}
+				
 				// Get the table
 				if let Some(table) = self.storage.get_table_mut(&stmt.table) {
 					let count = table.delete(stmt.where_clause.as_deref())?;
+					
+					// Execute AFTER DELETE triggers
+					let after_triggers = self.storage.get_triggers_for_table(
+						&stmt.table,
+						&TriggerEvent::Delete,
+						&TriggerTiming::After
+					);
+					for trigger in after_triggers {
+						self.execute_trigger_actions(&trigger.actions)?;
+					}
+					
 					// Flush to disk after delete
 					self.storage.flush()?;
 					Ok(ExecutionResult::RowsAffected(count))
@@ -139,6 +208,13 @@ impl Processor {
 				self.storage.create_table(stmt)?;
 				Ok(ExecutionResult::Success)
 			}
+			Statement::CreateTrigger(stmt) => {
+				self.storage.create_trigger(stmt)?;
+				Ok(ExecutionResult::Success)
+			}
+			Statement::DropTrigger(stmt) => {
+				self.storage.drop_trigger(&stmt.name)?;
+				Ok(ExecutionResult::Success)
 			Statement::CreateGraph(_stmt) => {
 				// Graph operations will be implemented when storage integration is complete
 				Err(Error::NotImplemented("Graph operations not yet integrated with storage".to_string()))
