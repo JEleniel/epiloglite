@@ -9,7 +9,7 @@ categories = ["database-implementations"]
 edition = "2021"
 
 [lints.rust]
-unsafe_code = "forbid"
+unsafe_code = "deny"
 
 [dependencies]
 flagset = { version = "0.4.6", features = ["serde"] }
