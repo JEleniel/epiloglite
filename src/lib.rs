@@ -3,7 +3,7 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-mod eplite;
+pub mod eplite;
 
 #[cfg(feature = "capi")]
 pub mod capi;

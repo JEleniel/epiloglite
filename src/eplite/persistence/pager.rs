@@ -558,4 +558,60 @@ mod tests {
 		let page2 = pager.allocate_page().unwrap();
 		assert_ne!(page1, page2);
 	}
+
+	#[test]
+	fn test_journal_mode() {
+		let pager = Pager::new(4096).unwrap();
+		assert_eq!(pager.journal_mode(), JournalMode::Rollback);
+	}
+
+	#[test]
+	#[cfg(feature = "std")]
+	fn test_set_wal_mode() {
+		use crate::eplite::os::file::DefaultFile;
+
+		let mut pager = Pager::new(4096).unwrap();
+		
+		// Create a temp WAL file
+		let temp_dir = std::env::temp_dir();
+		let wal_path = temp_dir.join("test_wal.wal");
+		let wal_file = DefaultFile::open(&wal_path, true, true, true).unwrap();
+		
+		pager.set_journal_mode(JournalMode::Wal, Some(Box::new(wal_file))).unwrap();
+		assert_eq!(pager.journal_mode(), JournalMode::Wal);
+		
+		// Cleanup
+		let _ = std::fs::remove_file(&wal_path);
+	}
+
+	#[test]
+	fn test_transaction_lifecycle() {
+		let mut pager = Pager::new(4096).unwrap();
+		
+		assert!(pager.begin_transaction().is_ok());
+		assert!(pager.begin_transaction().is_err()); // Already in transaction
+		
+		assert!(pager.commit_transaction().is_ok());
+		assert!(pager.commit_transaction().is_err()); // Not in transaction
+	}
+
+	#[test]
+	fn test_transaction_rollback() {
+		let mut pager = Pager::new(4096).unwrap();
+		
+		pager.begin_transaction().unwrap();
+		
+		// Make some changes
+		let page = pager.get_page_mut(1).unwrap();
+		page.write(0, &[42u8; 10]).unwrap();
+		assert!(page.dirty);
+		
+		// Rollback
+		pager.rollback_transaction().unwrap();
+		
+		// Page should be clean again
+		let page = pager.get_page(1).unwrap();
+		assert!(!page.dirty);
+		assert_eq!(page.data[0], 0); // Reset to zero
+	}
 }
