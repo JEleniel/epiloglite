@@ -3,6 +3,15 @@
 pub mod file;
 pub mod vfs;
 
+#[cfg(feature = "async")]
+pub mod async_file;
+#[cfg(feature = "async")]
+pub mod async_vfs;
+#[cfg(feature = "async")]
+pub mod backpressure;
+#[cfg(feature = "async")]
+pub mod performance;
+
 #[cfg(feature = "std")]
 use std::time::{SystemTime, UNIX_EPOCH};
 
