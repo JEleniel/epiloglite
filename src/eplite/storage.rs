@@ -491,6 +491,47 @@ impl StorageManager {
 		self.save_to_disk()
 	}
 
+	/// Begin a transaction
+	pub fn begin_transaction(&mut self) -> Result<()> {
+		if let Some(pager) = &mut self.pager {
+			pager.begin_transaction()
+		} else {
+			Ok(())
+		}
+	}
+
+	/// Commit a transaction
+	pub fn commit_transaction(&mut self) -> Result<()> {
+		// Save any dirty data first
+		self.save_to_disk()?;
+		
+		if let Some(pager) = &mut self.pager {
+			pager.commit_transaction()
+		} else {
+			Ok(())
+		}
+	}
+
+	/// Rollback a transaction
+	pub fn rollback_transaction(&mut self) -> Result<()> {
+		if let Some(pager) = &mut self.pager {
+			pager.rollback_transaction()?;
+			// Reload from disk after rollback
+			self.load_from_disk()?;
+		}
+		Ok(())
+	}
+
+	/// Perform a checkpoint (WAL mode only)
+	#[cfg(feature = "std")]
+	pub fn checkpoint(&mut self, mode: crate::eplite::persistence::wal::CheckpointMode) -> Result<()> {
+		if let Some(pager) = &mut self.pager {
+			pager.checkpoint(mode)
+		} else {
+			Ok(())
+		}
+	}
+
 	/// Perform a simple CROSS JOIN between two tables (Cartesian product)
 	pub fn cross_join(&self, table1_name: &str, table2_name: &str) -> Result<(Vec<Vec<String>>, Vec<String>)> {
 		let table1 = self.tables.get(table1_name)
