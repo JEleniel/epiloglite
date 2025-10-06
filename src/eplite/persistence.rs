@@ -3,4 +3,3 @@
 pub mod btree;
 pub mod header;
 pub mod pager;
-pub mod wal;

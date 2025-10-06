@@ -149,13 +149,6 @@ pub struct Table {
 	pub rows: Vec<Row>,
 }
 
-/// View definition
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct View {
-	pub name: String,
-	pub query: String,
-}
-
 impl Table {
 	pub fn new(name: String, columns: Vec<ColumnDefinition>) -> Self {
 		Table {
@@ -323,9 +316,6 @@ impl Table {
 #[derive(Debug)]
 pub struct StorageManager {
 	tables: HashMap<String, Table>,
-	procedures: crate::eplite::procedures::ProcedureRegistry,
-	views: HashMap<String, View>,
-	triggers: HashMap<String, crate::eplite::command::parser::CreateTriggerStatement>,
 	pager: Option<Pager>,
 	dirty: bool,
 }
@@ -334,9 +324,6 @@ impl StorageManager {
 	pub fn new() -> Self {
 		StorageManager {
 			tables: HashMap::new(),
-			procedures: crate::eplite::procedures::ProcedureRegistry::new(),
-			views: HashMap::new(),
-			triggers: HashMap::new(),
 			pager: None,
 			dirty: false,
 		}
@@ -346,9 +333,6 @@ impl StorageManager {
 	pub fn with_pager(pager: Pager) -> Self {
 		StorageManager {
 			tables: HashMap::new(),
-			procedures: crate::eplite::procedures::ProcedureRegistry::new(),
-			views: HashMap::new(),
-			triggers: HashMap::new(),
 			pager: Some(pager),
 			dirty: false,
 		}
@@ -361,25 +345,13 @@ impl StorageManager {
 			if let Ok(page) = pager.get_page(1) {
 				// Deserialize the tables from the page data
 				if !page.data.is_empty() && page.data[0] != 0 {
-					// Try to deserialize as a tuple of (tables, views)
-					match bincode::deserialize::<(HashMap<String, Table>, HashMap<String, View>)>(&page.data) {
-						Ok((tables, views)) => {
+					match bincode::deserialize::<HashMap<String, Table>>(&page.data) {
+						Ok(tables) => {
 							self.tables = tables;
-							self.views = views;
 							return Ok(());
 						}
 						Err(_) => {
-							// Try legacy format (just tables)
-							match bincode::deserialize::<HashMap<String, Table>>(&page.data) {
-								Ok(tables) => {
-									self.tables = tables;
-									self.views = HashMap::new();
-									return Ok(());
-								}
-								Err(_) => {
-									// Page exists but can't deserialize - might be empty/new database
-								}
-							}
+							// Page exists but can't deserialize - might be empty/new database
 						}
 					}
 				}
@@ -392,9 +364,9 @@ impl StorageManager {
 	pub fn save_to_disk(&mut self) -> Result<()> {
 		if self.dirty && self.pager.is_some() {
 			if let Some(pager) = &mut self.pager {
-				// Serialize both tables and views
-				let serialized = bincode::serialize(&(&self.tables, &self.views)).map_err(|e| {
-					Error::Internal(format!("Failed to serialize tables and views: {}", e))
+				// Serialize the tables
+				let serialized = bincode::serialize(&self.tables).map_err(|e| {
+					Error::Internal(format!("Failed to serialize tables: {}", e))
 				})?;
 
 				// Get or create page 1
@@ -464,16 +436,6 @@ impl StorageManager {
 		self.tables.keys().cloned().collect()
 	}
 
-	/// Get procedure registry (immutable)
-	pub fn get_procedures(&self) -> &crate::eplite::procedures::ProcedureRegistry {
-		&self.procedures
-	}
-
-	/// Get procedure registry (mutable)
-	pub fn get_procedures_mut(&mut self) -> &mut crate::eplite::procedures::ProcedureRegistry {
-		&mut self.procedures
-	}
-
 	/// Drop a table
 	pub fn drop_table(&mut self, name: &str) -> Result<()> {
 		if self.tables.remove(name).is_some() {
@@ -485,136 +447,9 @@ impl StorageManager {
 		}
 	}
 
-	/// Create a view
-	pub fn create_view(&mut self, name: String, query: String) -> Result<()> {
-		if self.views.contains_key(&name) {
-			return Err(Error::Constraint(format!(
-				"View '{}' already exists",
-				name
-			)));
-		}
-		
-		// Check that the view name doesn't conflict with a table
-		if self.tables.contains_key(&name) {
-			return Err(Error::Constraint(format!(
-				"A table named '{}' already exists",
-				name
-			)));
-		}
-
-		let view = View { name: name.clone(), query };
-		self.views.insert(name, view);
-		self.mark_dirty();
-		self.save_to_disk()?;
-		Ok(())
-	}
-
-	/// Get a view
-	pub fn get_view(&self, name: &str) -> Option<&View> {
-		self.views.get(name)
-	}
-
-	/// Check if a view exists
-	pub fn view_exists(&self, name: &str) -> bool {
-		self.views.contains_key(name)
-	}
-
-	/// List all view names
-	pub fn list_views(&self) -> Vec<String> {
-		self.views.keys().cloned().collect()
-	}
-
-	/// Drop a view
-	pub fn drop_view(&mut self, name: &str) -> Result<()> {
-		if self.views.remove(name).is_some() {
-			self.mark_dirty();
-			self.save_to_disk()?;
-			Ok(())
-		} else {
-			Err(Error::NotFound(format!("View '{}' not found", name)))
-		}
-	}
-
-	/// Create a trigger
-	pub fn create_trigger(&mut self, stmt: crate::eplite::command::parser::CreateTriggerStatement) -> Result<()> {
-		if self.triggers.contains_key(&stmt.name) {
-			return Err(Error::Constraint(format!("Trigger '{}' already exists", stmt.name)));
-		}
-		
-		// Check if the target table exists
-		if !self.tables.contains_key(&stmt.table) {
-			return Err(Error::NotFound(format!("Table '{}' not found", stmt.table)));
-		}
-		
-		self.triggers.insert(stmt.name.clone(), stmt);
-		Ok(())
-	}
-
-	/// Drop a trigger
-	pub fn drop_trigger(&mut self, name: &str) -> Result<()> {
-		if self.triggers.remove(name).is_some() {
-			Ok(())
-		} else {
-			Err(Error::NotFound(format!("Trigger '{}' not found", name)))
-		}
-	}
-
-	/// List all trigger names
-	pub fn list_triggers(&self) -> Vec<String> {
-		self.triggers.keys().cloned().collect()
-	}
-
-	/// Get triggers for a specific table and event
-	pub fn get_triggers_for_table(&self, table: &str, event: &crate::eplite::command::parser::TriggerEvent, timing: &crate::eplite::command::parser::TriggerTiming) -> Vec<&crate::eplite::command::parser::CreateTriggerStatement> {
-		self.triggers.values()
-			.filter(|t| t.table == table && t.event == *event && t.timing == *timing)
-			.collect()
-	}
-
 	/// Flush any pending changes to disk
 	pub fn flush(&mut self) -> Result<()> {
 		self.save_to_disk()
-	}
-
-	/// Begin a transaction
-	pub fn begin_transaction(&mut self) -> Result<()> {
-		if let Some(pager) = &mut self.pager {
-			pager.begin_transaction()
-		} else {
-			Ok(())
-		}
-	}
-
-	/// Commit a transaction
-	pub fn commit_transaction(&mut self) -> Result<()> {
-		// Save any dirty data first
-		self.save_to_disk()?;
-		
-		if let Some(pager) = &mut self.pager {
-			pager.commit_transaction()
-		} else {
-			Ok(())
-		}
-	}
-
-	/// Rollback a transaction
-	pub fn rollback_transaction(&mut self) -> Result<()> {
-		if let Some(pager) = &mut self.pager {
-			pager.rollback_transaction()?;
-			// Reload from disk after rollback
-			self.load_from_disk()?;
-		}
-		Ok(())
-	}
-
-	/// Perform a checkpoint (WAL mode only)
-	#[cfg(feature = "std")]
-	pub fn checkpoint(&mut self, mode: crate::eplite::persistence::wal::CheckpointMode) -> Result<()> {
-		if let Some(pager) = &mut self.pager {
-			pager.checkpoint(mode)
-		} else {
-			Ok(())
-		}
 	}
 
 	/// Perform a simple CROSS JOIN between two tables (Cartesian product)
@@ -1135,213 +970,5 @@ mod tests {
 		let orphan_order = rows.iter().find(|r| r[2] == "103").unwrap();
 		assert_eq!(orphan_order[0], "NULL"); // user id should be NULL
 		assert_eq!(orphan_order[1], "NULL"); // user name should be NULL
-	}
-
-	#[test]
-	fn test_create_trigger() {
-		use crate::eplite::command::parser::{CreateTriggerStatement, TriggerTiming, TriggerEvent, TriggerAction, InsertStatement};
-		
-		let mut mgr = StorageManager::new();
-		
-		// Create a table first
-		let table_def = CreateTableStatement {
-			name: "users".to_string(),
-			columns: vec![],
-		};
-		mgr.create_table(table_def).unwrap();
-		
-		// Create a trigger
-		let trigger = CreateTriggerStatement {
-			name: "audit_trigger".to_string(),
-			timing: TriggerTiming::Before,
-			event: TriggerEvent::Insert,
-			table: "users".to_string(),
-			for_each_row: true,
-			when_condition: None,
-			actions: vec![TriggerAction::Insert(InsertStatement {
-				table: "audit".to_string(),
-				columns: vec![],
-				values: vec!["test".to_string()],
-			})],
-		};
-		
-		let result = mgr.create_trigger(trigger);
-		assert!(result.is_ok());
-		
-		// Verify trigger exists
-		let triggers = mgr.list_triggers();
-		assert_eq!(triggers.len(), 1);
-		assert!(triggers.contains(&"audit_trigger".to_string()));
-	}
-
-	#[test]
-	fn test_create_trigger_duplicate_name() {
-		use crate::eplite::command::parser::{CreateTriggerStatement, TriggerTiming, TriggerEvent};
-		
-		let mut mgr = StorageManager::new();
-		
-		// Create a table first
-		let table_def = CreateTableStatement {
-			name: "users".to_string(),
-			columns: vec![],
-		};
-		mgr.create_table(table_def).unwrap();
-		
-		// Create first trigger
-		let trigger1 = CreateTriggerStatement {
-			name: "my_trigger".to_string(),
-			timing: TriggerTiming::Before,
-			event: TriggerEvent::Insert,
-			table: "users".to_string(),
-			for_each_row: false,
-			when_condition: None,
-			actions: vec![],
-		};
-		mgr.create_trigger(trigger1).unwrap();
-		
-		// Try to create duplicate trigger
-		let trigger2 = CreateTriggerStatement {
-			name: "my_trigger".to_string(),
-			timing: TriggerTiming::After,
-			event: TriggerEvent::Delete,
-			table: "users".to_string(),
-			for_each_row: false,
-			when_condition: None,
-			actions: vec![],
-		};
-		
-		let result = mgr.create_trigger(trigger2);
-		assert!(result.is_err());
-	}
-
-	#[test]
-	fn test_create_trigger_table_not_found() {
-		use crate::eplite::command::parser::{CreateTriggerStatement, TriggerTiming, TriggerEvent};
-		
-		let mut mgr = StorageManager::new();
-		
-		// Try to create trigger on non-existent table
-		let trigger = CreateTriggerStatement {
-			name: "my_trigger".to_string(),
-			timing: TriggerTiming::Before,
-			event: TriggerEvent::Insert,
-			table: "nonexistent".to_string(),
-			for_each_row: false,
-			when_condition: None,
-			actions: vec![],
-		};
-		
-		let result = mgr.create_trigger(trigger);
-		assert!(result.is_err());
-	}
-
-	#[test]
-	fn test_drop_trigger() {
-		use crate::eplite::command::parser::{CreateTriggerStatement, TriggerTiming, TriggerEvent};
-		
-		let mut mgr = StorageManager::new();
-		
-		// Create a table and trigger
-		let table_def = CreateTableStatement {
-			name: "users".to_string(),
-			columns: vec![],
-		};
-		mgr.create_table(table_def).unwrap();
-		
-		let trigger = CreateTriggerStatement {
-			name: "audit_trigger".to_string(),
-			timing: TriggerTiming::Before,
-			event: TriggerEvent::Insert,
-			table: "users".to_string(),
-			for_each_row: false,
-			when_condition: None,
-			actions: vec![],
-		};
-		mgr.create_trigger(trigger).unwrap();
-		
-		// Drop the trigger
-		let result = mgr.drop_trigger("audit_trigger");
-		assert!(result.is_ok());
-		
-		// Verify trigger is gone
-		let triggers = mgr.list_triggers();
-		assert_eq!(triggers.len(), 0);
-	}
-
-	#[test]
-	fn test_drop_trigger_not_found() {
-		let mut mgr = StorageManager::new();
-		
-		let result = mgr.drop_trigger("nonexistent");
-		assert!(result.is_err());
-	}
-
-	#[test]
-	fn test_get_triggers_for_table() {
-		use crate::eplite::command::parser::{CreateTriggerStatement, TriggerTiming, TriggerEvent};
-		
-		let mut mgr = StorageManager::new();
-		
-		// Create tables
-		let table_def = CreateTableStatement {
-			name: "users".to_string(),
-			columns: vec![],
-		};
-		mgr.create_table(table_def).unwrap();
-		
-		let table_def2 = CreateTableStatement {
-			name: "products".to_string(),
-			columns: vec![],
-		};
-		mgr.create_table(table_def2).unwrap();
-		
-		// Create triggers
-		let trigger1 = CreateTriggerStatement {
-			name: "users_before_insert".to_string(),
-			timing: TriggerTiming::Before,
-			event: TriggerEvent::Insert,
-			table: "users".to_string(),
-			for_each_row: false,
-			when_condition: None,
-			actions: vec![],
-		};
-		mgr.create_trigger(trigger1).unwrap();
-		
-		let trigger2 = CreateTriggerStatement {
-			name: "users_after_insert".to_string(),
-			timing: TriggerTiming::After,
-			event: TriggerEvent::Insert,
-			table: "users".to_string(),
-			for_each_row: false,
-			when_condition: None,
-			actions: vec![],
-		};
-		mgr.create_trigger(trigger2).unwrap();
-		
-		let trigger3 = CreateTriggerStatement {
-			name: "products_before_insert".to_string(),
-			timing: TriggerTiming::Before,
-			event: TriggerEvent::Insert,
-			table: "products".to_string(),
-			for_each_row: false,
-			when_condition: None,
-			actions: vec![],
-		};
-		mgr.create_trigger(trigger3).unwrap();
-		
-		// Get triggers for users table, BEFORE, INSERT
-		let triggers = mgr.get_triggers_for_table("users", &TriggerEvent::Insert, &TriggerTiming::Before);
-		assert_eq!(triggers.len(), 1);
-		assert_eq!(triggers[0].name, "users_before_insert");
-		
-		// Get triggers for users table, AFTER, INSERT
-		let triggers = mgr.get_triggers_for_table("users", &TriggerEvent::Insert, &TriggerTiming::After);
-		assert_eq!(triggers.len(), 1);
-		assert_eq!(triggers[0].name, "users_after_insert");
-		
-		// Get triggers for products table
-		let triggers = mgr.get_triggers_for_table("products", &TriggerEvent::Insert, &TriggerTiming::Before);
-		assert_eq!(triggers.len(), 1);
-		assert_eq!(triggers[0].name, "products_before_insert");
 	}
 }

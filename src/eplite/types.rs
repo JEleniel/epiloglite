@@ -50,7 +50,7 @@ impl Value {
 }
 
 /// All possible value types in EpilogLite
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ValueType {
     /// NULL value
     Null,

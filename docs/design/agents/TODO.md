@@ -3,9 +3,8 @@
 This document details all of the features that must be implemented for release 1.0.0.
 
 **Last Updated**: 2024-12-XX
-**Last Completed Phase**: Phase 29
-**Last Completed Phase**: Phase 31 (Async I/O)
-**Overall Progress**: ~94% Complete
+**Last Completed Phase**: Phase 28
+**Overall Progress**: ~93% Complete
 
 ## Phase Status Legend
 - ✅ Complete
@@ -416,18 +415,16 @@ This document details all of the features that must be implemented for release 1
 - 🟡 Medium - Nice to have
 - 🟢 Low - Future consideration
 
-### Phase 27: Graph Data Structures ✅
-**Status**: Complete
-**Completion**: 100%
+### Phase 27: Graph Data Structures 📋
+**Priority**: 🔴 Critical
 
-- [x] Graph table type
-- [x] Node and edge representation
-- [x] Graph traversal queries (BFS, DFS)
-- [x] Path finding algorithms (Dijkstra, All Paths)
-- [x] Graph-specific indexes (adjacency lists)
-- [x] Integration with relational data (parser integration)
-- [x] Query syntax for graphs (CREATE GRAPH, ADD NODE/EDGE, MATCH PATH)
-- [x] Unit tests for graph functionality (24 tests)
+- [ ] Graph table type
+- [ ] Node and edge representation
+- [ ] Graph traversal queries
+- [ ] Path finding algorithms
+- [ ] Graph-specific indexes
+- [ ] Integration with relational data
+- [ ] Query syntax for graphs
 
 ### Phase 28: Advanced JOIN Types ✅
 **Status**: Complete
@@ -444,17 +441,15 @@ This document details all of the features that must be implemented for release 1
 - [ ] NATURAL JOIN (deferred - low priority)
 - [ ] Self-join optimization (deferred)
 
-### Phase 29: Subquery Optimization ✅
-**Status**: Complete
-**Completion**: 100%
+### Phase 29: Subquery Optimization 📋
 **Priority**: 🔴 Critical
 
-- [x] Subquery flattening
-- [x] Correlated subquery support
-- [x] IN subquery optimization
-- [x] EXISTS optimization
-- [x] Subquery caching
-- [x] Unit tests for subqueries
+- [ ] Subquery flattening
+- [ ] Correlated subquery support
+- [ ] IN subquery optimization
+- [ ] EXISTS optimization
+- [ ] Subquery caching
+- [ ] Unit tests for subqueries
 
 ### Phase 30: Write-Ahead Logging (WAL) 📋
 **Priority**: 🔴 Critical
@@ -467,17 +462,16 @@ This document details all of the features that must be implemented for release 1
 - [ ] Performance benchmarks
 - [ ] Unit tests for WAL
 
-### Phase 31: Async I/O ✅
-**Status**: Complete
-**Completion**: 100%
+### Phase 31: Async I/O 📋
+**Priority**: 🔴 Critical
 
-- [x] Async file operations
-- [x] Async VFS trait
-- [x] Tokio integration
-- [x] Non-blocking disk I/O
-- [x] Backpressure handling
-- [x] Performance comparison
-- [x] Unit tests for async operations
+- [ ] Async file operations
+- [ ] Async VFS trait
+- [ ] Tokio integration
+- [ ] Non-blocking disk I/O
+- [ ] Backpressure handling
+- [ ] Performance comparison
+- [ ] Unit tests for async operations
 
 ### Phase 32: Stored Procedures 📋
 **Priority**: 🔴 Critical
