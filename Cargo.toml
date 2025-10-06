@@ -26,7 +26,7 @@ log = "0.4"
 fern = { version = "0.6", features = ["colored"] }
 chrono = "0.4"
 # Server dependencies
-axum = { version = "0.7", optional = true }
+axum = { version = "0.8", optional = true }
 tower = { version = "0.4", optional = true }
 tower-http = { version = "0.5", features = ["cors", "trace"], optional = true }
 tokio-rustls = { version = "0.26", optional = true }
