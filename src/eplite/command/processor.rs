@@ -173,10 +173,7 @@ impl Processor {
 					.ok_or_else(|| Error::NotFound(format!("Procedure '{}' not found", stmt.name)))?
 					.clone();
 				
-				// Create execution context
-				let mut context = crate::eplite::procedures::ProcedureContext::new();
-				
-				// Bind parameters
+				// Validate parameter count
 				if stmt.arguments.len() != proc.definition.parameters.len() {
 					return Err(Error::InvalidOperation(format!(
 						"Procedure '{}' expects {} arguments, but {} were provided",
@@ -187,6 +184,7 @@ impl Processor {
 				}
 				
 				// For now, just return success - full execution to be implemented
+				// TODO: Create execution context
 				// TODO: Parse argument values and bind to parameters
 				// TODO: Execute procedure body statements
 				
@@ -481,9 +479,9 @@ impl Processor {
 		};
 
 		// Apply WHERE clause if present
-		let filtered_rows = if let Some(where_clause) = &stmt.where_clause {
-			// For now, simple filtering - would need proper WHERE evaluation for joins
-			// This is a simplified implementation
+		let filtered_rows = if let Some(_where_clause) = &stmt.where_clause {
+			// TODO: For now, simple filtering - would need proper WHERE evaluation for joins
+			// This is a simplified implementation that doesn't yet filter
 			rows
 		} else {
 			rows
