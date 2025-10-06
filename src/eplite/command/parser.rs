@@ -20,6 +20,15 @@ pub enum Statement {
 	CreateProcedure(CreateProcedureStatement),
 	DropProcedure(String),
 	CallProcedure(CallProcedureStatement),
+	CreateView(CreateViewStatement),
+	DropView(DropViewStatement),
+	CreateTrigger(CreateTriggerStatement),
+	DropTrigger(DropTriggerStatement),
+	CreateGraph(CreateGraphStatement),
+	DropGraph(DropGraphStatement),
+	AddNode(AddNodeStatement),
+	AddEdge(AddEdgeStatement),
+	MatchPath(MatchPathStatement),
 	BeginTransaction,
 	Commit,
 	Rollback,
@@ -102,6 +111,60 @@ pub struct CreateTableStatement {
 	pub columns: Vec<ColumnDefinition>,
 }
 
+#[derive(Debug, Clone)]
+pub struct CreateGraphStatement {
+	pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DropGraphStatement {
+	pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AddNodeStatement {
+	pub graph: String,
+	pub label: String,
+	pub properties: Vec<(String, String)>,
+}
+
+#[derive(Debug, Clone)]
+pub struct AddEdgeStatement {
+	pub graph: String,
+	pub from_node: String,
+	pub to_node: String,
+	pub label: String,
+	pub weight: Option<f64>,
+	pub properties: Vec<(String, String)>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MatchPathStatement {
+	pub graph: String,
+	pub start_node: String,
+	pub end_node: String,
+	pub algorithm: PathAlgorithm,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum PathAlgorithm {
+	Shortest,
+	All { max_depth: usize },
+	Bfs,
+	Dfs,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateViewStatement {
+	pub name: String,
+	pub query: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct DropViewStatement {
+	pub name: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColumnDefinition {
 	pub name: String,
@@ -169,6 +232,45 @@ pub struct CreateProcedureStatement {
 pub struct CallProcedureStatement {
 	pub name: String,
 	pub arguments: Vec<String>,
+/// Trigger timing
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum TriggerTiming {
+	Before,
+	After,
+	InsteadOf,
+}
+
+/// Trigger event
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub enum TriggerEvent {
+	Insert,
+	Update(Option<Vec<String>>), // Optional column list for UPDATE OF
+	Delete,
+}
+
+/// Trigger action (SQL statement to execute)
+#[derive(Debug, Clone)]
+pub enum TriggerAction {
+	Insert(InsertStatement),
+	Update(UpdateStatement),
+	Delete(DeleteStatement),
+	Select(SelectStatement),
+}
+
+#[derive(Debug, Clone)]
+pub struct CreateTriggerStatement {
+	pub name: String,
+	pub timing: TriggerTiming,
+	pub event: TriggerEvent,
+	pub table: String,
+	pub for_each_row: bool,
+	pub when_condition: Option<String>,
+	pub actions: Vec<TriggerAction>,
+}
+
+#[derive(Debug, Clone)]
+pub struct DropTriggerStatement {
+	pub name: String,
 }
 
 /// SQL parser
@@ -211,6 +313,8 @@ impl Parser {
 			Some(Token::Create) => self.parse_create()?,
 			Some(Token::Drop) => self.parse_drop()?,
 			Some(Token::Call) => self.parse_call()?,
+			Some(Token::Add) => self.parse_add()?,
+			Some(Token::Match) => self.parse_match()?,
 			Some(Token::Begin) => {
 				self.advance();
 				Statement::BeginTransaction
@@ -321,7 +425,8 @@ impl Parser {
 				Some(Token::Order) |
 				Some(Token::Group) |
 				Some(Token::Limit) |
-				Some(Token::Offset) => break,
+				Some(Token::Offset) |
+				Some(Token::Begin) => break, // Stop at BEGIN for trigger WHEN clauses
 				Some(_) => {
 					if self.position < token_texts.len() {
 						parts.push(token_texts[self.position].clone());
@@ -352,6 +457,14 @@ impl Parser {
 		if self.position < token_texts.len() {
 			let val = token_texts[self.position].clone();
 			self.advance();
+			
+			// Strip quotes from string literals
+			if (val.starts_with('\'') && val.ends_with('\'')) || (val.starts_with('"') && val.ends_with('"')) {
+				if val.len() >= 2 {
+					return Ok(val[1..val.len()-1].to_string());
+				}
+			}
+			
 			Ok(val)
 		} else {
 			self.advance();
@@ -611,10 +724,25 @@ impl Parser {
 			Some(Token::Table) => self.parse_create_table(),
 			Some(Token::Procedure) => self.parse_create_procedure(),
 			_ => Err(Error::Syntax("Expected TABLE or PROCEDURE after CREATE".to_string())),
+		// Check if it's a TABLE or VIEW
+		match self.current_token() {
+			Some(Token::Table) => self.parse_create_table(),
+			Some(Token::View) => self.parse_create_view(),
+			_ => Err(Error::Syntax("Expected TABLE or VIEW after CREATE".to_string())),
+		// Check if it's CREATE TABLE or CREATE TRIGGER
+		match self.current_token() {
+			Some(Token::Table) => self.parse_create_table(),
+			Some(Token::Trigger) => self.parse_create_trigger(),
+			_ => Err(Error::Syntax("Expected TABLE or TRIGGER after CREATE".to_string())),
 		}
 	}
 
 	fn parse_create_table(&mut self) -> Result<Statement> {
+		// Check if it's CREATE GRAPH or CREATE TABLE
+		if matches!(self.current_token(), Some(Token::Graph)) {
+			return self.parse_create_graph();
+		}
+		
 		self.expect(Token::Table)?;
 		
 		let name = self.parse_identifier()?;
@@ -696,6 +824,182 @@ impl Parser {
 			name,
 			columns,
 		}))
+	}
+
+	fn parse_create_view(&mut self) -> Result<Statement> {
+		self.expect(Token::View)?;
+		
+		let name = self.parse_identifier()?;
+		self.expect(Token::As)?;
+		
+		// Extract the query from the source SQL
+		// Find "AS" in the source and extract everything after it (excluding semicolon)
+		let query = if let Some(as_pos) = self.source.to_uppercase().rfind(" AS ") {
+			let after_as = &self.source[as_pos + 4..];
+			// Trim semicolon if present
+			after_as.trim_end_matches(';').trim().to_string()
+		} else {
+			return Err(Error::Syntax("Could not extract view query".to_string()));
+		};
+		
+		// Advance past the query tokens
+		while self.position < self.tokens.len() {
+			if matches!(self.current_token(), Some(Token::Semicolon)) {
+				break;
+			}
+			self.advance();
+		}
+		
+		Ok(Statement::CreateView(CreateViewStatement {
+			name,
+			query,
+	fn parse_create_trigger(&mut self) -> Result<Statement> {
+		self.expect(Token::Trigger)?;
+		
+		let name = self.parse_identifier()?;
+		
+		// Parse timing: BEFORE, AFTER, or INSTEAD OF
+		let timing = match self.current_token() {
+			Some(Token::Before) => {
+				self.advance();
+				TriggerTiming::Before
+			}
+			Some(Token::After) => {
+				self.advance();
+				TriggerTiming::After
+			}
+			Some(Token::Instead) => {
+				self.advance();
+				self.expect(Token::Of)?;
+				TriggerTiming::InsteadOf
+			}
+			_ => return Err(Error::Syntax("Expected BEFORE, AFTER, or INSTEAD OF".to_string())),
+		};
+		
+		// Parse event: INSERT, UPDATE [OF columns], DELETE
+		let event = match self.current_token() {
+			Some(Token::Insert) => {
+				self.advance();
+				TriggerEvent::Insert
+			}
+			Some(Token::Update) => {
+				self.advance();
+				// Check for OF columns
+				if matches!(self.current_token(), Some(Token::Of)) {
+					self.advance();
+					let mut columns = vec![self.parse_identifier()?];
+					while matches!(self.current_token(), Some(Token::Comma)) {
+						self.advance();
+						columns.push(self.parse_identifier()?);
+					}
+					TriggerEvent::Update(Some(columns))
+				} else {
+					TriggerEvent::Update(None)
+				}
+			}
+			Some(Token::Delete) => {
+				self.advance();
+				TriggerEvent::Delete
+			}
+			_ => return Err(Error::Syntax("Expected INSERT, UPDATE, or DELETE".to_string())),
+		};
+		
+		// Parse ON table_name
+		self.expect(Token::On)?;
+		let table = self.parse_identifier()?;
+		
+		// Parse optional FOR EACH ROW
+		let for_each_row = if matches!(self.current_token(), Some(Token::For)) {
+			self.advance();
+			self.expect(Token::Each)?;
+			self.expect(Token::Row)?;
+			true
+		} else {
+			false
+		};
+		
+		// Parse optional WHEN condition
+		let when_condition = if matches!(self.current_token(), Some(Token::When)) {
+			self.advance();
+			Some(self.parse_where_clause()?)
+		} else {
+			None
+		};
+		
+		// Parse BEGIN ... END block
+		self.expect(Token::Begin)?;
+		
+		let mut actions = Vec::new();
+		loop {
+			// Parse trigger action statements
+			match self.current_token() {
+				Some(Token::Insert) => {
+					let stmt = self.parse_insert()?;
+					if let Statement::Insert(insert_stmt) = stmt {
+						actions.push(TriggerAction::Insert(insert_stmt));
+					}
+				}
+				Some(Token::Update) => {
+					let stmt = self.parse_update()?;
+					if let Statement::Update(update_stmt) = stmt {
+						actions.push(TriggerAction::Update(update_stmt));
+					}
+				}
+				Some(Token::Delete) => {
+					let stmt = self.parse_delete()?;
+					if let Statement::Delete(delete_stmt) = stmt {
+						actions.push(TriggerAction::Delete(delete_stmt));
+					}
+				}
+				Some(Token::Select) => {
+					let stmt = self.parse_select()?;
+					if let Statement::Select(select_stmt) = stmt {
+						actions.push(TriggerAction::Select(select_stmt));
+					}
+				}
+				Some(Token::End) => {
+					self.advance();
+					break;
+				}
+				_ => return Err(Error::Syntax("Expected trigger action or END".to_string())),
+			}
+			
+			// Check for optional semicolon between statements
+			if matches!(self.current_token(), Some(Token::Semicolon)) {
+				self.advance();
+			}
+		}
+		
+		Ok(Statement::CreateTrigger(CreateTriggerStatement {
+			name,
+			timing,
+			event,
+			table,
+			for_each_row,
+			when_condition,
+			actions,
+		}))
+	}
+
+	fn parse_drop(&mut self) -> Result<Statement> {
+		self.expect(Token::Drop)?;
+		
+		match self.current_token() {
+			Some(Token::View) => {
+				self.advance();
+				let name = self.parse_identifier()?;
+				Ok(Statement::DropView(DropViewStatement { name }))
+			}
+			_ => Err(Error::Syntax("Expected VIEW after DROP".to_string())),
+		// For now, only support DROP TRIGGER
+		match self.current_token() {
+			Some(Token::Trigger) => {
+				self.advance();
+				let name = self.parse_identifier()?;
+				Ok(Statement::DropTrigger(DropTriggerStatement { name }))
+			}
+			_ => Err(Error::Syntax("Expected TRIGGER after DROP".to_string())),
+		}
 	}
 
 	fn parse_rollback(&mut self) -> Result<Statement> {
@@ -1231,6 +1535,194 @@ impl Parser {
 			on_condition,
 		})
 	}
+	
+	/// Parse CREATE GRAPH statement
+	fn parse_create_graph(&mut self) -> Result<Statement> {
+		self.expect(Token::Graph)?;
+		let name = self.parse_identifier()?;
+		
+		Ok(Statement::CreateGraph(CreateGraphStatement { name }))
+	}
+	
+	/// Parse DROP statement (currently only DROP GRAPH)
+	fn parse_drop(&mut self) -> Result<Statement> {
+		self.expect(Token::Drop)?;
+		self.expect(Token::Graph)?;
+		let name = self.parse_identifier()?;
+		
+		Ok(Statement::DropGraph(DropGraphStatement { name }))
+	}
+	
+	/// Parse ADD statement (ADD NODE or ADD EDGE)
+	fn parse_add(&mut self) -> Result<Statement> {
+		self.expect(Token::Add)?;
+		
+		if matches!(self.current_token(), Some(Token::Node)) {
+			self.parse_add_node()
+		} else if matches!(self.current_token(), Some(Token::Edge)) {
+			self.parse_add_edge()
+		} else {
+			Err(Error::Syntax("Expected NODE or EDGE after ADD".to_string()))
+		}
+	}
+	
+	/// Parse ADD NODE statement
+	/// Syntax: ADD NODE TO graph LABEL 'label' [PROPERTIES (key = 'value', ...)]
+	fn parse_add_node(&mut self) -> Result<Statement> {
+		self.expect(Token::Node)?;
+		self.expect(Token::To)?;
+		let graph = self.parse_identifier()?;
+		
+		self.expect(Token::Label)?;
+		let label = self.parse_value()?;
+		
+		let mut properties = Vec::new();
+		
+		// Parse optional PROPERTIES clause
+		if matches!(self.current_token(), Some(Token::Properties)) {
+			self.advance();
+			self.expect(Token::LeftParen)?;
+			
+			loop {
+				let key = self.parse_identifier()?;
+				self.expect(Token::Equals)?;
+				let value = self.parse_value()?;
+				properties.push((key, value));
+				
+				if matches!(self.current_token(), Some(Token::Comma)) {
+					self.advance();
+				} else {
+					break;
+				}
+			}
+			
+			self.expect(Token::RightParen)?;
+		}
+		
+		Ok(Statement::AddNode(AddNodeStatement {
+			graph,
+			label,
+			properties,
+		}))
+	}
+	
+	/// Parse ADD EDGE statement
+	/// Syntax: ADD EDGE TO graph FROM node_id TO node_id LABEL 'label' [WEIGHT weight] [PROPERTIES (...)]
+	fn parse_add_edge(&mut self) -> Result<Statement> {
+		self.expect(Token::Edge)?;
+		self.expect(Token::To)?;
+		let graph = self.parse_identifier()?;
+		
+		self.expect(Token::From)?;
+		let from_node = self.parse_value()?;
+		
+		self.expect(Token::To)?;
+		let to_node = self.parse_value()?;
+		
+		self.expect(Token::Label)?;
+		let label = self.parse_value()?;
+		
+		// Parse optional WEIGHT clause
+		let mut weight = None;
+		if matches!(self.current_token(), Some(Token::Weight)) {
+			self.advance();
+			let weight_str = self.parse_value()?;
+			// Remove quotes if present
+			let weight_str_clean = weight_str.trim_matches('\'').trim_matches('"');
+			weight = Some(weight_str_clean.parse::<f64>().map_err(|_| {
+				Error::Syntax(format!("Invalid weight value: {}", weight_str))
+			})?);
+		}
+		
+		// Parse optional PROPERTIES clause
+		let mut properties = Vec::new();
+		if matches!(self.current_token(), Some(Token::Properties)) {
+			self.advance();
+			self.expect(Token::LeftParen)?;
+			
+			loop {
+				let key = self.parse_identifier()?;
+				self.expect(Token::Equals)?;
+				let value = self.parse_value()?;
+				properties.push((key, value));
+				
+				if matches!(self.current_token(), Some(Token::Comma)) {
+					self.advance();
+				} else {
+					break;
+				}
+			}
+			
+			self.expect(Token::RightParen)?;
+		}
+		
+		Ok(Statement::AddEdge(AddEdgeStatement {
+			graph,
+			from_node,
+			to_node,
+			label,
+			weight,
+			properties,
+		}))
+	}
+	
+	/// Parse MATCH PATH statement
+	/// Syntax: MATCH PATH IN graph FROM node_id TO node_id [USING algorithm]
+	fn parse_match(&mut self) -> Result<Statement> {
+		self.expect(Token::Match)?;
+		self.expect(Token::Path)?;
+		self.expect(Token::In)?;
+		let graph = self.parse_identifier()?;
+		
+		self.expect(Token::From)?;
+		let start_node = self.parse_value()?;
+		
+		self.expect(Token::To)?;
+		let end_node = self.parse_value()?;
+		
+		// Parse optional USING clause for algorithm
+		let algorithm = if matches!(self.current_token(), Some(Token::Using)) {
+			self.advance();
+			match self.current_token() {
+				Some(Token::Identifier) => {
+					let algo_name = self.parse_identifier()?;
+					match algo_name.to_uppercase().as_str() {
+						"SHORTEST" => PathAlgorithm::Shortest,
+						"BFS" => PathAlgorithm::Bfs,
+						"DFS" => PathAlgorithm::Dfs,
+						"ALL" => {
+							// Parse optional max depth
+							let max_depth = if matches!(self.current_token(), Some(Token::LeftParen)) {
+								self.advance();
+								let depth_str = self.parse_value()?;
+								self.expect(Token::RightParen)?;
+								depth_str.parse::<usize>().unwrap_or(10)
+							} else {
+								10
+							};
+							PathAlgorithm::All { max_depth }
+						}
+						_ => {
+							return Err(Error::Syntax(format!(
+								"Unknown path algorithm: {}",
+								algo_name
+							)))
+						}
+					}
+				}
+				_ => return Err(Error::Syntax("Expected algorithm name".to_string())),
+			}
+		} else {
+			PathAlgorithm::Shortest
+		};
+		
+		Ok(Statement::MatchPath(MatchPathStatement {
+			graph,
+			start_node,
+			end_node,
+			algorithm,
+		}))
+	}
 }
 
 impl Default for Parser {
@@ -1483,6 +1975,263 @@ mod tests {
 				assert_eq!(stmt.joins[0].join_type, JoinType::Left);
 			}
 			_ => panic!("Expected Select statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_before_insert() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER audit_insert BEFORE INSERT ON users BEGIN INSERT INTO audit VALUES ('insert'); END";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "audit_insert");
+				assert_eq!(stmt.timing, TriggerTiming::Before);
+				assert_eq!(stmt.event, TriggerEvent::Insert);
+				assert_eq!(stmt.table, "users");
+				assert!(!stmt.for_each_row);
+				assert!(stmt.when_condition.is_none());
+				assert_eq!(stmt.actions.len(), 1);
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_after_update() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER log_update AFTER UPDATE ON products FOR EACH ROW BEGIN INSERT INTO log VALUES ('update'); END";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "log_update");
+				assert_eq!(stmt.timing, TriggerTiming::After);
+				assert_eq!(stmt.event, TriggerEvent::Update(None));
+				assert_eq!(stmt.table, "products");
+				assert!(stmt.for_each_row);
+				assert!(stmt.when_condition.is_none());
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_update_of_columns() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER price_update AFTER UPDATE OF price, quantity ON products BEGIN INSERT INTO changes VALUES ('price changed'); END";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "price_update");
+				assert_eq!(stmt.timing, TriggerTiming::After);
+				match stmt.event {
+					TriggerEvent::Update(Some(cols)) => {
+						assert_eq!(cols.len(), 2);
+						assert!(cols.contains(&"price".to_string()));
+						assert!(cols.contains(&"quantity".to_string()));
+					}
+					_ => panic!("Expected UPDATE OF event"),
+				}
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_with_when() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER high_price_alert AFTER INSERT ON products FOR EACH ROW WHEN price > 1000 BEGIN INSERT INTO alerts VALUES ('high price'); END";
+		let result = parser.parse(sql);
+		if result.is_err() {
+			eprintln!("Parse error: {:?}", result.as_ref().unwrap_err());
+		}
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "high_price_alert");
+				assert!(stmt.when_condition.is_some());
+				assert_eq!(stmt.when_condition.unwrap(), "price > 1000");
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_instead_of() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER view_insert INSTEAD OF INSERT ON view_name BEGIN INSERT INTO base_table VALUES ('data'); END";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "view_insert");
+				assert_eq!(stmt.timing, TriggerTiming::InsteadOf);
+				assert_eq!(stmt.event, TriggerEvent::Insert);
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_create_trigger_before_delete() {
+		let mut parser = Parser::new();
+		let sql = "CREATE TRIGGER prevent_delete BEFORE DELETE ON important_data BEGIN INSERT INTO delete_log VALUES ('attempt'); END";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateTrigger(stmt) => {
+				assert_eq!(stmt.name, "prevent_delete");
+				assert_eq!(stmt.timing, TriggerTiming::Before);
+				assert_eq!(stmt.event, TriggerEvent::Delete);
+				assert_eq!(stmt.table, "important_data");
+			}
+			_ => panic!("Expected CreateTrigger statement"),
+		}
+	}
+
+	#[test]
+	fn test_parse_drop_trigger() {
+		let mut parser = Parser::new();
+		let sql = "DROP TRIGGER audit_insert";
+		let result = parser.parse(sql);
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::DropTrigger(stmt) => {
+				assert_eq!(stmt.name, "audit_insert");
+			}
+			_ => panic!("Expected DropTrigger statement"),
+	
+	#[test]
+	fn test_parse_create_graph() {
+		let mut parser = Parser::new();
+		let result = parser.parse("CREATE GRAPH social");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::CreateGraph(stmt) => {
+				assert_eq!(stmt.name, "social");
+			}
+			_ => panic!("Expected CreateGraph statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_drop_graph() {
+		let mut parser = Parser::new();
+		let result = parser.parse("DROP GRAPH social");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::DropGraph(stmt) => {
+				assert_eq!(stmt.name, "social");
+			}
+			_ => panic!("Expected DropGraph statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_add_node() {
+		let mut parser = Parser::new();
+		let result = parser.parse("ADD NODE TO social LABEL 'Person'");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::AddNode(stmt) => {
+				assert_eq!(stmt.graph, "social");
+				assert_eq!(stmt.label, "'Person'");
+				assert_eq!(stmt.properties.len(), 0);
+			}
+			_ => panic!("Expected AddNode statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_add_node_with_properties() {
+		let mut parser = Parser::new();
+		let result = parser.parse("ADD NODE TO social LABEL 'Person' PROPERTIES (name = 'Alice', age = '30')");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::AddNode(stmt) => {
+				assert_eq!(stmt.graph, "social");
+				assert_eq!(stmt.label, "'Person'");
+				assert_eq!(stmt.properties.len(), 2);
+			}
+			_ => panic!("Expected AddNode statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_add_edge() {
+		let mut parser = Parser::new();
+		let result = parser.parse("ADD EDGE TO social FROM '1' TO '2' LABEL 'KNOWS'");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::AddEdge(stmt) => {
+				assert_eq!(stmt.graph, "social");
+				assert_eq!(stmt.from_node, "'1'");
+				assert_eq!(stmt.to_node, "'2'");
+				assert_eq!(stmt.label, "'KNOWS'");
+				assert!(stmt.weight.is_none());
+			}
+			_ => panic!("Expected AddEdge statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_add_weighted_edge() {
+		let mut parser = Parser::new();
+		let result = parser.parse("ADD EDGE TO social FROM '1' TO '2' LABEL 'DISTANCE' WEIGHT '5.5'");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::AddEdge(stmt) => {
+				assert_eq!(stmt.graph, "social");
+				assert!(stmt.weight.is_some());
+				assert!((stmt.weight.unwrap() - 5.5).abs() < 0.01);
+			}
+			_ => panic!("Expected AddEdge statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_match_path_shortest() {
+		let mut parser = Parser::new();
+		let result = parser.parse("MATCH PATH IN social FROM '1' TO '5' USING SHORTEST");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::MatchPath(stmt) => {
+				assert_eq!(stmt.graph, "social");
+				assert_eq!(stmt.start_node, "'1'");
+				assert_eq!(stmt.end_node, "'5'");
+				assert!(matches!(stmt.algorithm, PathAlgorithm::Shortest));
+			}
+			_ => panic!("Expected MatchPath statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_match_path_bfs() {
+		let mut parser = Parser::new();
+		let result = parser.parse("MATCH PATH IN social FROM '1' TO '5' USING BFS");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::MatchPath(stmt) => {
+				assert!(matches!(stmt.algorithm, PathAlgorithm::Bfs));
+			}
+			_ => panic!("Expected MatchPath statement"),
+		}
+	}
+	
+	#[test]
+	fn test_parse_match_path_default() {
+		let mut parser = Parser::new();
+		let result = parser.parse("MATCH PATH IN social FROM '1' TO '5'");
+		assert!(result.is_ok());
+		match result.unwrap() {
+			Statement::MatchPath(stmt) => {
+				// Default algorithm should be Shortest
+				assert!(matches!(stmt.algorithm, PathAlgorithm::Shortest));
+			}
+			_ => panic!("Expected MatchPath statement"),
 		}
 	}
 }

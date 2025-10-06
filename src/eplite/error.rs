@@ -46,6 +46,8 @@ pub enum Error {
 	InvalidOperation(String),
 	/// Already exists
 	AlreadyExists(String),
+	/// Not implemented
+	NotImplemented(String),
 }
 
 impl fmt::Display for Error {
@@ -68,6 +70,7 @@ impl fmt::Display for Error {
 			Error::NotSupported(msg) => write!(f, "Not supported: {}", msg),
 			Error::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
 			Error::AlreadyExists(msg) => write!(f, "Already exists: {}", msg),
+			Error::NotImplemented(msg) => write!(f, "Not implemented: {}", msg),
 		}
 	}
 }
