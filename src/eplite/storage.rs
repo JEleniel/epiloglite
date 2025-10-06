@@ -533,6 +533,8 @@ impl StorageManager {
 		} else {
 			Err(Error::NotFound(format!("View '{}' not found", name)))
 		}
+	}
+
 	/// Create a trigger
 	pub fn create_trigger(&mut self, stmt: crate::eplite::command::parser::CreateTriggerStatement) -> Result<()> {
 		if self.triggers.contains_key(&stmt.name) {

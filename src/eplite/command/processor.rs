@@ -158,11 +158,11 @@ impl Processor {
 				use crate::eplite::command::parser::{TriggerEvent, TriggerTiming};
 				
 				// Execute BEFORE INSERT triggers
-				let before_triggers = self.storage.get_triggers_for_table(
+				let before_triggers: Vec<_> = self.storage.get_triggers_for_table(
 					&stmt.table,
 					&TriggerEvent::Insert,
 					&TriggerTiming::Before
-				);
+				).into_iter().cloned().collect();
 				for trigger in before_triggers {
 					self.execute_trigger_actions(&trigger.actions)?;
 				}
@@ -172,11 +172,11 @@ impl Processor {
 					table.insert(stmt.values.clone())?;
 					
 					// Execute AFTER INSERT triggers
-					let after_triggers = self.storage.get_triggers_for_table(
+					let after_triggers: Vec<_> = self.storage.get_triggers_for_table(
 						&stmt.table,
 						&TriggerEvent::Insert,
 						&TriggerTiming::After
-					);
+					).into_iter().cloned().collect();
 					for trigger in after_triggers {
 						self.execute_trigger_actions(&trigger.actions)?;
 					}
@@ -192,11 +192,11 @@ impl Processor {
 				use crate::eplite::command::parser::{TriggerEvent, TriggerTiming};
 				
 				// Execute BEFORE UPDATE triggers
-				let before_triggers = self.storage.get_triggers_for_table(
+				let before_triggers: Vec<_> = self.storage.get_triggers_for_table(
 					&stmt.table,
 					&TriggerEvent::Update(None),
 					&TriggerTiming::Before
-				);
+				).into_iter().cloned().collect();
 				for trigger in before_triggers {
 					self.execute_trigger_actions(&trigger.actions)?;
 				}
@@ -209,11 +209,11 @@ impl Processor {
 					)?;
 					
 					// Execute AFTER UPDATE triggers
-					let after_triggers = self.storage.get_triggers_for_table(
+					let after_triggers: Vec<_> = self.storage.get_triggers_for_table(
 						&stmt.table,
 						&TriggerEvent::Update(None),
 						&TriggerTiming::After
-					);
+					).into_iter().cloned().collect();
 					for trigger in after_triggers {
 						self.execute_trigger_actions(&trigger.actions)?;
 					}
@@ -229,11 +229,11 @@ impl Processor {
 				use crate::eplite::command::parser::{TriggerEvent, TriggerTiming};
 				
 				// Execute BEFORE DELETE triggers
-				let before_triggers = self.storage.get_triggers_for_table(
+				let before_triggers: Vec<_> = self.storage.get_triggers_for_table(
 					&stmt.table,
 					&TriggerEvent::Delete,
 					&TriggerTiming::Before
-				);
+				).into_iter().cloned().collect();
 				for trigger in before_triggers {
 					self.execute_trigger_actions(&trigger.actions)?;
 				}
@@ -243,11 +243,11 @@ impl Processor {
 					let count = table.delete(stmt.where_clause.as_deref())?;
 					
 					// Execute AFTER DELETE triggers
-					let after_triggers = self.storage.get_triggers_for_table(
+					let after_triggers: Vec<_> = self.storage.get_triggers_for_table(
 						&stmt.table,
 						&TriggerEvent::Delete,
 						&TriggerTiming::After
-					);
+					).into_iter().cloned().collect();
 					for trigger in after_triggers {
 						self.execute_trigger_actions(&trigger.actions)?;
 					}
@@ -270,6 +270,7 @@ impl Processor {
 			Statement::DropView(stmt) => {
 				self.storage.drop_view(&stmt.name)?;
 				Ok(ExecutionResult::Success)
+			}
 			Statement::CreateTrigger(stmt) => {
 				self.storage.create_trigger(stmt)?;
 				Ok(ExecutionResult::Success)
@@ -277,6 +278,7 @@ impl Processor {
 			Statement::DropTrigger(stmt) => {
 				self.storage.drop_trigger(&stmt.name)?;
 				Ok(ExecutionResult::Success)
+			}
 			Statement::CreateGraph(_stmt) => {
 				// Graph operations will be implemented when storage integration is complete
 				Err(Error::NotImplemented("Graph operations not yet integrated with storage".to_string()))
@@ -677,6 +679,47 @@ impl Processor {
 			rows: filtered_rows,
 			columns,
 		})
+	}
+
+	/// Execute trigger actions
+	/// Note: This executes trigger actions without firing additional triggers
+	/// to prevent infinite recursion
+	fn execute_trigger_actions(&mut self, actions: &[crate::eplite::command::parser::TriggerAction]) -> Result<()> {
+		use crate::eplite::command::parser::TriggerAction;
+		
+		for action in actions {
+			match action {
+				TriggerAction::Insert(stmt) => {
+					// Execute insert without triggers
+					if let Some(table) = self.storage.get_table_mut(&stmt.table) {
+						table.insert(stmt.values.clone())?;
+					} else {
+						return Err(Error::NotFound(format!("Table '{}' not found", stmt.table)));
+					}
+				}
+				TriggerAction::Update(stmt) => {
+					// Execute update without triggers
+					if let Some(table) = self.storage.get_table_mut(&stmt.table) {
+						table.update(stmt.where_clause.as_deref(), &stmt.set_clauses)?;
+					} else {
+						return Err(Error::NotFound(format!("Table '{}' not found", stmt.table)));
+					}
+				}
+				TriggerAction::Delete(stmt) => {
+					// Execute delete without triggers
+					if let Some(table) = self.storage.get_table_mut(&stmt.table) {
+						table.delete(stmt.where_clause.as_deref())?;
+					} else {
+						return Err(Error::NotFound(format!("Table '{}' not found", stmt.table)));
+					}
+				}
+				TriggerAction::Select(_stmt) => {
+					// SELECT in trigger typically for validation
+					// We skip execution for now as it doesn't modify data
+				}
+			}
+		}
+		Ok(())
 	}
 }
 

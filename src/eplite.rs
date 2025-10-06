@@ -19,7 +19,6 @@ pub mod permissions;
 pub mod server;
 pub mod traits;
 pub mod graph;
-mod traits;
 mod types;
 pub mod utility;
 
