@@ -5,7 +5,8 @@
 
 #![allow(clippy::missing_safety_doc)]
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
-#![cfg_attr(test, allow(unsafe_code))]
+#![allow(non_snake_case)]
+#![cfg_attr(feature = "capi", allow(unsafe_code))]
 
 use crate::eplite::database::Database;
 use crate::eplite::error::Result as EplResult;
