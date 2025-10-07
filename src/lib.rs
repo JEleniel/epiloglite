@@ -3,12 +3,12 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
-mod eplite;
+pub mod eplite;
 
 #[cfg(feature = "capi")]
 pub mod capi;
 
-pub use eplite::command::processor::ExecutionResult;
+pub use eplite::command::processor::{ExecutionResult, Processor};
 pub use eplite::database::Database;
 pub use eplite::error::{Error, Result};
 pub use eplite::graph::{Edge, EdgeId, Graph, GraphManager, Node, NodeId};
