@@ -42,6 +42,10 @@ pub enum Error {
 	Internal(String),
 	/// Not supported
 	NotSupported(String),
+	/// Invalid operation
+	InvalidOperation(String),
+	/// Already exists
+	AlreadyExists(String),
 }
 
 impl fmt::Display for Error {
@@ -62,6 +66,8 @@ impl fmt::Display for Error {
 			Error::Corrupt(msg) => write!(f, "Database is corrupt: {}", msg),
 			Error::Internal(msg) => write!(f, "Internal error: {}", msg),
 			Error::NotSupported(msg) => write!(f, "Not supported: {}", msg),
+			Error::InvalidOperation(msg) => write!(f, "Invalid operation: {}", msg),
+			Error::AlreadyExists(msg) => write!(f, "Already exists: {}", msg),
 		}
 	}
 }
