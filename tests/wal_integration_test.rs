@@ -1,6 +1,6 @@
 /// Integration tests for WAL mode
 
-// use epiloglite::eplite::persistence::pager::Pager;
+use epiloglite::eplite::persistence::pager::{JournalMode, Pager};
 use epiloglite::eplite::persistence::wal::{CheckpointMode, WalFrame, WalReader, WalWriter};
 
 #[test]
@@ -106,11 +106,9 @@ fn test_wal_concurrent_readers() {
 }
 
 #[test]
-#[ignore = "WAL integration with Pager not yet implemented"]
 #[cfg(feature = "std")]
 fn test_pager_wal_mode_integration() {
 	use epiloglite::eplite::os::file::DefaultFile;
-	use epiloglite::eplite::persistence::pager::Pager;
 
 	let temp_dir = std::env::temp_dir();
 	let db_path = temp_dir.join("test_wal_db.db");
@@ -121,15 +119,12 @@ fn test_pager_wal_mode_integration() {
 	let wal_file = DefaultFile::open(&wal_path, true, true, true).unwrap();
 
 	let mut pager = Pager::with_file(4096, Box::new(db_file)).unwrap();
-	// TODO: Implement JournalMode and set_journal_mode
-	// pager
-	// 	.set_journal_mode(JournalMode::Wal, Some(Box::new(wal_file)))
-	// 	.unwrap();
+	pager
+		.set_journal_mode(JournalMode::Wal, Some(Box::new(wal_file)))
+		.unwrap();
 
 	// Begin transaction and write some data
-	// TODO: Implement begin_transaction
-	// pager.begin_transaction().unwrap();
-	let _ = wal_file; // Suppress unused warning
+	pager.begin_transaction().unwrap();
 
 	let page1 = pager.get_page_mut(1).unwrap();
 	page1.write(0, b"Hello WAL!").unwrap();
@@ -138,8 +133,7 @@ fn test_pager_wal_mode_integration() {
 	page2.write(0, b"WAL Mode Works!").unwrap();
 
 	// Commit
-	// TODO: Implement commit_transaction
-	// pager.commit_transaction().unwrap();
+	pager.commit_transaction().unwrap();
 
 	// Verify data is accessible
 	let page1 = pager.get_page(1).unwrap();
@@ -152,11 +146,9 @@ fn test_pager_wal_mode_integration() {
 }
 
 #[test]
-#[ignore = "WAL checkpoint integration with Pager not yet implemented"]
 #[cfg(feature = "std")]
 fn test_checkpoint_integration() {
 	use epiloglite::eplite::os::file::DefaultFile;
-	use epiloglite::eplite::persistence::pager::Pager;
 
 	let temp_dir = std::env::temp_dir();
 	let db_path = temp_dir.join("test_checkpoint.db");
@@ -167,23 +159,18 @@ fn test_checkpoint_integration() {
 	let wal_file = DefaultFile::open(&wal_path, true, true, true).unwrap();
 
 	let mut pager = Pager::with_file(4096, Box::new(db_file)).unwrap();
-	// TODO: Implement JournalMode and set_journal_mode
-	// pager
-	// 	.set_journal_mode(JournalMode::Wal, Some(Box::new(wal_file)))
-	// 	.unwrap();
+	pager
+		.set_journal_mode(JournalMode::Wal, Some(Box::new(wal_file)))
+		.unwrap();
 
 	// Write some data
-	// TODO: Implement begin_transaction
-	// pager.begin_transaction().unwrap();
+	pager.begin_transaction().unwrap();
 	let page = pager.get_page_mut(1).unwrap();
 	page.write(0, b"Test Data").unwrap();
-	// TODO: Implement commit_transaction
-	// pager.commit_transaction().unwrap();
+	pager.commit_transaction().unwrap();
 
 	// Perform checkpoint
-	// TODO: Implement checkpoint
-	// pager.checkpoint(CheckpointMode::Full).unwrap();
-	let _ = (wal_file, CheckpointMode::Full); // Suppress unused warnings
+	pager.checkpoint(CheckpointMode::Full).unwrap();
 
 	// Cleanup
 	drop(pager);
