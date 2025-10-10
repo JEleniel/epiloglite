@@ -32,39 +32,39 @@ The positive test directory contains well-formed SQL statements that demonstrate
 **Categories:**
 
 1.	**Basic SELECT queries** (5 files)
-	-	select_basic.sql
-	-	select_where.sql
-	-	select_order_by.sql
-	-	select_group_by.sql
-	-	select_without_optional_clauses.sql
+	+	select_basic.sql
+	+	select_where.sql
+	+	select_order_by.sql
+	+	select_group_by.sql
+	+	select_without_optional_clauses.sql
 
 2.	**Advanced SELECT features** (3 files)
-	-	select_aggregates.sql
-	-	select_joins.sql
-	-	select_combinations.sql
+	+	select_aggregates.sql
+	+	select_joins.sql
+	+	select_combinations.sql
 
 3.	**Data modification** (3 files)
-	-	insert_basic.sql
-	-	update_basic.sql
-	-	delete_basic.sql
+	+	insert_basic.sql
+	+	update_basic.sql
+	+	delete_basic.sql
 
 4.	**Schema definition** (2 files)
-	-	create_table_basic.sql
-	-	create_table_constraints.sql
+	+	create_table_basic.sql
+	+	create_table_constraints.sql
 
 5.	**Transactions** (2 files)
-	-	transactions.sql
-	-	savepoints.sql
+	+	transactions.sql
+	+	savepoints.sql
 
 6.	**Type coverage** (1 file)
-	-	all_data_types.sql
+	+	all_data_types.sql
 
 7.	**Format variations** (2 files)
-	-	case_variations.sql
-	-	whitespace_variations.sql
+	+	case_variations.sql
+	+	whitespace_variations.sql
 
 8.	**Complex scenarios** (1 file)
-	-	complex_queries.sql
+	+	complex_queries.sql
 
 ### Negative Tests (sql_negative/)
 
@@ -80,49 +80,49 @@ The negative test directory contains malformed and adversarial SQL statements th
 **Categories:**
 
 1.	**Syntax violations** (1 file)
-	-	syntax_errors.sql - Missing keywords, wrong order, mismatched parentheses
+	+	syntax_errors.sql - Missing keywords, wrong order, mismatched parentheses
 
 2.	**Identifier issues** (1 file)
-	-	invalid_identifiers.sql - Invalid names, special characters, injection attempts
+	+	invalid_identifiers.sql - Invalid names, special characters, injection attempts
 
 3.	**Type system** (1 file)
-	-	type_errors.sql - Invalid types, missing types, wrong type syntax
+	+	type_errors.sql - Invalid types, missing types, wrong type syntax
 
 4.	**Value literals** (1 file)
-	-	malformed_values.sql - Unclosed strings, missing commas, invalid escapes
+	+	malformed_values.sql - Unclosed strings, missing commas, invalid escapes
 
 5.	**Security testing** (1 file)
-	-	injection_attempts.sql - SQL injection attack patterns
+	+	injection_attempts.sql - SQL injection attack patterns
 
 6.	**Operation errors** (1 file)
-	-	invalid_operations.sql - Wrong structure, missing clauses, invalid functions
+	+	invalid_operations.sql - Wrong structure, missing clauses, invalid functions
 
 7.	**Numeric issues** (1 file)
-	-	numeric_errors.sql - Invalid number formats, multiple decimals
+	+	numeric_errors.sql - Invalid number formats, multiple decimals
 
 8.	**Operator misuse** (1 file)
-	-	operator_errors.sql - Missing operands, invalid operators
+	+	operator_errors.sql - Missing operands, invalid operators
 
 9.	**Aggregate errors** (1 file)
-	-	aggregate_errors.sql - Invalid aggregate functions, wrong usage
+	+	aggregate_errors.sql - Invalid aggregate functions, wrong usage
 
 10.	**JOIN errors** (1 file)
-	-	join_errors.sql - Missing ON, invalid JOIN types, incomplete syntax
+	+	join_errors.sql - Missing ON, invalid JOIN types, incomplete syntax
 
 11.	**Constraint violations** (1 file)
-	-	constraint_violations.sql - Duplicate PRIMARY KEY, invalid syntax
+	+	constraint_violations.sql - Duplicate PRIMARY KEY, invalid syntax
 
 12.	**Transaction errors** (1 file)
-	-	transaction_errors.sql - Invalid transaction control, savepoint errors
+	+	transaction_errors.sql - Invalid transaction control, savepoint errors
 
 13.	**Edge cases** (1 file)
-	-	edge_cases.sql - Empty statements, Unicode, special characters
+	+	edge_cases.sql - Empty statements, Unicode, special characters
 
 14.	**Buffer overflow** (1 file)
-	-	buffer_overflow_attempts.sql - Extremely long inputs, deep nesting
+	+	buffer_overflow_attempts.sql - Extremely long inputs, deep nesting
 
 15.	**Quote handling** (1 file)
-	-	quote_escaping_errors.sql - Unescaped quotes, mismatched quotes
+	+	quote_escabing_errors.sql - Unescaped quotes, mismatched quotes
 
 ## Test Statistics
 

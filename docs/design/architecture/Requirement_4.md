@@ -11,6 +11,7 @@ As a developer, I need ergonomic, type-safe APIs with good documentation so that
 ## Features
 
 ### 1. Query Builder Pattern
+
 - Fluent, chainable interface
 - SelectBuilder for queries
 - InsertBuilder for inserts
@@ -20,6 +21,7 @@ As a developer, I need ergonomic, type-safe APIs with good documentation so that
 - Type-safe at compile time
 
 **Acceptance Criteria:**
+
 - All SQL operations have corresponding builders
 - Method chaining works intuitively
 - Build errors caught at compile time where possible
@@ -27,6 +29,7 @@ As a developer, I need ergonomic, type-safe APIs with good documentation so that
 - Builders support all SQL features
 
 ### 2. Lightweight ORM
+
 - Entity trait for domain objects
 - Repository pattern for CRUD operations
 - Automatic mapping between structs and tables
@@ -34,6 +37,7 @@ As a developer, I need ergonomic, type-safe APIs with good documentation so that
 - Relationship mapping (planned)
 
 **Acceptance Criteria:**
+
 - Derive macro for Entity trait
 - CRUD operations work without writing SQL
 - Type mismatches caught at compile time
@@ -41,6 +45,7 @@ As a developer, I need ergonomic, type-safe APIs with good documentation so that
 - Lazy loading for relationships
 
 ### 3. Async/Await Support
+
 - Async database operations
 - Non-blocking I/O
 - Integration with Tokio runtime
@@ -48,6 +53,7 @@ As a developer, I need ergonomic, type-safe APIs with good documentation so that
 - Concurrent query execution
 
 **Acceptance Criteria:**
+
 - All database operations have async variants
 - No blocking in async context
 - Proper cancellation support
@@ -55,13 +61,15 @@ As a developer, I need ergonomic, type-safe APIs with good documentation so that
 - Compatible with async ecosystem
 
 ### 4. C API Compatibility
+
 - SQLite 3 C API functions
 - Drop-in replacement capability
 - C ABI compatibility
-- Feature-gated (capi feature)
+- Feature-gated (cabi feature)
 - Existing SQLite applications work unchanged
 
 **Acceptance Criteria:**
+
 - Core sqlite3_* functions implemented
 - C applications compile and run without modification
 - Behavior matches SQLite for supported features
@@ -69,6 +77,7 @@ As a developer, I need ergonomic, type-safe APIs with good documentation so that
 - Error codes match SQLite
 
 ### 5. Configuration and Logging
+
 - JSON/TOML configuration files
 - Environment variable overrides
 - Multiple log targets (file, stdout, syslog)
@@ -77,6 +86,7 @@ As a developer, I need ergonomic, type-safe APIs with good documentation so that
 - Per-module log configuration
 
 **Acceptance Criteria:**
+
 - Configuration loads from files and environment
 - Logging works with multiple targets simultaneously
 - Log output is clear and helpful

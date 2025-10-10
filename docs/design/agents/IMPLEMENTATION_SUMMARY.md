@@ -11,12 +11,13 @@ EpilogLite is a pure Rust implementation of SQLite with 100% safe code. The core
 ## Architecture Overview
 
 ### Module Structure
+
 ```
 epiloglite/
 ├── src/
 │   ├── lib.rs              # Public API
 │   ├── eplite.rs           # Database struct
-│   ├── capi.rs             # C API (feature-gated)
+│   ├── cabi.rs             # C API (feature-gated)
 │   └── eplite/
 │       ├── command/        # SQL processing
 │       │   ├── tokenizer   # Lexical analysis ✅
@@ -45,6 +46,7 @@ epiloglite/
 ### ✅ COMPLETE (24 Major Features)
 
 #### Core Engine (100%)
+
 1. **Type System**: 17+ Rust types, ColumnType enum, NULL handling
 2. **Error Handling**: Comprehensive Error enum, Result propagation
 3. **VFS Layer**: OS abstraction, DefaultVfs, DefaultFile
@@ -57,6 +59,7 @@ epiloglite/
 10. **Database API**: open/close, execute, in-memory mode
 
 #### Advanced Features (100%)
+
 11. **WHERE Clause**: Filtering with comparison operators, LIKE
 12. **JOIN Operations**: INNER JOIN, LEFT JOIN, RIGHT JOIN, CROSS JOIN with ON conditions
 13. **Aggregates**: COUNT, SUM, AVG, MIN, MAX with GROUP BY
@@ -75,11 +78,13 @@ epiloglite/
 ### 🚧 IN PROGRESS (5%)
 
 #### Platform Support
+
 - No-std mode for embedded systems
 - Extended UTF-16 support
 - WASM target compilation
 
 #### Advanced Features
+
 - Graph data structures
 - FULL OUTER JOIN operations (deferred - low priority)
 - NATURAL JOIN operations (deferred - low priority)
@@ -88,12 +93,14 @@ epiloglite/
 ### 📋 PLANNED (Future Versions)
 
 #### Performance
+
 - Write-Ahead Logging (WAL) mode
 - Async I/O
 - MVCC for snapshot isolation
 - Connection pooling
 
 #### Features
+
 - Stored procedures
 - Triggers
 - Views (materialized and regular)
@@ -104,6 +111,7 @@ epiloglite/
 ## Technical Details
 
 ### Type System
+
 ```rust
 // Value types supported
 pub enum ValueType {
@@ -126,6 +134,7 @@ pub enum ColumnType {
 ```
 
 ### Storage Format
+
 - Page size: 4096 bytes (default, configurable)
 - Header: 100 bytes (SQLite-compatible)
 - Magic: "EPLite format 3" or "SQLite format 3"
@@ -135,6 +144,7 @@ pub enum ColumnType {
 ### API Surface
 
 #### Rust API
+
 ```rust
 // Core API
 pub struct Database { ... }
@@ -157,6 +167,7 @@ pub struct Repository<T: Entity> { ... }
 ```
 
 #### C API (Feature-Gated)
+
 ```c
 // SQLite-compatible functions
 int sqlite3_open(const char *filename, sqlite3 **ppDb);
@@ -169,15 +180,17 @@ int sqlite3_prepare_v2(sqlite3 *db, const char *sql, ...);
 ## Testing
 
 ### Test Coverage
+
 - **Total Tests**: 161
-  - Unit tests: 131
-  - Adversarial/security tests: 18
-  - Integration tests: 11
-  - Debug tests: 1
+    + Unit tests: 131
+    + Adversarial/security tests: 18
+    + Integration tests: 11
+    + Debug tests: 1
 - **Pass Rate**: 100% (0 failures)
 - **Code Coverage**: ~86% (estimated)
 
 ### Test Organization
+
 ```
 tests/
 ├── integration/     # End-to-end tests
@@ -186,6 +199,7 @@ tests/
 ```
 
 ### Key Test Scenarios
+
 1. CRUD operations (complete workflow)
 2. Disk persistence (save/load across sessions)
 3. Transactions (BEGIN/COMMIT/ROLLBACK/SAVEPOINT/RELEASE)
@@ -205,6 +219,7 @@ tests/
 ## Dependencies
 
 ### Core Dependencies
+
 - `logos`: Lexer generator (tokenizer)
 - `serde` + `bincode`: Serialization
 - `thiserror`: Error handling
@@ -213,6 +228,7 @@ tests/
 - `chrono`: Date/time handling
 
 ### Optional Dependencies
+
 - `tokio`: Async runtime (server mode)
 - `axum`: Web framework (REST API)
 - `async-graphql`: GraphQL (GraphQL API)
@@ -223,6 +239,7 @@ tests/
 - `log` + `fern`: Logging
 
 ### Build Requirements
+
 - Rust 1.70+ (stable)
 - Cargo
 - No external C dependencies
@@ -230,6 +247,7 @@ tests/
 ## Performance Characteristics
 
 ### Benchmarks (Indicative)
+
 - Simple SELECT: <1ms
 - Simple INSERT: <2ms
 - Complex JOIN: <10ms (10K rows)
@@ -238,12 +256,14 @@ tests/
 - Database open: <100ms
 
 ### Memory Usage
+
 - Minimum: ~1MB RAM
 - Typical: ~10MB RAM (with cache)
 - Configurable cache: 100 pages default (400KB)
 - Binary size: ~2MB (release build, stripped)
 
 ### Scalability
+
 - Max database size: 100GB+ (limited by file system)
 - Max tables: 10,000+
 - Max indexes: 1,000+
@@ -253,16 +273,19 @@ tests/
 ## Security Considerations
 
 ### Memory Safety
+
 - 100% safe Rust (`unsafe_code = "forbid"`)
 - No buffer overflows, use-after-free, etc.
 - Compiler-enforced memory safety
 
 ### SQL Injection
+
 - Parameterized queries (planned)
 - Input validation in parser
 - Adversarial testing
 
 ### Authentication (Server Mode)
+
 - JWT tokens
 - bcrypt password hashing
 - TLS 1.3 encryption
@@ -280,12 +303,14 @@ tests/
 ## Migration Notes
 
 ### From SQLite
+
 - File format compatible (read SQLite databases)
 - SQL syntax mostly compatible
 - Some advanced features not yet supported
 - Performance characteristics similar
 
 ### Breaking Changes
+
 - None expected in 1.x series
 - Semantic versioning followed
 - Deprecation warnings before removal
@@ -293,18 +318,21 @@ tests/
 ## Development Practices
 
 ### Code Quality
+
 - Clippy: All lints must pass
 - rustfmt: Formatted code required
 - No warnings in CI/CD
 - Documentation for public APIs
 
 ### Git Workflow
+
 - Feature branches
 - Pull requests required
 - CI/CD checks must pass
 - Squash and merge
 
 ### Release Process
+
 1. Update version in Cargo.toml
 2. Update CHANGELOG.md
 3. Run full test suite
@@ -315,6 +343,7 @@ tests/
 ## References
 
 ### Internal Documentation
+
 - `/docs/design/ARCHITECTURE.md` - Architecture overview
 - `/docs/design/VIRTUALMACHINE.md` - VM design
 - `/docs/design/QUERYPLANNER.md` - Query optimizer
@@ -324,9 +353,10 @@ tests/
 - `/STATUS.md` - Detailed implementation status
 
 ### External References
-- SQLite documentation: https://sqlite.org/docs.html
-- Rust documentation: https://doc.rust-lang.org/
-- SQLite file format: https://sqlite.org/fileformat2.html
+
+- SQLite documentation: <https://sqlite.org/docs.html>
+- Rust documentation: <https://doc.rust-lang.org/>
+- SQLite file format: <https://sqlite.org/fileformat2.html>
 
 ## Next Steps for Agents
 
@@ -346,6 +376,7 @@ When working on EpilogLite:
 ## Contact
 
 For questions about implementation:
+
 - Review existing code and tests
 - Check GitHub Issues and Discussions
 - See CONTRIBUTING.md for guidelines

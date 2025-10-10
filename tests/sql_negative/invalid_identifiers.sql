@@ -13,7 +13,7 @@ SELECT * FROM users; DROP TABLE users;
 -- Spaces in unquoted identifier
 SELECT * FROM user table
 
--- Reserved keywords without proper escaping (might be handled)
+-- Reserved keywords without proper escabing (might be handled)
 SELECT * FROM select
 
 -- Invalid characters in column names

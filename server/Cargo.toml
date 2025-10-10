@@ -1,0 +1,44 @@
+[package]
+name = "epiloglite-server"
+version = { workspace = true }
+description = "EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliability, and performance. EpilogLite Server provides a networked interface to the EpilogLite database engine, enabling remote database access and management."
+license = { workspace = true }
+keywords = { workspace = true }
+categories = { workspace = true }
+edition = { workspace = true }
+
+[features]
+default = ["std"]
+# The default configuration includes standard library and async support.
+std = []
+
+# Disable the standard library for embedded or no-std environments. Not currently compatible with the "C" ABI.
+no-std = []
+
+[dependencies]
+async-trait = { workspace = true }
+bincode = { workspace = true } # TODO swap for serde-binary-adv
+chrono = { workspace = true }
+config = { workspace = true }
+fern = { workspace = true }
+flagset = { workspace = true }
+log = { workspace = true }
+logos = { workspace = true }
+regex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+async-graphql = { workspace = true }
+async-graphql-axum = { workspace = true }
+axum = { workspace = true }
+bcrypt = { workspace = true }
+jsonwebtoken = { workspace = true }
+rustls = { workspace = true }
+tokio-rustls = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+
+
+[lints]
+workspace = true

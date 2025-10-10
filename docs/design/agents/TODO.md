@@ -7,6 +7,7 @@ This document details all of the features that must be implemented for release 1
 **Overall Progress**: ~93% Complete
 
 ## Phase Status Legend
+
 - ✅ Complete
 - 🚧 In Progress
 - 📋 Planned
@@ -15,6 +16,7 @@ This document details all of the features that must be implemented for release 1
 ---
 
 ### Phase 1: Core Type System ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -27,6 +29,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for all types
 
 ### Phase 2: Error Handling ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -39,6 +42,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for error handling
 
 ### Phase 3: OS Abstraction (VFS) ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -52,6 +56,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for VFS layer
 
 ### Phase 4: Pager (Page Cache) ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -65,6 +70,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for pager
 
 ### Phase 5: Database Header ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -77,6 +83,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for header
 
 ### Phase 6: SQL Tokenizer ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -91,6 +98,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for tokenizer
 
 ### Phase 7: SQL Parser ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -105,6 +113,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for parser
 
 ### Phase 8: Query Builder Pattern ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -118,6 +127,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for all builders
 
 ### Phase 9: Storage Manager ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -135,6 +145,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for storage manager
 
 ### Phase 10: SQL Processor ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -148,6 +159,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for processor
 
 ### Phase 11: Database API ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -162,6 +174,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for database API
 
 ### Phase 12: Integration Tests ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -174,6 +187,7 @@ This document details all of the features that must be implemented for release 1
 - [x] In-memory database test
 
 ### Phase 13: WHERE Clause Implementation ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -188,6 +202,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for WHERE clause
 
 ### Phase 14: JOIN Operations ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -200,6 +215,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for JOINs
 
 ### Phase 15: Aggregate Functions ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -213,6 +229,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for aggregates
 
 ### Phase 16: GROUP BY and ORDER BY ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -227,6 +244,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for sorting and grouping
 
 ### Phase 17: Indexing System ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -243,6 +261,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for indexing
 
 ### Phase 18: Configuration and Logging ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -258,6 +277,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for config and logging
 
 ### Phase 19: Query Optimizer ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -271,6 +291,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for optimizer
 
 ### Phase 20: ORM Layer ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -283,6 +304,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for ORM
 
 ### Phase 21: RBAC (Permissions) ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -297,6 +319,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Unit tests for permissions
 
 ### Phase 22: Security Testing ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -308,6 +331,7 @@ This document details all of the features that must be implemented for release 1
 - [x] Security audit documentation
 
 ### Phase 23: C API Compatibility ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -318,10 +342,11 @@ This document details all of the features that must be implemented for release 1
 - [x] sqlite3_prepare_v2 implementation
 - [x] Error code mapping
 - [x] Memory management (C-compatible)
-- [x] Feature gate (capi feature)
+- [x] Feature gate (cabi feature)
 - [x] Integration tests with C code
 
 ### Phase 24: Server Mode Foundation ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -338,61 +363,67 @@ This document details all of the features that must be implemented for release 1
 - [x] Basic integration tests
 
 ### Phase 25: Server Mode Enhancements ✅
+
 **Status**: Complete
 **Completion**: 100%
 
 #### Authentication Enhancements
+
 - [x] OAuth provider integration
-  - [x] OAuth 2.0 flow implementation
-  - [x] Provider registration (Google, GitHub, etc.)
-  - [x] Token exchange
-  - [x] User profile mapping
+    + [x] OAuth 2.0 flow implementation
+    + [x] Provider registration (Google, GitHub, etc.)
+    + [x] Token exchange
+    + [x] User profile mapping
 - [x] Custom authentication handlers
-  - [x] Plugin system for auth providers
-  - [x] Auth middleware abstraction
-  - [x] Documentation for custom auth
+    + [x] Plugin system for auth providers
+    + [x] Auth middleware abstraction
+    + [x] Documentation for custom auth
 - [x] Multi-factor authentication (MFA)
-  - [x] TOTP support
-  - [x] Backup codes
-  - [x] MFA enforcement policies
+    + [x] TOTP support
+    + [x] Backup codes
+    + [x] MFA enforcement policies
 
 #### TLS Configuration
+
 - [x] Advanced TLS 1.3 options
-  - [x] Client certificate authentication
-  - [x] Certificate validation policies
-  - [x] Cipher suite selection
-  - [x] Certificate rotation
+    + [x] Client certificate authentication
+    + [x] Certificate validation policies
+    + [x] Cipher suite selection
+    + [x] Certificate rotation
 - [x] Certificate management API
-  - [x] Certificate upload endpoint
-  - [x] Certificate renewal
-  - [x] Certificate revocation
+    + [x] Certificate upload endpoint
+    + [x] Certificate renewal
+    + [x] Certificate revocation
 
 #### Client Library
+
 - [x] Dedicated Rust client library
-  - [x] Connection management
-  - [x] Request builder
-  - [x] Response parsing
-  - [x] Error handling
+    + [x] Connection management
+    + [x] Request builder
+    + [x] Response parsing
+    + [x] Error handling
 - [x] Connection pooling
-  - [x] Pool configuration
-  - [x] Health checks
-  - [x] Connection reuse
+    + [x] Pool configuration
+    + [x] Health checks
+    + [x] Connection reuse
 - [x] Automatic reconnection
-  - [x] Retry logic
-  - [x] Exponential backoff
-  - [x] Circuit breaker pattern
+    + [x] Retry logic
+    + [x] Exponential backoff
+    + [x] Circuit breaker pattern
 
 #### Performance Optimizations
+
 - [x] Request batching
-  - [x] Batch API endpoint
-  - [x] Transaction batching
-  - [x] Response streaming
+    + [x] Batch API endpoint
+    + [x] Transaction batching
+    + [x] Response streaming
 - [x] Caching layer
-  - [x] Query result caching
-  - [x] Cache invalidation
-  - [x] Cache configuration
+    + [x] Query result caching
+    + [x] Cache invalidation
+    + [x] Cache configuration
 
 ### Phase 26: No-std Support ✅
+
 **Status**: Complete
 **Completion**: 100%
 
@@ -416,6 +447,7 @@ This document details all of the features that must be implemented for release 1
 - 🟢 Low - Future consideration
 
 ### Phase 27: Graph Data Structures 📋
+
 **Priority**: 🔴 Critical
 
 - [ ] Graph table type
@@ -427,6 +459,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Query syntax for graphs
 
 ### Phase 28: Advanced JOIN Types ✅
+
 **Status**: Complete
 **Completion**: 100%
 **Priority**: 🔴 Critical
@@ -442,6 +475,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Self-join optimization (deferred)
 
 ### Phase 29: Subquery Optimization 📋
+
 **Priority**: 🔴 Critical
 
 - [ ] Subquery flattening
@@ -452,6 +486,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Unit tests for subqueries
 
 ### Phase 30: Write-Ahead Logging (WAL) 📋
+
 **Priority**: 🔴 Critical
 
 - [ ] WAL file format
@@ -463,6 +498,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Unit tests for WAL
 
 ### Phase 31: Async I/O 📋
+
 **Priority**: 🔴 Critical
 
 - [ ] Async file operations
@@ -474,6 +510,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Unit tests for async operations
 
 ### Phase 32: Stored Procedures 📋
+
 **Priority**: 🔴 Critical
 
 - [ ] Stored procedure syntax
@@ -485,6 +522,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Unit tests for procedures
 
 ### Phase 33: Triggers 📋
+
 **Priority**: 🔴 Critical
 
 - [ ] Trigger syntax (BEFORE/AFTER, INSERT/UPDATE/DELETE)
@@ -496,6 +534,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Unit tests for triggers
 
 ### Phase 34: Views 📋
+
 **Priority**: 🔴 Critical
 
 - [ ] View definition syntax
@@ -507,6 +546,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Unit tests for views
 
 ### Phase 35: Window Functions 📋
+
 **Priority**: 🔴 Critical
 
 - [ ] Window function syntax
@@ -518,6 +558,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Unit tests for window functions
 
 ### Phase 36: Extended Unicode Support 📋
+
 **Priority**: 🟠 High
 
 - [ ] Complete UTF-16 support
@@ -528,6 +569,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Unit tests for Unicode edge cases
 
 ### Phase 37: MVCC (Multi-Version Concurrency Control) 📋
+
 **Priority**: 🟠 High
 
 - [ ] Version chain structure
@@ -538,8 +580,8 @@ This document details all of the features that must be implemented for release 1
 - [ ] Serializable isolation level
 - [ ] Unit tests for MVCC
 
-
 ### Phase 38: JSON Support 📋
+
 **Priority**: 🟡 Medium
 
 - [ ] JSON column type
@@ -550,6 +592,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Unit tests for JSON
 
 ### Phase 39: Full-Text Search 📋
+
 **Priority**: 🟢 Low
 
 - [ ] FTS table type
@@ -561,6 +604,7 @@ This document details all of the features that must be implemented for release 1
 - [ ] Unit tests for FTS
 
 ### Phase 40: WASM Target 📋
+
 **Priority**: 🟢 Low
 
 - [ ] WASM compilation
@@ -615,13 +659,13 @@ This document details all of the features that must be implemented for release 1
 
 ## 🚀 Quick Start for Contributors
 
-### To Start Working on a Task:
+### To Start Working on a Task
 
 1. **Choose a task** from Current Phase or Planned Phases
 2. **Read related documentation**:
-   - IMPLEMENTATION_SUMMARY.md (this file)
-   - Relevant docs in /docs/design/
-   - Related source files
+   + IMPLEMENTATION_SUMMARY.md (this file)
+   + Relevant docs in /docs/design/
+   + Related source files
 3. **Review existing tests** to understand expected behavior
 4. **Write tests first** (TDD approach)
 5. **Implement the feature** following existing patterns
@@ -630,7 +674,7 @@ This document details all of the features that must be implemented for release 1
 8. **Update documentation** as needed
 9. **Update this TODO** to mark task complete
 
-### Development Environment Setup:
+### Development Environment Setup
 
 ```bash
 # Clone repository
@@ -669,4 +713,4 @@ cargo doc --open
 
 ---
 
-*This TODO is a living document and should be updated as work progresses.*
+_This TODO is a living document and should be updated as work progresses._

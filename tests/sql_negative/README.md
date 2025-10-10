@@ -17,132 +17,132 @@ These test files provide comprehensive coverage of:
 ### Syntax Errors
 
 -	**syntax_errors.sql** - Fundamental syntax violations
-	-	Missing keywords (SELECT, FROM, WHERE, etc.)
-	-	Incomplete statements
-	-	Mismatched parentheses
-	-	Extra tokens
-	-	Wrong keyword order
+   	+	Missing keywords (SELECT, FROM, WHERE, etc.)
+   	+	Incomplete statements
+   	+	Mismatched parentheses
+   	+	Extra tokens
+   	+	Wrong keyword order
 
 ### Invalid Identifiers
 
 -	**invalid_identifiers.sql** - Identifier-related errors
-	-	Empty identifiers
-	-	Invalid characters in names
-	-	Numeric-only table names
-	-	Reserved keywords used incorrectly
-	-	SQL injection in identifiers
+   	+	Empty identifiers
+   	+	Invalid characters in names
+   	+	Numeric-only table names
+   	+	Reserved keywords used incorrectly
+   	+	SQL injection in identifiers
 
 ### Type System Errors
 
 -	**type_errors.sql** - Data type violations
-	-	Invalid type names
-	-	Missing types
-	-	Wrong type syntax
-	-	Type mismatches
+   	+	Invalid type names
+   	+	Missing types
+   	+	Wrong type syntax
+   	+	Type mismatches
 
 ### Value Errors
 
 -	**malformed_values.sql** - Invalid value literals
-	-	Unclosed strings
-	-	Mismatched quotes
-	-	Missing commas
-	-	Empty value lists
-	-	Invalid escape sequences
+   	+	Unclosed strings
+   	+	Mismatched quotes
+   	+	Missing commas
+   	+	Empty value lists
+   	+	Invalid escape sequences
 
 ### Security Tests
 
 -	**injection_attempts.sql** - SQL injection attack patterns
-	-	Semicolon-based injection
-	-	Comment-based injection
-	-	UNION-based injection
-	-	Tautology attacks
-	-	Stacked queries
-	-	Time-based blind injection
-	-	Boolean-based blind injection
+   	+	Semicolon-based injection
+   	+	Comment-based injection
+   	+	UNION-based injection
+   	+	Tautology attacks
+   	+	Stacked queries
+   	+	Time-based blind injection
+   	+	Boolean-based blind injection
 
 ### Operation Errors
 
 -	**invalid_operations.sql** - Invalid SQL operations
-	-	Wrong statement structure
-	-	Missing required clauses
-	-	Invalid function names
-	-	Incomplete operations
-	-	Multiple table names without JOIN
+   	+	Wrong statement structure
+   	+	Missing required clauses
+   	+	Invalid function names
+   	+	Incomplete operations
+   	+	Multiple table names without JOIN
 
 ### Numeric Errors
 
 -	**numeric_errors.sql** - Number format violations
-	-	Multiple decimal points
-	-	Invalid numeric characters
-	-	Malformed scientific notation
-	-	Invalid negative numbers
+   	+	Multiple decimal points
+   	+	Invalid numeric characters
+   	+	Malformed scientific notation
+   	+	Invalid negative numbers
 
 ### Operator Errors
 
 -	**operator_errors.sql** - Operator misuse
-	-	Missing operands
-	-	Invalid operators
-	-	Double operators
-	-	Wrong operator placement
+   	+	Missing operands
+   	+	Invalid operators
+   	+	Double operators
+   	+	Wrong operator placement
 
 ### Aggregate Errors
 
 -	**aggregate_errors.sql** - Aggregate function violations
-	-	Missing parentheses
-	-	Empty aggregates
-	-	Invalid aggregate names
-	-	Wrong aggregate usage
+   	+	Missing parentheses
+   	+	Empty aggregates
+   	+	Invalid aggregate names
+   	+	Wrong aggregate usage
 
 ### JOIN Errors
 
 -	**join_errors.sql** - JOIN clause violations
-	-	Missing ON clause
-	-	Invalid JOIN types
-	-	Incomplete JOIN syntax
-	-	Missing table names
+   	+	Missing ON clause
+   	+	Invalid JOIN types
+   	+	Incomplete JOIN syntax
+   	+	Missing table names
 
 ### Constraint Violations
 
 -	**constraint_violations.sql** - Constraint syntax errors
-	-	Duplicate PRIMARY KEY
-	-	Invalid constraint syntax
-	-	Multiple PRIMARY KEY declarations
+   	+	Duplicate PRIMARY KEY
+   	+	Invalid constraint syntax
+   	+	Multiple PRIMARY KEY declarations
 
 ### Transaction Errors
 
 -	**transaction_errors.sql** - Transaction control violations
-	-	COMMIT without BEGIN
-	-	Invalid savepoint operations
-	-	Missing savepoint names
-	-	Malformed transaction statements
+   	+	COMMIT without BEGIN
+   	+	Invalid savepoint operations
+   	+	Missing savepoint names
+   	+	Malformed transaction statements
 
 ### Edge Cases
 
 -	**edge_cases.sql** - Boundary conditions and unusual inputs
-	-	Empty statements
-	-	Only whitespace
-	-	Very long identifiers
-	-	Deeply nested parentheses
-	-	Unicode and special characters
-	-	Zero-width characters
-	-	Multiple semicolons
+   	+	Empty statements
+   	+	Only whitespace
+   	+	Very long identifiers
+   	+	Deeply nested parentheses
+   	+	Unicode and special characters
+   	+	Zero-width characters
+   	+	Multiple semicolons
 
 ### Buffer Overflow Attempts
 
 -	**buffer_overflow_attempts.sql** - Stress testing with large inputs
-	-	Extremely long statements
-	-	Very long table/column names
-	-	Many columns
-	-	Deep nesting
-	-	Massive number of JOINs
+   	+	Extremely long statements
+   	+	Very long table/column names
+   	+	Many columns
+   	+	Deep nesting
+   	+	Massive number of JOINs
 
-### Quote Escaping Errors
+### Quote Escabing Errors
 
--	**quote_escaping_errors.sql** - String literal violations
-	-	Unescaped quotes
-	-	Mismatched quote types
-	-	Unclosed strings
-	-	Invalid escape sequences
+-	**quote_escabing_errors.sql** - String literal violations
+   	+	Unescaped quotes
+   	+	Mismatched quote types
+   	+	Unclosed strings
+   	+	Invalid escape sequences
 
 ## Usage
 

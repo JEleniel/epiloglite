@@ -3,66 +3,84 @@
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
 
-EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliability, and performance. Built with **100% safe Rust** (no `unsafe` code), it provides a drop-in compatible alternative to SQLite with modern Rust idioms.
+EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliability, and performance. The engine is built with **100% safe Rust** (no `unsafe` code). It also provides a drop-in compatible alternative to SQLite with modern Rust idioms (unsafe code is required for the "C" ABI).
+
+## 🎯 Goals
+
+EpilogLite aims to:
+
+1. Provide a **safe** alternative to SQLite using pure Rust
+2. Maintain **SQLite 3 compatibility** for existing databases
+3. Offer **modern Rust idioms** (builders, async, etc.)
+4. Support **all major platforms** (Windows, Linux, macOS, mobile, embedded)
+5. Achieve **high performance** without sacrificing safety
 
 ## ✨ Features
 
-### Currently Implemented
+### Core Database Operations
 
-#### Core Database Operations
-- ✅ **Full SQL Support** - CREATE TABLE, INSERT, SELECT, UPDATE, DELETE
-- ✅ **Disk Persistence** - Data automatically saves to and loads from files
-- ✅ **In-Memory Databases** - Fast `:memory:` mode for temporary data
-- ✅ **Transactions** - BEGIN, COMMIT, ROLLBACK, SAVEPOINT, RELEASE support
-- ✅ **Multiple Tables** - Create and manage multiple tables simultaneously
+- **Full ANSI and SQLite SQL Support** - CREATE TABLE, INSERT, SELECT, UPDATE, DELETE
+- **In-Memory and Disk Persistence** - Choose in-memory storage, on disk storage, or any combination of both, including disk backed memory.
+- **Transactions** - BEGIN, COMMIT, ROLLBACK, SAVEPOINT, RELEASE support
+- **SQLite 3 Compatability** - Read and write SQLite databasesm or use the drop in "C" ABI.
 
-#### Query Builder Pattern
-- ✅ **Fluent Interface** - Type-safe query construction
-- ✅ **SelectBuilder** - Build SELECT queries with WHERE, ORDER BY, LIMIT
-- ✅ **InsertBuilder** - Build INSERT statements with column specification
-- ✅ **UpdateBuilder** - Build UPDATE statements with SET clauses
-- ✅ **DeleteBuilder** - Build DELETE statements with conditions
-- ✅ **CreateTableBuilder** - Build CREATE TABLE with columns and constraints
+### Query Builders
 
-#### Type System
-- ✅ **17+ Native Rust Types** - Bool, I8-I128, U8-U128, F32/F64, String, Vec<u8>
-- ✅ **SQL Type Mapping** - INTEGER, TEXT, REAL, BLOB, BOOLEAN
-- ✅ **NULL Support** - Proper NULL value handling
-- ✅ **Type Checking** - Built-in type validation
+- **Fluent Interface** - Type-safe query construction
+- **SelectBuilder** - Build SELECT queries with WHERE, ORDER BY, LIMIT
+- **InsertBuilder** - Build INSERT statements with column specification
+- **UpdateBuilder** - Build UPDATE statements with SET clauses
+- **DeleteBuilder** - Build DELETE statements with conditions
+- **TableBuilder** - Build CREATE and ALTER TABLE with columns and constraints
 
-#### Architecture
-- ✅ **100% Safe Rust** - No unsafe code blocks
-- ✅ **Modular Design** - Clean separation of concerns
-- ✅ **Error Handling** - Comprehensive Result types
-- ✅ **Test Coverage** - 152 tests (124 unit + 18 adversarial + 10 integration)
-- ✅ **Security Tested** - SQL injection resistance, malformed input handling
-- ✅ **Idiomatic Rust** - Clippy-approved, modern patterns
-- ✅ **Type Safety** - ColumnType enum eliminates hardcoded strings
+### Type System
 
-### In Progress
-- 🚧 WHERE clause filtering
-- 🚧 JOIN operations
-- 🚧 Aggregate functions (COUNT, SUM, AVG, MIN, MAX)
-- 🚧 ORDER BY and GROUP BY implementation
-- 🚧 Index support
+- **17+ Native Rust Types** - Bool, Signed and Unsinged Integers, Floats, Unicode and ASCII Strings, Vec<T> for all numeric types.
+- **SQLite Type Mapping** - INTEGER, TEXT, REAL, BLOB, BOOLEAN
+- **NULL Support** - Proper NULL value handling
+- **Type Checking** - Built-in type validation
+- **Vector Support** - Support for Vector indexing and searches
+- **Type Safety** - ColumnType enum eliminates hardcoded strings
 
-#### Platform Support
-- ✅ **No-std Compatible** - Works without standard library for embedded systems
-- ✅ **In-memory Mode** - Available in no-std environments
-- ✅ **Custom Allocators** - Bring your own allocator support
+### Architecture
 
-### Planned
-- 📋 Unicode 16 support
-- 📋 Graph data structures
-- 📋 Role-based permissions
-- 📋 Lightweight ORM
-- 📋 REST/GraphQL API
-- 📋 SQLite C API compatibility
-- 📋 Embedded VFS for flash storage
+- **Multi-Modal Data** - Supports both Tabular and Graph data models, or combinations; Rows are nodes and can be linked.
+- **100% Safe Idiomatic Rust** - Clippy-approved, modern patterns with no unsafe code blocks outside the "C" ABI
+- **Modular Design** - Clean separation of concerns
+- **Error Handling** - Comprehensive Result types
+- **Security Tested** - SQL injection resistance, malformed input handling
+- **Comprehensive Error Handling** - All errors properly handled
+- **No Panics** - Graceful error returns
+- **Memory Safe** - Rust's ownership system prevents common bugs
+- **Thread Safe** - Designed for concurrent access
 
-## 🚀 Quick Start
+### Roadmap
 
-### Installation
+- WHERE clause filtering
+- JOIN operations
+- Aggregate functions (COUNT, SUM, AVG, MIN, MAX)
+- ORDER BY and GROUP BY implementation
+- Index support
+- Unicode 16 support
+- Graph data structures
+- Role-based permissions
+- Lightweight ORM
+- REST/GraphQL API
+- SQLite C API compatibility
+- Embedded VFS for flash storage
+
+## 🚀 Usage
+
+### Feature Flags
+
+- ✅ **Default** - By default the "std" and "async" features are enabled.
+- **std** - Enables use of the standard libraries.
+- **async** - Enables the "async" traits for plugins and extensions.
+- **cabi** - Enables the "C" ABI. Requires "std".
+- **server** - Enables a complete, standalone server. Requires "std" and "async".
+- **no-std** - Disable the standard library for embedded systems. Not compatible with "server" or "cabi" features.
+
+### As a Library
 
 Add to your `Cargo.toml`:
 
@@ -71,7 +89,7 @@ Add to your `Cargo.toml`:
 epiloglite = "0.1"
 ```
 
-### Basic Usage
+#### Basic Usage
 
 ```rust
 use epiloglite::{Database, ExecutionResult, Result};
@@ -112,7 +130,7 @@ fn main() -> Result<()> {
 }
 ```
 
-### Query Builder Pattern
+#### Query Builders
 
 ```rust
 use epiloglite::{Database, SelectBuilder, InsertBuilder, UpdateBuilder, Result};
@@ -160,7 +178,7 @@ fn main() -> Result<()> {
 }
 ```
 
-### In-Memory Database
+#### In-Memory Database
 
 ```rust
 use epiloglite::{Database, Result};
@@ -209,7 +227,7 @@ fn main() -> Result<(), epiloglite::Error> {
 
 See `docs/NO_STD.md` for detailed documentation and `examples/embedded/` for more examples.
 
-## 📚 Examples
+### 📚 Examples
 
 The `examples/` directory contains several examples:
 
@@ -227,27 +245,6 @@ cargo run --example savepoint_example
 
 # No-std build (won't run but demonstrates compilation)
 cargo build --example no_std_basic --no-default-features --features no-std
-```
-
-## 🏗️ Architecture
-
-EpilogLite follows a modular architecture:
-
-```
-eplite/
-├── command/         # SQL parsing and execution
-│   ├── tokenizer    # Lexical analysis
-│   ├── parser       # Syntax analysis
-│   ├── processor    # Query execution
-│   └── virtual_machine # Bytecode VM
-├── persistence/     # Storage engine
-│   ├── pager        # Page cache management
-│   ├── btree        # B-tree implementation
-│   └── header       # Database header
-├── storage/         # Table and row management
-├── query_builder/   # Fluent query interface
-├── os/              # OS abstraction layer
-└── types/           # Type system
 ```
 
 ## 🧪 Testing
@@ -268,33 +265,12 @@ cargo test -- --nocapture
 
 Current test coverage: **93 tests passing** (88 unit + 5 integration)
 
-## 📖 Documentation
+## 📖 Additional Documentation
 
-- [Architecture](design/ARCHITECTURE.md) - System architecture overview
-- [File Format](design/FILEFORMAT.md) - Database file format specification
-- [Virtual Machine](design/VIRTUALMACHINE.md) - Bytecode execution engine
-- [C/C++ Interface](design/C-CPP-Interface.md) - C API design (planned)
-- [Status](STATUS.md) - Current implementation status
-- [Contributing](CONTRIBUTING.md) - Contribution guidelines
-- [Changelog](CHANGELOG.md) - Version history
-
-## 🔒 Safety & Security
-
-- **100% Safe Rust** - No `unsafe` blocks anywhere
-- **Comprehensive Error Handling** - All errors properly handled
-- **No Panics** - Graceful error returns
-- **Memory Safe** - Rust's ownership system prevents common bugs
-- **Thread Safe** - Designed for concurrent access
-
-## 🎯 Goals
-
-EpilogLite aims to:
-
-1. Provide a **safe** alternative to SQLite using pure Rust
-2. Maintain **SQLite 3 compatibility** for existing databases
-3. Offer **modern Rust idioms** (builders, async, etc.)
-4. Support **all major platforms** (Windows, Linux, macOS, mobile, embedded)
-5. Achieve **high performance** without sacrificing safety
+- [Architecture](docs/design/ARCHITECTURE.md) - System architecture overview
+- [File Format](docs/design/FILEFORMAT.md) - Database file format specification
+- [Virtual Machine](docs/design/VIRTUALMACHINE.md) - Bytecode execution engine
+- [C/C++ Interface](docs/design/C-CPP-Interface.md) - C API design (planned)
 
 ## 🤝 Contributing
 
@@ -302,15 +278,14 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
 
 ## 📄 License
 
-EpilogLite is licensed under the LGPL-3.0-only license.
-
-Copyright (C) 2024 Tony M. Bishop
+Copyright &copy; 2025 JEleniel and licensed under the [GNU General Public License 3.0 or later](LICENSE.md) license.
 
 ## 🙏 Acknowledgments
 
 - SQLite project for the original design and inspiration
 - Rust community for excellent tooling and libraries
+- Shields.io for the badges
 
 ## 📬 Contact
 
-For questions, issues, or contributions, please use GitHub Issues.
+For questions, issues, or contributions, please use GitHub Discussions or Issues.

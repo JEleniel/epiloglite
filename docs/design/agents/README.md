@@ -14,9 +14,11 @@ This directory contains documentation specifically for AI agents and automated t
 ## Document Index
 
 ### IMPLEMENTATION_SUMMARY.md
-**Purpose**: High-level overview of current implementation  
-**Last Updated**: December 2024  
+
+**Purpose**: High-level overview of current implementation
+**Last Updated**: December 2024
 **Contents**:
+
 - Architecture overview
 - Module status (complete/in-progress/planned)
 - Test coverage statistics
@@ -26,9 +28,11 @@ This directory contains documentation specifically for AI agents and automated t
 **Read this first** to understand what's implemented and what's not.
 
 ### CODE_REVIEW_2024.md
-**Purpose**: Comprehensive code quality review and analysis  
-**Date**: December 2024  
+
+**Purpose**: Comprehensive code quality review and analysis
+**Date**: December 2024
 **Contents**:
+
 - Critical issues fixed (compilation errors, test failures)
 - Code quality analysis (92 clippy warnings)
 - Unimplemented features detailed analysis
@@ -38,9 +42,11 @@ This directory contains documentation specifically for AI agents and automated t
 **Read this** to understand code quality status and priorities.
 
 ### TODO.md
-**Purpose**: Phased development plan and task prioritization  
-**Last Updated**: Ongoing  
+
+**Purpose**: Phased development plan and task prioritization
+**Last Updated**: Ongoing
 **Contents**:
+
 - Current phase tasks
 - Planned phases
 - Feature-by-feature checklist
@@ -50,8 +56,10 @@ This directory contains documentation specifically for AI agents and automated t
 **Use this** to pick tasks and track progress.
 
 ### SUBQUERY_OPTIMIZATION.md
-**Purpose**: Technical guidance on subquery implementation  
+
+**Purpose**: Technical guidance on subquery implementation
 **Contents**:
+
 - Optimization strategies
 - Implementation approaches
 - Performance considerations
@@ -61,6 +69,7 @@ This directory contains documentation specifically for AI agents and automated t
 ## Current Project Status
 
 **As of December 2024**:
+
 - ✅ **Compilation**: Success (no errors)
 - ✅ **Tests**: 289/289 passing (100%)
 - ⚠️  **Code Quality**: 92 clippy warnings
@@ -71,6 +80,7 @@ This directory contains documentation specifically for AI agents and automated t
 ## Key Facts for Agents
 
 ### What Works Well
+
 - SQL parsing (comprehensive support)
 - CRUD operations (full implementation)
 - Transactions (BEGIN/COMMIT/ROLLBACK/SAVEPOINT)
@@ -80,6 +90,7 @@ This directory contains documentation specifically for AI agents and automated t
 - Tests (100% pass rate)
 
 ### What Needs Work
+
 - Virtual machine (opcodes not implemented)
 - Code generator (stub only)
 - Graph storage (parser done, execution stub)
@@ -88,6 +99,7 @@ This directory contains documentation specifically for AI agents and automated t
 - Code quality (clippy warnings)
 
 ### What's Not Started
+
 - No-std mode
 - Extended Unicode 16
 - Advanced JOIN types (FULL OUTER, CROSS)
@@ -131,7 +143,7 @@ cargo fmt
 
 ## Code Quality Standards
 
-- **Safety**: 100% safe Rust (except optional capi module)
+- **Safety**: 100% safe Rust (except optional cabi module)
 - **Tests**: All features must have tests
 - **Documentation**: Public APIs must have doc comments
 - **Style**: Follow Rust conventions (tabs, not spaces)
@@ -158,6 +170,7 @@ SQL Text → Tokenizer → Parser → Processor → Storage → Disk
 ```
 
 Key principles:
+
 - Separation of concerns
 - Type-safe APIs
 - Result-based error handling
@@ -167,6 +180,7 @@ Key principles:
 ## Performance Considerations
 
 When making changes:
+
 - Consider cache locality
 - Avoid unnecessary allocations
 - Use `&[u8]` instead of `&Vec<u8>`
@@ -176,6 +190,7 @@ When making changes:
 ## Security Considerations
 
 When adding features:
+
 - Validate all inputs
 - Check for SQL injection vectors
 - Implement bounds checking
@@ -185,6 +200,7 @@ When adding features:
 ## Getting Help
 
 If you need clarification:
+
 1. Read the relevant design document in `/docs/design/`
 2. Check existing code for patterns
 3. Look at tests for examples
@@ -193,6 +209,7 @@ If you need clarification:
 ## Updating This Directory
 
 When updating these documents:
+
 - Keep IMPLEMENTATION_SUMMARY.md current with module status
 - Update TODO.md as tasks complete
 - Add new reviews as CODE_REVIEW_YYYY.md
@@ -200,5 +217,5 @@ When updating these documents:
 
 ---
 
-**Last Updated**: December 2024  
+**Last Updated**: December 2024
 **Maintained By**: AI Agents and Contributors

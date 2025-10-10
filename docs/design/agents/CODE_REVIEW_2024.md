@@ -1,8 +1,8 @@
 # EpilogLite Senior Code Review - December 2024
 
-**Reviewer**: Senior Code Review Agent  
-**Date**: December 2024  
-**Commit**: aa3de40  
+**Reviewer**: Senior Code Review Agent
+**Date**: December 2024
+**Commit**: aa3de40
 **Status**: Compilation Successful, All Tests Passing, Clippy Warnings Present
 
 ## Executive Summary
@@ -16,7 +16,7 @@ The EpilogLite project has been reviewed for code quality, completeness, and con
 - ✅ **No compilation errors**
 - ⚠️  **92 clippy warnings** (code quality improvements needed)
 - ⚠️  **9 unused code warnings** (dead code)
-- ⚠️  **Unsafe code policy conflict** in capi module
+- ⚠️  **Unsafe code policy conflict** in cabi module
 
 ---
 
@@ -29,6 +29,7 @@ The EpilogLite project has been reviewed for code quality, completeness, and con
 The following syntax errors were found and fixed:
 
 #### parser.rs
+
 - Missing closing brace in `CallProcedureStatement` struct (line 235)
 - Missing closing brace in `test_parse_drop_trigger` function (line 2106)
 - Missing closing brace in `parse_create_view` function (line 856)
@@ -36,10 +37,12 @@ The following syntax errors were found and fixed:
 - Duplicate match statements in `parse_create` function (lines 723-737)
 
 #### processor.rs
+
 - Missing closing brace in `DropTrigger` statement handler (line 279)
 - Missing closing brace in `DropView` statement handler (line 272)
 
 #### storage.rs
+
 - Missing closing brace in `drop_view` method (line 536)
 
 ### 2. Duplicate Code (FIXED ✓)
@@ -55,16 +58,16 @@ The following syntax errors were found and fixed:
 **Impact**: High - Tests would fail
 
 - Missing `Serialize` and `Deserialize` derives on statement structs:
-  - `DropViewStatement`
-  - `CreateTriggerStatement`
-  - `DropTriggerStatement`
-  - `CreateGraphStatement`
-  - `DropGraphStatement`
-  - `AddNodeStatement`
-  - `AddEdgeStatement`
-  - `MatchPathStatement`
-  - `PathAlgorithm`
-  - `TriggerAction`
+    + `DropViewStatement`
+    + `CreateTriggerStatement`
+    + `DropTriggerStatement`
+    + `CreateGraphStatement`
+    + `DropGraphStatement`
+    + `AddNodeStatement`
+    + `AddEdgeStatement`
+    + `MatchPathStatement`
+    + `PathAlgorithm`
+    + `TriggerAction`
 
 - Missing `execute_trigger_actions` method in Processor
 - Missing GRAPH support in `parse_create` function
@@ -74,6 +77,7 @@ The following syntax errors were found and fixed:
 **Impact**: Medium - Indicates incorrect expectations
 
 Fixed 5 failing graph-related tests with incorrect quote handling expectations:
+
 - `test_parse_create_graph`
 - `test_parse_add_node`
 - `test_parse_add_node_with_properties`
@@ -102,6 +106,7 @@ Fixed 5 failing graph-related tests with incorrect quote handling expectations:
 ### Most Impactful Warnings
 
 #### 1. Performance Issues
+
 ```rust
 // 3 instances of inefficient iter().cloned().collect()
 // Should use .to_vec() instead
@@ -109,12 +114,14 @@ row.iter().cloned().collect()  // processor.rs
 ```
 
 #### 2. String Operations
+
 ```rust
 // 6 instances of push_str() with single character
 expr.push_str("(");  // Should be: expr.push('(')
 ```
 
 #### 3. Dead Code (Never Used)
+
 - `Value` struct and all its methods (types.rs)
 - `Index` struct (types/index.rs)
 - `Constraint` struct (types/index.rs)
@@ -130,7 +137,7 @@ expr.push_str("(");  // Should be: expr.push('(')
 
 ### Issue
 
-The project has `unsafe_code = "forbid"` in `Cargo.toml`, but the `capi` module (C API compatibility layer) requires unsafe code for FFI operations. This creates a fundamental conflict:
+The project has `unsafe_code = "forbid"` in `Cargo.toml`, but the `cabi` module (C API compatibility layer) requires unsafe code for FFI operations. This creates a fundamental conflict:
 
 ```toml
 [lints.rust]
@@ -138,37 +145,40 @@ unsafe_code = "forbid"  # Package-level forbid
 ```
 
 ```rust
-// src/capi.rs - Cannot override forbid with allow
+// src/cabi.rs - Cannot override forbid with allow
 #[no_mangle]
 pub unsafe extern "C" fn sqlite3_open(...) { }  // ERROR
 ```
 
 ### Impact
 
-- ✅ Normal build works (capi is optional, default features don't include it)
+- ✅ Normal build works (cabi is optional, default features don't include it)
 - ❌ `cargo clippy --all-features` fails with 17 errors
-- ❌ Cannot compile capi feature with tests
+- ❌ Cannot compile cabi feature with tests
 
 ### Solutions
 
 **Option 1: Keep Current State** (Recommended)
-- Document that capi feature is incompatible with forbid lint
-- Only enable capi in production builds, not during development/testing
+
+- Document that cabi feature is incompatible with forbid lint
+- Only enable cabi in production builds, not during development/testing
 - Keep the safety guarantee for 99% of the codebase
 
 **Option 2: Change to Deny**
+
 ```toml
 [lints.rust]
 unsafe_code = "deny"  # Allows module-level overrides
 ```
 
-**Option 3: Remove capi Module**
+**Option 3: Remove cabi Module**
+
 - Removes C API compatibility entirely
 - Maintains 100% safe Rust
 
 ### Current State
 
-The capi module remains as-is with a documentation comment explaining the conflict. No code changes made pending architectural decision.
+The cabi module remains as-is with a documentation comment explaining the conflict. No code changes made pending architectural decision.
 
 ---
 
@@ -235,6 +245,7 @@ Based on code analysis and documentation review:
 **Status**: Structure defined, implementation minimal
 
 When compiled with `--features server`:
+
 - ✅ REST API structure (Axum routes)
 - ✅ GraphQL schema definitions
 - ✅ TLS configuration structures
@@ -261,11 +272,11 @@ When compiled with `--features server`:
 - **Total Tests**: 289
 - **Pass Rate**: 100%
 - **Test Organization**:
-  - Unit tests: 229 (co-located with code)
-  - Adversarial tests: 18 (security)
-  - Integration tests: 17 (database operations)
-  - Stored procedure tests: 16
-  - WAL tests: 9
+    + Unit tests: 229 (co-located with code)
+    + Adversarial tests: 18 (security)
+    + Integration tests: 17 (database operations)
+    + Stored procedure tests: 16
+    + WAL tests: 9
 
 ### Coverage by Module
 
@@ -342,6 +353,7 @@ Located in `examples/` directory:
 ### Recommendation
 
 Add examples for:
+
 - Query builder usage
 - Transaction handling
 - View creation and usage
@@ -355,6 +367,7 @@ Add examples for:
 ### Dependency Health
 
 All dependencies are:
+
 - ✅ Actively maintained
 - ✅ Compatible licenses (LGPL-3.0-compatible)
 - ✅ Reasonable version ranges
@@ -378,7 +391,7 @@ All dependencies are:
 
 ### Positive Security Measures
 
-1. ✅ **100% Safe Rust** (except optional capi)
+1. ✅ **100% Safe Rust** (except optional cabi)
 2. ✅ **18 adversarial tests** for SQL injection and edge cases
 3. ✅ **Input validation** in parser
 4. ✅ **RBAC implementation** for permissions
@@ -435,7 +448,7 @@ All dependencies are:
 2. **Remove dead code** or document as planned features
 3. **Update PROGRESS_SUMMARY.md** - Correct test counts and completion %
 4. **Add rustfmt.toml** - Enforce formatting rules
-5. **Document unsafe code policy** - Clarify capi module status
+5. **Document unsafe code policy** - Clarify cabi module status
 
 ### Short Term (Next Sprint)
 
