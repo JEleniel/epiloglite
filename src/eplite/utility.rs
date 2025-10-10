@@ -1,5 +1,4 @@
 /// Utility functions for string handling, type conversion, etc.
-use crate::eplite::error::{Error, Result};
 
 #[cfg(not(feature = "std"))]
 use alloc::{
@@ -23,31 +22,9 @@ pub fn is_valid_identifier(s: &str) -> bool {
     chars.all(|c| c.is_alphanumeric() || c == '_')
 }
 
-/// Parse an integer from a string
-pub fn parse_int(s: &str) -> Result<i64> {
-    s.parse::<i64>()
-        .map_err(|_| Error::TypeMismatch(format!("Cannot parse '{}' as integer", s)))
-}
-
-/// Parse a float from a string
-pub fn parse_float(s: &str) -> Result<f64> {
-    s.parse::<f64>()
-        .map_err(|_| Error::TypeMismatch(format!("Cannot parse '{}' as float", s)))
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    #[test]
-    fn test_to_uppercase() {
-        assert_eq!(to_uppercase("hello"), "HELLO");
-    }
-
-    #[test]
-    fn test_to_lowercase() {
-        assert_eq!(to_lowercase("WORLD"), "world");
-    }
+    use crate::eplite::utility::is_valid_identifier;
 
     #[test]
     fn test_is_valid_identifier() {
@@ -57,19 +34,5 @@ mod tests {
         assert!(!is_valid_identifier("123invalid"));
         assert!(!is_valid_identifier(""));
         assert!(!is_valid_identifier("with-dash"));
-    }
-
-    #[test]
-    fn test_parse_int() {
-        assert_eq!(parse_int("42").unwrap(), 42);
-        assert_eq!(parse_int("-100").unwrap(), -100);
-        assert!(parse_int("not a number").is_err());
-    }
-
-    #[test]
-    fn test_parse_float() {
-        assert_eq!(parse_float("3.14").unwrap(), 3.14);
-        assert_eq!(parse_float("-2.5").unwrap(), -2.5);
-        assert!(parse_float("not a number").is_err());
     }
 }
