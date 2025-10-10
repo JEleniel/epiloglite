@@ -137,7 +137,7 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "strum",
+ "strum 0.26.3",
  "syn",
  "thiserror 1.0.69",
 ]
@@ -722,27 +722,26 @@ dependencies = [
 
 [[package]]
 name = "epiloglite"
-version = "0.1.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "async-trait",
  "bincode",
  "chrono",
  "config",
- "fern",
  "flagset",
  "log",
  "logos",
- "lowlevel-types",
  "regex",
  "serde",
  "serde_json",
+ "strum 0.27.2",
  "thiserror 2.0.17",
  "tokio",
 ]
 
 [[package]]
 name = "epiloglite-server"
-version = "0.1.0"
+version = "1.0.0-alpha.1"
 dependencies = [
  "async-graphql",
  "async-graphql-axum",
@@ -1305,16 +1304,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lowlevel-types"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ea3b8341bdda018760822a9cca0c56c6a93efbc034d87fad58409fdc5da7fa3"
-dependencies = [
- "serde",
- "serde_test",
-]
-
-[[package]]
 name = "matchit"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1869,15 +1858,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_test"
-version = "1.0.177"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f901ee573cab6b3060453d2d5f0bae4e6d628c23c0a962ff9b5f1d7c8d4f1ed"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "serde_urlencoded"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1984,7 +1964,16 @@ version = "0.26.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fec0f0aef304996cf250b31b5a10dee7980c85da9d759361292b8bca5a18f06"
 dependencies = [
- "strum_macros",
+ "strum_macros 0.26.4",
+]
+
+[[package]]
+name = "strum"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af23d6f6c1a224baef9d3f61e287d2761385a5b88fdab4eb4c6f11aeb54c4bcf"
+dependencies = [
+ "strum_macros 0.27.2",
 ]
 
 [[package]]
@@ -1997,6 +1986,18 @@ dependencies = [
  "proc-macro2",
  "quote",
  "rustversion",
+ "syn",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7695ce3845ea4b33927c055a39dc438a45b059f7c1b3d91d38d10355fb8cbca7"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
  "syn",
 ]
 

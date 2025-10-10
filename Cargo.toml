@@ -1,20 +1,20 @@
 [package]
 name = "epiloglite"
-version = { workspace = true }
-edition = { workspace = true }
+version.workspace = true
+edition.workspace = true
 description = "EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliability, and performance. It provides a drop-in compatible alternative to SQLite with modern Rust idioms."
-license = { workspace = true }
-keywords = { workspace = true }
-categories = { workspace = true }
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [workspace]
 resolver = "3"
 members = [".", "server"]
 
 [workspace.package]
-version = "0.1.0"
+version = "1.0.0-alpha.1"
 edition = "2024"
-license = "GPL-3.0-or-later"
+license = "MIT or Apache 2.0"
 keywords = ["database", "relational", "sql", "sqlite"]
 categories = ["database-implementations"]
 
@@ -36,6 +36,7 @@ regex = { version = "1.11" }
 rustls = { version = "0.23" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
+strum = { version = "0.27.2", features = ["derive"] }
 thiserror = { version = "2.0" }
 tokio = { version = "1", features = ["full"] }
 tokio-rustls = { version = "0.26" }
@@ -43,6 +44,7 @@ tower = { version = "0.4" }
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 
 [workspace.lints.rust]
+missing_documentation = "warn"
 unsafe_code = "deny"
 
 [lib]
@@ -50,20 +52,19 @@ name = "epiloglite"
 path = "src/lib.rs"
 
 [dependencies]
-async-trait = { workspace = true }
-bincode = { workspace = true }  # TODO swap for serde-binary-adv
-chrono = { workspace = true }
-config = { workspace = true }
-fern = { workspace = true }
-flagset = { workspace = true }
-log = { workspace = true }
-logos = { workspace = true }
-lowlevel-types = "1.0.0"
-regex = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-thiserror = { workspace = true }
-tokio = { workspace = true }
+async-trait.workspace = true
+bincode.workspace = true  # TODO swap for serde-binary-adv
+chrono.workspace = true
+config.workspace = true
+flagset.workspace = true
+log.workspace = true
+logos.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+strum.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
 
 [features]
 default = ["std"]

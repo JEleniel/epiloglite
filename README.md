@@ -1,4 +1,4 @@
-# EpilogLite
+# EpilogLite™
 
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
@@ -276,9 +276,11 @@ Current test coverage: **93 tests passing** (88 unit + 5 integration)
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-## 📄 License
+## 📄 Legal
 
-Copyright &copy; 2025 JEleniel and licensed under the [GNU General Public License 3.0 or later](LICENSE.md) license.
+EpilogLite and EpilogServer are copyright &copy; 2025 JEleniel and licensed under either the [MIT License](LICENSE-MIT.md) or the [Apache 2.0 License](LICENSE-Apache.md), at the users discretion.
+
+The EpilogLite name, logo, and other presentational materials are trademarks of JEleniel and may not be used without express, written permission.
 
 ## 🙏 Acknowledgments
 

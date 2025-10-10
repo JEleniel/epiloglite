@@ -1,5 +1,4 @@
-mod traits;
-mod types;
+mod shared;
 
 pub mod command;
 pub mod database;
@@ -8,17 +7,20 @@ pub mod graph;
 pub mod index;
 pub mod optimizer;
 pub mod orm;
-pub mod os;
 pub mod permissions;
 pub mod persistence;
 pub mod query_builder;
 pub mod storage;
-pub mod utility;
 
 #[cfg(feature = "std")]
-pub mod config;
+pub mod databaseconfig;
 #[cfg(feature = "std")]
 pub mod logging;
+
+#[cfg(feature = "cabi")]
+pub mod capi;
+
+pub use shared::*;
 
 #[derive(Debug)]
 pub struct EPLite {}

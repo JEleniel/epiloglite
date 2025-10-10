@@ -1,11 +1,11 @@
-#![cfg_attr(not(feature = "std"), no_std)]
-
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 
 mod constants;
-pub mod eplite;
+mod os;
 mod semver;
+
+pub mod eplite;
 
 #[cfg(feature = "cabi")]
 pub mod cabi;
