@@ -1,26 +1,20 @@
-mod shared;
-
-pub mod command;
-pub mod database;
-pub mod error;
-pub mod graph;
-pub mod index;
-pub mod optimizer;
-pub mod orm;
-pub mod permissions;
+mod database;
+mod databaseconfig;
+mod objects;
+mod orm;
 pub mod persistence;
-pub mod query_builder;
-pub mod storage;
-
-#[cfg(feature = "std")]
-pub mod databaseconfig;
-#[cfg(feature = "std")]
-pub mod logging;
+mod shared;
+mod sql;
+pub mod sqlite;
 
 #[cfg(feature = "cabi")]
-pub mod capi;
+mod cabi;
 
+#[cfg(feature = "cabi")]
+pub use capi;
+
+pub use database::*;
+pub use databaseconfig::*;
+pub use objects::*;
 pub use shared::*;
-
-#[derive(Debug)]
-pub struct EPLite {}
+pub use sql::*;

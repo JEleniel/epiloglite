@@ -1,10 +1,11 @@
 //! Database file header parsing and serialization
-
-#[cfg(not(feature = "std"))]
-use alloc::{string::ToString, vec, vec::Vec};
 use thiserror::Error;
 
-use crate::{EPILOGLITE_VERSION, EPLITE_MAGIC_HEADER_V1, SQLITE_MAGIC_HEADER_V3, semver::SemVer};
+use crate::{
+    SemVer,
+    constants::{EPILOGLITE_VERSION, EPLITE_MAGIC_HEADER_V1, SQLITE_MAGIC_HEADER_V3},
+    persistence::{FileFormat, ReadWriteMode},
+};
 
 /// Database file header (first 100 bytes of the database file)
 #[derive(Debug, Clone)]
@@ -254,20 +255,6 @@ pub enum HeaderError {
     InvalidSchemaFormat(u32),
     #[error("Invalid version {0}")]
     InvalidVersion(String),
-}
-
-/// File formats
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum FileFormat {
-    SQLite3,
-    EpilogLite1,
-}
-
-/// Read and write modes
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ReadWriteMode {
-    Legacy,
-    WriteAheadLog,
 }
 
 impl TryFrom<u8> for ReadWriteMode {

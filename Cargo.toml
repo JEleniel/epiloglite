@@ -55,7 +55,6 @@ path = "src/lib.rs"
 async-trait.workspace = true
 bincode.workspace = true  # TODO swap for serde-binary-adv
 chrono.workspace = true
-config.workspace = true
 flagset.workspace = true
 log.workspace = true
 logos.workspace = true
@@ -67,13 +66,9 @@ thiserror.workspace = true
 tokio.workspace = true
 
 [features]
-default = ["std"]
+default = []
 # Enable the "C" ABI compatibility layer (requires std)
-cabi = ["std"]
-# Disable the standard library for embedded or no-std environments. Not currently compatible with the "C" ABI.
-no-std = []
-# The default configuration includes standard library.
-std = []
+cabi = []
 
 [lints]
 workspace = true

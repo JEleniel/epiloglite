@@ -1,9 +1,6 @@
-#[cfg(not(feature = "std"))]
-use alloc::{string::String, vec::Vec};
-
+//! EpilogLite column data types
 use serde::{Deserialize, Serialize};
 use strum::EnumString;
-use thiserror::Error;
 
 /// EpilogLite column data types
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumString)]
@@ -37,45 +34,12 @@ pub enum DataType {
     /// Rust `f64`, SQLite `REAL`
     F64,
     /// Rust String, SQLite `TEXT`
-    String,
+    String(Option<u64>),
     /// Rust `Vec<u8>` or `&[u8]`, SQLite `BLOB`
     ByteArray,
 }
 
 impl DataType {
-    /// Get the SQL type name
-    pub fn to_sql_type(&self) -> &'static str {
-        match self {
-            DataType::Null => "NULL",
-            DataType::Boolean => "BOOLEAN",
-            DataType::String => "TEXT",
-            DataType::ByteArray | DataType::I128 | DataType::U128 => "BLOB",
-            DataType::F32 | DataType::F64 => "REAL",
-            DataType::I8
-            | DataType::U8
-            | DataType::I16
-            | DataType::U16
-            | DataType::I32
-            | DataType::U32
-            | DataType::I64
-            | DataType::U64 => "INTEGER",
-        }
-    }
-
-    /// Parse a SQL type name into a ColumnType
-    pub fn try_from_sql_type(name: &str) -> Result<DataType, DataTypeError> {
-        Ok(match name.to_uppercase().as_str() {
-            "NULL" => DataType::Null,
-            "INTEGER" => DataType::I64,
-            "REAL" => DataType::F64,
-            "TEXT" => DataType::String,
-            "BLOB" => DataType::ByteArray,
-            _ => {
-                return Err(DataTypeError::InvalidSqlType(name.to_string()));
-            }
-        })
-    }
-
     /// Check if this is a numeric type
     pub fn is_numeric(&self) -> bool {
         self.is_integer() || self.is_float()
@@ -102,23 +66,34 @@ impl DataType {
     pub fn is_float(&self) -> bool {
         matches!(self, DataType::F32 | DataType::F64)
     }
-
-    /// Check if this is a text type
-    pub fn is_string(&self) -> bool {
-        matches!(self, DataType::String)
-    }
-
-    /// Check if this is a blob type
-    pub fn is_byte_array(&self) -> bool {
-        matches!(self, DataType::ByteArray)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Error)]
-pub enum DataTypeError {
-    #[error("Invalid SQLite type {0}")]
-    InvalidSqlType(String),
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    #[test]
+    fn test_is_numeric() {
+        use super::DataType;
+        assert!(DataType::I32.is_numeric());
+        assert!(DataType::F64.is_numeric());
+        assert!(!DataType::String(None).is_numeric());
+        assert!(!DataType::Null.is_numeric());
+    }
+
+    #[test]
+    fn test_is_integer() {
+        use super::DataType;
+        assert!(DataType::I32.is_integer());
+        assert!(!DataType::F64.is_integer());
+        assert!(!DataType::String(None).is_integer());
+        assert!(!DataType::Null.is_integer());
+    }
+
+    #[test]
+    fn test_is_float() {
+        use super::DataType;
+        assert!(DataType::F64.is_float());
+        assert!(!DataType::I32.is_float());
+        assert!(!DataType::String(None).is_float());
+        assert!(!DataType::Null.is_float());
+    }
+}

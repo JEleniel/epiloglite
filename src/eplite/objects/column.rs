@@ -1,21 +1,21 @@
-//! A column in a table
+//! A column in an EL table
+
+use crate::{DataType, eplite::sql::ConflictClause};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Column {
     name: String,
-    primary_key: bool,
-    primary_key_desc: bool,
-    pk_conflict_clause: String,
+    data_type: DataType,
     autoincrement: bool,
-    nullable: bool,
-    null_conflict_clause: String,
+    constraints: Vec<ColumnConstraint>,
+    default_value: Option<DefaultValue>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ColumnConstraint {
     PrimaryKey {
         desc: bool,
-        conflict_clause: String,
+        conflict_clause: ConflictClause,
     },
     Nullable {
         conflict_clause: String,

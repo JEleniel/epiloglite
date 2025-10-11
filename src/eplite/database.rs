@@ -1,12 +1,7 @@
 //! Database connection and management
 use std::io;
-use thiserror::Error;
-
-#[cfg(feature = "std")]
 use std::path::PathBuf;
-
-#[cfg(not(feature = "std"))]
-use alloc::string::{String, ToString};
+use thiserror::Error;
 
 /// A database instance with automatic connection pooling
 pub struct Database {
@@ -15,26 +10,29 @@ pub struct Database {
 
 impl Database {
     /// Open or create a database
-    #[cfg(feature = "std")]
-    pub fn open(path: PathBuf, create: bool) -> Result<Self, DatabaseError> {
+    pub fn open(path: &PathBuf, create: bool) -> Result<Self, DatabaseError> {
         use std::fs;
 
-        if !fs::exists(path.parent().unwrap()) {
+        if !fs::exists(path.parent().unwrap()).unwrap() {
             return Err(DatabaseError::FolderNotFound(
                 path.parent().unwrap().to_str().unwrap().to_string(),
             ));
         }
 
-        if fs::exists(path) {
-            todo!();
+        if fs::exists(path).unwrap() {
+            todo!()
         } else if create {
-            create(path)
+            Self::create_database(path)
         } else {
-            Err(DatabaseError::FileNotFound(path.to_str().to_string()));
-        };
+            Err(DatabaseError::FileNotFound(
+                path.to_str().unwrap().to_string(),
+            ))
+        }
     }
 
-    fn create(path: PathBuf) -> Self {}
+    fn create_database(path: &PathBuf) -> Result<Self, DatabaseError> {
+        todo!()
+    }
 
     /// Get the database file path
     pub fn path(&self) -> PathBuf {
@@ -42,7 +40,7 @@ impl Database {
     }
 
     /// Close the database connection
-    pub fn close(mut self) -> Result<()> {
+    pub fn close(mut self) -> Result<(), DatabaseError> {
         todo!();
     }
 }
@@ -56,5 +54,5 @@ pub enum DatabaseError {
     #[error("Insufficient permissions")]
     InsufficientPermissions,
     #[error("IO error {0:?}")]
-    IOError(io::Error),
+    IOError(String),
 }

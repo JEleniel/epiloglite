@@ -32,7 +32,7 @@ impl OperatingSystem {
             "android" => OperatingSystem::Android,
             "wasi" => OperatingSystem::WebAssembly,
             "openbsd" | "freebsd" | "netbsd" => OperatingSystem::BSD,
-            _ => return Err(OSError::UnsupportedOS(OS)),
+            _ => return Err(OSError::UnsupportedOS(OS.to_string())),
         })
     }
 }
@@ -47,12 +47,12 @@ pub enum Architecture {
 
 impl Architecture {
     pub fn identify() -> Result<Self, OSError> {
-        match ARCH {
+        Ok(match ARCH {
             "x86_64" => Architecture::x86_64,
             "arm" => Architecture::arm,
             "aarch64" => Architecture::aarch64,
-            _ => return Err(OSError::UnsupportedArchitecture(ARCH)),
-        }
+            _ => return Err(OSError::UnsupportedArchitecture(ARCH.to_string())),
+        })
     }
 }
 

@@ -1,10 +1,8 @@
 //! Configuration for EpilogLite
+
 use crate::{
-    DEFAULT_PAGE_SIZE,
-    eplite::persistence::{
-        header::{FileFormat, ReadWriteMode, TextEncoding},
-        vacuum::VacuumMode,
-    },
+    constants::DEFAULT_PAGE_SIZE,
+    persistence::{FileFormat, ReadWriteMode, TextEncoding, VacuumMode},
 };
 
 /// Database configuration
@@ -23,7 +21,7 @@ pub struct DatabaseConfig {
     /// Page cache size in number of pages
     pub page_cache_size: i32,
     /// Text encoding
-    pub text_encoding: String,
+    pub text_encoding: TextEncoding,
     /// Which vacuum mode to use
     pub vacuum_mode: VacuumMode,
 }

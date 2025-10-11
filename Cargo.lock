@@ -727,7 +727,6 @@ dependencies = [
  "async-trait",
  "bincode",
  "chrono",
- "config",
  "flagset",
  "log",
  "logos",
