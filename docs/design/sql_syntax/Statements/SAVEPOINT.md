@@ -8,7 +8,11 @@ title: SAVEPOINT
 # SAVEPOINT
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+---
+graph LR
 	st(( ))
 	semi(;)
 	stop(( ))

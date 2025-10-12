@@ -8,7 +8,11 @@ title: ROLLBACK TRANSACTION
 # ROLLBACK TRANSACTION
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+---
+graph LR
 	st(( ))
 	semi(;)
 	stop(( ))

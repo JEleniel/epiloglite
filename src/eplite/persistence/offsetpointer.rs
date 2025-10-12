@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use crate::CInt;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct FreeBlock {
-    next_free_block: u32,
-    num_free_bytes: u32,
+pub struct OffsetPointer {
+    pub page_number: CInt,
+    pub offset: CInt,
 }

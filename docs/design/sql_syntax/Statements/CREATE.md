@@ -1,6 +1,6 @@
 ---
 characters: [",", ";", ".", "(", ")"]
-expressions: [Column Definition, Expression, Module Argument, Table Constraint, Table Options]
+expressions: [Column Definition, Expression, Indexed Column, Module Argument, Table Constraint, Table Options]
 identifiers: [Column Name, Index Name, Module Name, Schema Name, Table Name, Trigger Name, View Name]
 keywords: [AFTER, AS, BEFORE, BEGIN, CREATE, EACH, END, EXISTS, FOR, IF, INDEX, INSTEAD, NOT, OF, ON, ROW, SELECT, TABLE, TEMP, TEMPORARY, TRIGGER, UNIQUE, USING, VIEW, VIRTUAL, WHEN, WHERE]
 statements: [DELETE, INSERT, SELECT, UPDATE]
@@ -10,7 +10,11 @@ title: CREATE
 # CREATE
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+---
+graph LR
 	st(( ))
 	semi(;)
 	stop(( ))
@@ -28,9 +32,9 @@ graph TB
 	index_name --> ON
 	ON --> index_table_name([Table Name])
 	index_table_name --> index_table_lparen("(")
-	index_table_lparen --> index_column_name([Column Name])
-	index_column_name -->|#quot;,#quot;| index_column_name
-	index_column_name --> index_table_rparen(")")
+	index_table_lparen --> index_column>Indexed Column]
+	index_column -->|#quot;,#quot;| index_column
+	index_column --> index_table_rparen(")")
 	index_table_rparen --> WHERE
 	index_table_rparen --> semi
 	WHERE --> expression>Expression]

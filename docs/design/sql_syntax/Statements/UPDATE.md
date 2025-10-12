@@ -1,7 +1,7 @@
 ---
 characters: [",", ";", "="]
-expressions: [Column Name List, Common Table Expression, Expression, Join Clause, Qualified Table Name, Returning Clause, Subquery]
-identifiers: [Column Name, Table Name]
+expressions: [Column Name List, Common Table Expression, Expression, Join Clause, Qualified Table Name, Returning Clause, Table or Subquery]
+identifiers: [Column Name]
 keywords: [ABORT, FAIL, FROM, IGNORE, OR, RECURSIVE, REPLACE, ROLLBACK, SET, UPDATE, WHERE, WITH]
 title: UPDATE
 ---
@@ -9,7 +9,11 @@ title: UPDATE
 # UPDATE
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+---
+graph LR
 	st(( ))
 	semi(;)
 	stop(( ))
@@ -40,8 +44,10 @@ graph TB
 	
 	SET --> column_name([Column Name])
 	SET --> column_name_list>Column Name List]
+	
 	column_name -->|#quot;=#quot;| column_expression>Expression]
 	column_name_list --> |#quot;=#quot;| column_expression
+	
 	column_expression -->|#quot;,#quot;| column_name
 	column_expression -->|#quot;,#quot;| column_name_list
 	column_expression --> FROM
@@ -49,27 +55,14 @@ graph TB
 	column_expression --> returning_clause>Returning Clause]
 	column_expression --> semi
 	
-	FROM --> schema_name([Schema Name])
-	FROM --> table_name([Table Name])
-	FROM --> subquery>Subquery]
+	FROM --> table_or_subquery>Table or Subquery]
 	FROM --> join_clause>Join Clause]
-	FROM --> returning_clause
 	
-	schema_name -->|#quot;.#quot;| table_name
-	table_name -->|#quot;,#quot;| schema_name
-	table_name -->|#quot;,#quot;| table_name
-	table_name -->|#quot;,#quot;| subquery
-	table_name --> WHERE
-	table_name --> returning_clause
-	table_name --> semi
-	
-	subquery -->|#quot;,#quot;| schema_name
-	subquery -->|#quot;,#quot;| table_name
-	subquery -->|#quot;,#quot;| subquery
-	subquery --> WHERE
-	subquery --> returning_clause
-	subquery --> semi
-	
+	table_or_subquery -->|#quot;,#quot;| table_or_subquery
+	table_or_subquery --> WHERE
+	table_or_subquery --> returning_clause
+	table_or_subquery --> semi
+		
 	join_clause --> WHERE
 	join_clause --> semi
 	

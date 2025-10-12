@@ -1,7 +1,7 @@
 ---
 characters: [",", ";", "(", ")"]
-expressions: [Common Table Expression, Compound Operator, Expression, Join Clause, Ordering Term, Window Definition]
-identifiers: [Column Name, Subquery, Table Name, Window Name]
+expressions: [Common Table Expression, Compound Operator, Expression, Join Clause, Ordering Term, Result Column, Table or Subquery, Window Definition]
+identifiers: [Window Name]
 keywords: [ALL, AS, BY, DISTINCT, FROM, GROUP, HAVING, LIMIT, OFFSET, ORDER, RECURSIVE, SELECT, VALUES, WHERE, WINDOW, WITH]
 title: SELECT
 ---
@@ -9,7 +9,11 @@ title: SELECT
 # SELECT
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+---
+graph LR
 	st(( ))
 	semi(;)
 	stop(( ))
@@ -58,22 +62,12 @@ graph TB
 	j6 --> LIMIT
 	j6 --> semi
 	
-	FROM --> from_schema_name[Schema Name]
-	FROM --> from_table_name[Table Name]
-	FROM --> from_subquery>Subquery]
+	FROM --> table_or_subquery>Table or Subquery]
 	FROM --> join_clause>Join Clause]
 
-	from_schema_name -->|#quot;,#quot;| from_table_name
 
-	from_table_name -->|#quot;,#quot;| from_schema_name
-	from_table_name -->|#quot;,#quot;| from_table_name
-	from_table_name -->|#quot;,#quot;| from_subquery
-	from_table_name --> j2
-
-	from_subquery -->|#quot;,#quot;| from_schema_name
-	from_subquery -->|#quot;,#quot;| from_table_name
-	from_subquery -->|#quot;,#quot;| from_subquery
-	from_subquery --> j2
+	table_or_subquery -->|#quot;,#quot;| table_or_subquery
+	table_or_subquery --> j2
 
 	join_clause --> j2
 	

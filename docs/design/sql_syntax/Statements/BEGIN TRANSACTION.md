@@ -7,7 +7,11 @@ title: BEGIN TRANSACTION
 # BEGIN TRANSACTION
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+---
+graph LR
 	st(( ))
 	semi(;)
 	stop(( ))

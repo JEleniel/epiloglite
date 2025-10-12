@@ -1,38 +1,47 @@
 ---
-characters: ["."]
-identifiers: [Alias, Index Name, Schema Name, Table Name]
-keywords: [AS, BY, INDEXED, NOT]
-title: Qualified Table Name
+characters: [","]
+keywords: [CROSS, FULL, INNER, JOIN, LEFT, NATURAL, OUTER, RIGHT]
+title: Join Operator
 ---
 
-# Qualified Table Name
+# Join Operator
 
 ```mermaid
 graph TB
 	st(( ))
 	stop(( ))
 
-	st --> schema_name([Schema Name])
-	st --> table_name([Table Name])
+	st -->|#quot;,#quot;| stop
+	st --> NATURAL
+	st --> CROSS
+	st --> j0((+))
+	st --> j1
+		
+	JOIN --> stop
 
-	schema_name -->|#quot;.#quot;| table_name
+	NATURAL --> j0
 
-	table_name --> AS
-	table_name --> j0((+))
+	j0 --> LEFT
+	j0 --> RIGHT
+	j0 --> FULL
+	j0 --> INNER
 
-	j0 --> indexed[INDEXED BY]
-	j0 --> not_indexed[NOT INDEXED]
-	j0 --> stop
+	LEFT --> OUTER
+	LEFT --> j1((+))
 
-	AS --> alias([Alias])
-	alias --> j0
+	RIGHT --> OUTER
+	RIGHT --> j1
 
-	indexed --> index_name([Index Name])
-	indexed --> stop
+	FULL --> OUTER
+	FULL --> j1
 
-	index_name --> stop
-	
-	not_indexed --> stop
+	OUTER --> j1
+
+	INNER --> j1
+
+	CROSS --> j1
+
+	j1 --> JOIN
 ```
 
 ## Used by
@@ -40,8 +49,7 @@ graph TB
 <!-- QueryToSerialize: TABLE WITHOUT ID split(file.path,"/")[length(split(file.path,"/"))-2] as Type, "[" + split(file.path,"/")[length(split(file.path,"/"))-2] + ": " + file.name + "](<" + replace(file.name," ","%20") + ">)" AS Element FROM "ba-Projects/EpilogLite/sql_syntax" WHERE contains(expressions, this.file.name) -->
 <!-- SerializedQuery: TABLE WITHOUT ID split(file.path,"/")[length(split(file.path,"/"))-2] as Type, "[" + split(file.path,"/")[length(split(file.path,"/"))-2] + ": " + file.name + "](<" + replace(file.name," ","%20") + ">)" AS Element FROM "ba-Projects/EpilogLite/sql_syntax" WHERE contains(expressions, this.file.name) -->
 
-| Type       | Element                        |
-| ---------- | ------------------------------ |
-| Statements | [Statements: UPDATE](<UPDATE>) |
-| Statements | [Statements: DELETE](<DELETE>) |
+| Type        | Element                                     |
+| ----------- | ------------------------------------------- |
+| Expressions | [Expressions: Join Clause](<Join%20Clause>) |
 <!-- SerializedQuery END -->

@@ -8,7 +8,11 @@ title: VACUUM
 # VACUUM
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+---
+graph LR
 	st(("B0"))
 	semi(((";")))
 	st --> VACUUM

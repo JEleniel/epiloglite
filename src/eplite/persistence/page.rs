@@ -3,17 +3,6 @@ use strum::FromRepr;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Page {
-    LockBytePage {
-        bytes: Vec<u8>,
-    },
-    FreelistTrunkPage {
-        next_trunk_page: Option<u32>,
-        num_leaf_pages: u32,
-        leaf_pages: Vec<u32>,
-    },
-    FreelistLeafPage {
-        bytes: Vec<u8>,
-    },
     BTreePage {
         page_tpye: BTreePageType,
         free_offset: u16,
@@ -25,12 +14,23 @@ pub enum Page {
         cell_contents: Vec<Vec<u8>>,
         reserved: Vec<u8>,
     },
+    FreelistTrunkPage {
+        next_trunk_page: Option<u32>,
+        num_leaf_pages: u32,
+        leaf_pages: Vec<u32>,
+    },
+    FreelistLeafPage {
+        bytes: Vec<u8>,
+    },
     OverflowPage {
         next_page: u32,
         data: Vec<u8>,
     },
     PointerMapPage {
         pointer_maps: Vec<PointerMap>,
+    },
+    LockBytePage {
+        bytes: Vec<u8>,
     },
 }
 

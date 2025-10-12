@@ -9,7 +9,11 @@ title: COMMIT or END TRANSACTION
 # COMMIT or END TRANSACTION
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+---
+graph LR
 	st(( ))
 	semi(;)
 	stop(( ))

@@ -1,7 +1,6 @@
 ---
-aliases: [COMMIT TRANSACTION]
 characters: [";"]
-keywords: [COMMIT, END, TRANSACTION]
+keywords: [COMMIT, TRANSACTION]
 linter-yaml-title-alias: COMMIT TRANSACTION
 title: COMMIT TRANSACTION
 ---
@@ -9,7 +8,11 @@ title: COMMIT TRANSACTION
 # COMMIT TRANSACTION
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+---
+graph LR
 	st(( ))
 	semi(;)
 	stop(( ))

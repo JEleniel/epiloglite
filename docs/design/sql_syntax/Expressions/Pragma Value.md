@@ -1,35 +1,23 @@
 ---
-characters: [",", "(", ")"]
-identifiers: [Column Name, Table Name]
-keywords: [AS, MATERIALIZED, NOT]
-statements: [Select Statement]
-title: Common Table Expression
+expressions: [Signed Literal, Signed Number]
+identifiers: [Name]
+title: Pragma Value
 ---
 
-# Common Table Expression
+# Pragma Value
 
 ```mermaid
 graph TB
 	st(( ))
 	stop(( ))
-	
-	st --> table_name([Table Name])
 
-	table_name -->|"#quot;(#quot;"| column_name([Column Name])
-	table_name --> AS
+	st --> signed_number>Signed Number]
+	st --> name([Name])
+	st --> signed_literal>Signed Literal]
 
-	column_name -->|#quot;,#quot;| column_name
-	column_name -->|"#quot;)#quot;"| AS
-
-	AS --> NOT
-	AS --> MATERIALIZED
-	AS -->|"#quot;(#quot;"| select_statement{{Select Statement}}
-
-	NOT --> MATERIALIZED
-
-	MATERIALIZED -->|"#quot;(#quot;"| select_statement{{Select Statement}}
-
-	select_statement -->|"#quot;)#quot;"| stop
+	signed_number --> stop
+	name --> stop
+	signed_literal --> stop
 ```
 
 ## Used by
@@ -39,9 +27,5 @@ graph TB
 
 | Type       | Element                        |
 | ---------- | ------------------------------ |
-| Statements | [Statements: INSERT](<INSERT>) |
-| Statements | [Statements: SELECT](<SELECT>) |
-| Statements | [Statements: UPDATE](<UPDATE>) |
-| Statements | [Statements: DELETE](<DELETE>) |
-
+| Statements | [Statements: PRAGMA](<PRAGMA>) |
 <!-- SerializedQuery END -->

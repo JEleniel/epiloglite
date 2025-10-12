@@ -1,38 +1,21 @@
 ---
-characters: ["."]
-identifiers: [Alias, Index Name, Schema Name, Table Name]
-keywords: [AS, BY, INDEXED, NOT]
-title: Qualified Table Name
+characters: ["-", "+"]
+expressions: [Numeric Literal]
+title: Signed Number
 ---
 
-# Qualified Table Name
+# Signed Number
 
 ```mermaid
 graph TB
 	st(( ))
 	stop(( ))
 
-	st --> schema_name([Schema Name])
-	st --> table_name([Table Name])
+	st -->|#quot;+#quot;| numeric_literal>Numeric Literal]
+	st -->|#quot;-#quot;| numeric_literal>Numeric Literal]
+	st --> numeric_literal
 
-	schema_name -->|#quot;.#quot;| table_name
-
-	table_name --> AS
-	table_name --> j0((+))
-
-	j0 --> indexed[INDEXED BY]
-	j0 --> not_indexed[NOT INDEXED]
-	j0 --> stop
-
-	AS --> alias([Alias])
-	alias --> j0
-
-	indexed --> index_name([Index Name])
-	indexed --> stop
-
-	index_name --> stop
-	
-	not_indexed --> stop
+	numneric_literal --> stop
 ```
 
 ## Used by
@@ -40,8 +23,7 @@ graph TB
 <!-- QueryToSerialize: TABLE WITHOUT ID split(file.path,"/")[length(split(file.path,"/"))-2] as Type, "[" + split(file.path,"/")[length(split(file.path,"/"))-2] + ": " + file.name + "](<" + replace(file.name," ","%20") + ">)" AS Element FROM "ba-Projects/EpilogLite/sql_syntax" WHERE contains(expressions, this.file.name) -->
 <!-- SerializedQuery: TABLE WITHOUT ID split(file.path,"/")[length(split(file.path,"/"))-2] as Type, "[" + split(file.path,"/")[length(split(file.path,"/"))-2] + ": " + file.name + "](<" + replace(file.name," ","%20") + ">)" AS Element FROM "ba-Projects/EpilogLite/sql_syntax" WHERE contains(expressions, this.file.name) -->
 
-| Type       | Element                        |
-| ---------- | ------------------------------ |
-| Statements | [Statements: UPDATE](<UPDATE>) |
-| Statements | [Statements: DELETE](<DELETE>) |
+| Type        | Element                                       |
+| ----------- | --------------------------------------------- |
+| Expressions | [Expressions: Pragma Value](<Pragma%20Value>) |
 <!-- SerializedQuery END -->

@@ -1,5 +1,5 @@
 ---
-regex: '"//[^\n]*"'
+regex: '"\-\-[^\n]*"'
 title: Single Line Comment
 ---
 
@@ -10,7 +10,7 @@ graph TB
 	st(( ))
 	stop(( ))
 
-	st --> open["//"]
+	st --> open["--"]
 	open --> not_nl[/"Not newline"\]
 	not_nl --> not_nl
 	not_nl --> close["newline or EOF"]

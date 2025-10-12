@@ -10,7 +10,11 @@ title: INSERT
 # INSERT
 
 ```mermaid
-graph TB
+---
+config:
+  layout: elk
+---
+graph LR
 	st(( ))
 	semi(;)
 	stop(( ))

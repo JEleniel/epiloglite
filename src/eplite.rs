@@ -1,5 +1,4 @@
 mod database;
-mod databaseconfig;
 mod objects;
 mod orm;
 pub mod persistence;
@@ -14,7 +13,6 @@ mod cabi;
 pub use capi;
 
 pub use database::*;
-pub use databaseconfig::*;
 pub use objects::*;
 pub use shared::*;
 pub use sql::*;

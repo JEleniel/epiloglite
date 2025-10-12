@@ -1,35 +1,29 @@
 ---
-characters: [",", "(", ")"]
-identifiers: [Column Name, Table Name]
-keywords: [AS, MATERIALIZED, NOT]
-statements: [Select Statement]
-title: Common Table Expression
+title: Result Column
 ---
 
-# Common Table Expression
+# Result Column
 
 ```mermaid
 graph TB
 	st(( ))
 	stop(( ))
-	
+
+	st --> expression>Expression]
+	st --> ast(*)
 	st --> table_name([Table Name])
 
-	table_name -->|"#quot;(#quot;"| column_name([Column Name])
-	table_name --> AS
+	expression --> AS
+	expression --> column_alias([Column Alias])
+	expression --> stop
 
-	column_name -->|#quot;,#quot;| column_name
-	column_name -->|"#quot;)#quot;"| AS
+	AS --> column_alias
 
-	AS --> NOT
-	AS --> MATERIALIZED
-	AS -->|"#quot;(#quot;"| select_statement{{Select Statement}}
+	column_alias --> stop
 
-	NOT --> MATERIALIZED
+	table_name -->|#quot;.#quot;| ast
 
-	MATERIALIZED -->|"#quot;(#quot;"| select_statement{{Select Statement}}
-
-	select_statement -->|"#quot;)#quot;"| stop
+	ast --> stop
 ```
 
 ## Used by
@@ -39,9 +33,5 @@ graph TB
 
 | Type       | Element                        |
 | ---------- | ------------------------------ |
-| Statements | [Statements: INSERT](<INSERT>) |
 | Statements | [Statements: SELECT](<SELECT>) |
-| Statements | [Statements: UPDATE](<UPDATE>) |
-| Statements | [Statements: DELETE](<DELETE>) |
-
 <!-- SerializedQuery END -->

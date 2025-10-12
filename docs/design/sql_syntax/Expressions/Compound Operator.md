@@ -1,35 +1,26 @@
 ---
-characters: [",", "(", ")"]
-identifiers: [Column Name, Table Name]
-keywords: [AS, MATERIALIZED, NOT]
-statements: [Select Statement]
-title: Common Table Expression
+title: Compound Operator
 ---
 
-# Common Table Expression
+# Compound Operator
 
 ```mermaid
 graph TB
 	st(( ))
 	stop(( ))
-	
-	st --> table_name([Table Name])
 
-	table_name -->|"#quot;(#quot;"| column_name([Column Name])
-	table_name --> AS
+	st --> UNION
+	st --> INTERSECT
+	st --> EXCEPT
 
-	column_name -->|#quot;,#quot;| column_name
-	column_name -->|"#quot;)#quot;"| AS
+	UNION --> ALL
+	UNION --> stop
 
-	AS --> NOT
-	AS --> MATERIALIZED
-	AS -->|"#quot;(#quot;"| select_statement{{Select Statement}}
+	INTERSECT --> stop
 
-	NOT --> MATERIALIZED
+	EXCEPT --> stop
 
-	MATERIALIZED -->|"#quot;(#quot;"| select_statement{{Select Statement}}
-
-	select_statement -->|"#quot;)#quot;"| stop
+	ALL --> stop
 ```
 
 ## Used by
@@ -39,9 +30,6 @@ graph TB
 
 | Type       | Element                        |
 | ---------- | ------------------------------ |
-| Statements | [Statements: INSERT](<INSERT>) |
 | Statements | [Statements: SELECT](<SELECT>) |
-| Statements | [Statements: UPDATE](<UPDATE>) |
-| Statements | [Statements: DELETE](<DELETE>) |
 
 <!-- SerializedQuery END -->
