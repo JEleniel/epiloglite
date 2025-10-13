@@ -17,5 +17,3 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-      - name: SQLite setup
-        run: sudo apt-get install -y sqlite3 libsqlite3-dev

@@ -5,37 +5,37 @@ use strum::EnumString;
 /// EpilogLite column data types
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumString)]
 pub enum DataType {
-    /// Rust `()`, SQLite `NULL`
+    /// Rust `()`
     Null,
-    /// Rust `boolean`, SQLite `INTEGER`
+    /// Rust `boolean`
     Boolean,
-    /// Rust `i8`, SQLite `INTEGER`
+    /// Rust `i8`
     I8,
-    /// Rust `u8`, SQLite `INTEGER`
+    /// Rust `u8`
     U8,
-    /// Rust `i16`, SQLite `INTEGER`
+    /// Rust `i16`
     I16,
-    /// Rust `u16`, SQLite `INTEGER`
+    /// Rust `u16`
     U16,
-    /// Rust `i32`, SQLite `INTEGER`
+    /// Rust `i32`
     I32,
-    /// Rust `u32`, SQLite `INTEGER`
+    /// Rust `u32`
     U32,
-    /// Rust `i64`, SQLite `INTEGER`
+    /// Rust `i64`
     I64,
-    /// Rust `u64`, SQLite `INTEGER`
+    /// Rust `u64`
     U64,
-    /// Rust `i128`, SQLite `INTEGER`
+    /// Rust `i128`
     I128,
-    /// Rust `u128`, SQLite `INTEGER`
+    /// Rust `u128`
     U128,
-    /// Rust `f32`, SQLite `REAL`
+    /// Rust `f32`
     F32,
-    /// Rust `f64`, SQLite `REAL`
+    /// Rust `f64`
     F64,
-    /// Rust String, SQLite `TEXT`
+    /// Rust String
     String(Option<u64>),
-    /// Rust `Vec<u8>` or `&[u8]`, SQLite `BLOB`
+    /// Rust `Vec<u8>` or `&[u8]`
     ByteArray,
 }
 

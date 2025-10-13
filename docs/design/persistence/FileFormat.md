@@ -5,7 +5,7 @@
 - **Page 0** - Header and Free Page List
 - **Page 1** - Secondary Header and Accounting Block
 - **Page 2** - First Metadata page
-- **Page 3** First Journal page
+- **Page 3** - First Journal page
 - **Page 4 to _n_-1** - All other pages
 - **Page n** - guaranteed EOF free page
 - **Metadata** is loaded entirely into memory at open. This is table_id=0
@@ -17,7 +17,7 @@
 
 ## Database Header
 
-The database header has a CRC32 and is duplicated with the Primary on page 0 and a secondary copy on page 1. This allows for the header to be almost completely reconstructed in the event of corruption.
+The database header is stored on page 0 (primary) and page 1 (secondary) and includes a CRC32 for validation and recovery. The fields are:
 
 | Offset | Field                      | Type                        | Description                             |
 | -----: | -------------------------- | --------------------------- | --------------------------------------- |
@@ -25,8 +25,7 @@ The database header has a CRC32 and is duplicated with the Primary on page 0 and
 |   0x0A | **Version**                | `u8`                        | Format version.                         |
 |   0x0B | **Page Size (Exponent)**   | `u8`                        | Page size = 2^N bytes.                  |
 |    var | **Flags**                  | `CInt`                      | Global engine behavior flags.           |
-|    var | **Metadata Root Pointer**  | `OffsetPointer(CInt, CInt)` | Always `(0, sizeof(header)+1)`.         |
-|    var | **Free Page List Pointer** | `OffsetPointer(CInt, CInt)` | Always `(1, sizeof(header)+1)`.         |
+|    var | **Free List Offset**       | `OffsetPointer(CInt, CInt)` | Offset of the start of the Free Page List. |
 |    var | **Application ID**         | `CInt`                      | Encoded UUID or integer app identifier. |
 |    var | **Migration Version**      | `CInt`                      | Schema migration counter.               |
 |    var | **Header CRC32**           | `u32`                       | CRC of all prior header bytes.          |
@@ -38,7 +37,8 @@ All non-free pages follow a uniform _page envelope_:
 ```rust
 {
     counter: CInt, // Number of live entries on the page
-    page_type_and_flags: u8, // What type of page it is and flags (e.g. Dirty, Freed)
+    page_type: u8, //The type of page
+    flags: u8, // flags (e.g. Dirty, Freed)
     data: Vec<u8>, // The content of the page
     page_crc: u32, // A CRC32 calculated by the maintenance process
     overflow_pointer: OffsetPointer, // Either the Null pointer or a pointer to an Overflow Page 
@@ -77,7 +77,6 @@ Each Journal Page is a page (size = 2^N) with the standard envelope and a sequen
 
 ```rust
 JournalPageData {
-  counter: CInt,                     // number of entries on the page
   entries: Vec<JournalEntry>,        // appended entries; ring writes wrap when full
 }
 ```
@@ -86,24 +85,81 @@ Each Journal entry contains all the information required to recreate the action 
 
 ```rust
 enum JournalEntry {
-    BeginTransaction{ name: Option<String>, crc: u8 }
-    CommitTransaction{ name: Option<String>, crc: u8 }
-    RollbackTransaction{ name: Option<String>, crc: u8 }
-    CreateTable{ table_id: CInt, crc: u8 }, 
-    CreateIndex{ index_id: CInt, crc: u8 },
-    CreateView{ view_id: CInt, crc: u8 },
-    AlterTable{ after: bool, table_id: CInt, table_def: CompressedTableDef, crc: u8 }, 
-    DropTable{ table_id: CInt, table_def: CompressedTableDef, pages: Vec<CInt>, crc: u8 }, 
-    DropIndex{ index_id: CInt, index_def: CompressedIndexDef, crc: u8 },
-    DropView{ view_id: CInt, view_def: CompressedViewDef, crc: u8 },
-    Add{ table_id: CInt, row_id: CInt, row: CompressedRow, crc: u8 }
-    Update{ after: bool, table_id: CInt, row_id: CInt, row: CompressedRow, crc: u8 }
-    Delete{ table_id: CInt, row_id: CInt, row: CompressedRow, crc: u8 }
-}
-
-struct ChangeEntry {
-    column_id: CInt,
-    value: Value,
+    BeginTransaction {
+        timestamp: DateTime<Utc>,
+        transaction_id: CInt,
+        crc: u32,
+    },
+    CommitTransaction {
+        timestamp: DateTime<Utc>,
+        transaction_id: CInt,
+        crc: u32,
+    },
+    RollbackTransaction {
+        timestamp: DateTime<Utc>,
+        transaction_id: CInt,
+        crc: u32,
+    },
+    CreateTable {
+        timestamp: DateTime<Utc>,
+        table_id: CInt,
+    },
+    CreateIndex {
+        timestamp: DateTime<Utc>,
+        index_id: CInt,
+    },
+    CreateView {
+        timestamp: DateTime<Utc>,
+        view_id: CInt,
+    },
+    AlterTable {
+        timestamp: DateTime<Utc>,
+        after: bool,
+        table_id: CInt,
+        table_def: Vec<u8>,
+        crc: u32,
+    },
+    DropTable {
+        timestamp: DateTime<Utc>,
+        table_id: CInt,
+        table_def: Vec<u8>,
+        crc: u32,
+    },
+    DropIndex {
+        timestamp: DateTime<Utc>,
+        index_id: CInt,
+        index_def: Vec<u8>,
+        crc: u32,
+    },
+    DropView {
+        timestamp: DateTime<Utc>,
+        view_id: CInt,
+        view_def: Vec<u8>,
+        crc: u32,
+    },
+    Insert {
+        timestamp: DateTime<Utc>,
+        table_id: CInt,
+        row_id: CInt,
+        row_data: Vec<u8>,
+        crc: u32,
+    },
+    Update {
+        timestamp: DateTime<Utc>,
+        after: bool,
+        upsert: bool,
+        table_id: CInt,
+        row_id: CInt,
+        row_data: Vec<u8>,
+        crc: u32,
+    },
+    Delete {
+        timestamp: DateTime<Utc>,
+        table_id: CInt,
+        row_id: CInt,
+        row_data: Vec<u8>,
+        crc: u32,
+    },
 }
 ```
 

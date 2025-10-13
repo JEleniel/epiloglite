@@ -1,13 +1,17 @@
+mod backingstores;
 /// Persistence layer - handles data storage and retrieval
-mod header;
+mod databaseheader;
+mod journalentry;
+mod metadataentry;
 mod offsetpointer;
 mod page;
 mod pager;
-mod readwritemode;
-mod record;
-mod vacuum;
+mod rowidindex;
 
-pub use header::*;
+pub use databaseheader::*;
+pub use journalentry::*;
+pub use metadataentry::*;
+pub use offsetpointer::*;
 pub use page::*;
-pub use readwritemode::*;
-pub use vacuum::*;
+pub use pager::*;
+pub use rowidindex::*;

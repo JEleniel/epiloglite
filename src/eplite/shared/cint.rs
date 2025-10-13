@@ -4,40 +4,59 @@ use std::io::Read;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, PartialOrd)]
+const BYTE_0_MASK: u128 = 0x7F;
+const BYTE_1_MASK: u128 = 0xF0;
+const BYTE_1_INV_MASK: u128 = 0x0F;
+const BYTE_N_MASK: u128 = 0xFF;
+
+/// A compressed integer, encoded in 1 to 17 bytes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, PartialOrd, Ord, Hash, Eq)]
 pub struct CInt {
     bytes: Vec<u8>,
 }
 
 impl CInt {
-    pub fn try_from_reader(value: &mut dyn Read) -> Result<Self, CIntError> {
+    /// Get the bytes of the compressed integer
+    pub fn bytes(&self) -> Vec<u8> {
+        self.bytes.clone()
+    }
+
+    /// Create a `CInt` from a reader, reading the necessary number of bytes.
+    /// Returns an error if the reader does not contain enough bytes or if the format is invalid
+    pub fn read_from(value: &mut dyn Read) -> Result<Self, CIntError> {
         let mut byte: [u8; 1] = [0];
         value.read_exact(&mut byte).map_err(|_| CIntError::Empty)?;
-        let mut len: usize = (byte[0] >> 7 + 1) as usize;
+        let mut len: usize = ((byte[0] >> 7) + 1) as usize;
         let mut bytes: Vec<u8> = vec![byte[0]];
         if len == 1 {
             return Ok(CInt { bytes });
         }
 
         if len == 2 {
-            byte = [0];
+            byte = [0]; // reset to zero for safety; occasionally read_exact doesn't overwrite completely
             value
                 .read_exact(&mut byte)
                 .map_err(|_| CIntError::TooFew(2, 1))?;
-            len += (byte[0] as usize & 0xF0) >> 4;
-            bytes.push(byte[0] & 0x0F);
+            len += (byte[0] as usize & BYTE_1_MASK as usize) >> 4;
+            bytes.push(byte[0]);
         }
 
         if len > 17 {
             return Err(CIntError::InvalidFormat);
         }
         for _ in 2..len {
+            byte = [0];
             value
                 .read_exact(&mut byte)
                 .map_err(|_| CIntError::TooFew(len, bytes.len()))?;
             bytes.push(byte[0]);
         }
         Ok(CInt { bytes })
+    }
+
+    /// Create a `CInt` representing zero
+    pub fn zero() -> Self {
+        CInt { bytes: vec![0] }
     }
 }
 
@@ -48,7 +67,7 @@ impl TryFrom<&mut Vec<u8>> for CInt {
         if value.len() == 0 {
             return Err(CIntError::Empty);
         }
-        let mut len: usize = value[0] as usize >> 7 + 1;
+        let mut len: usize = (value[0] as usize >> 7) + 1;
         if len == 2 {
             len += (value[1] as usize & 0xF0) >> 4;
         }
@@ -91,26 +110,29 @@ impl From<u128> for CInt {
         let mut bytes: Vec<u8> = Vec::new();
         let mut val: u128 = value;
 
-        bytes.push((val & 0x7f) as u8);
+        bytes.push((val & BYTE_0_MASK) as u8);
+        println! {"b0: bytes: {}, val: {}", bytes.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(","), val};
         val >>= 7;
         if val == 0 {
             return CInt { bytes };
         } else {
             bytes[0] |= 0x80;
         }
-        bytes.push((val & 0x0F) as u8);
+        bytes.push((val & BYTE_1_INV_MASK) as u8);
+        println! {"b1: bytes: {}, val: {}", bytes.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(","), val};
         val >>= 4;
         if val == 0 {
             return CInt { bytes };
         }
 
-        let mut count: u8 = 0;
+        let mut count: u128 = 0;
         while val > 0 {
-            bytes.push((val & 0xFF) as u8);
+            bytes.push((val & BYTE_N_MASK) as u8);
+            println! {"b{}: bytes: {}, val: {}", count,bytes.iter().map(|b| b.to_string()).collect::<Vec<_>>().join(","), val};
             val >>= 8;
             count += 1;
         }
-        bytes[1] |= count << 4;
+        bytes[1] |= ((count << 4) & BYTE_1_MASK) as u8;
         CInt { bytes }
     }
 }
@@ -165,8 +187,6 @@ impl TryFrom<CInt> for u128 {
     type Error = CIntError;
 
     fn try_from(value: CInt) -> Result<Self, Self::Error> {
-        type Error = CIntError;
-
         if value.bytes.len() == 0 {
             return Err(CIntError::Empty);
         }
@@ -175,7 +195,7 @@ impl TryFrom<CInt> for u128 {
             return Ok(value.bytes[0] as u128);
         };
 
-        let len: usize = ((value.bytes[1] & 0xF0 >> 4) + 2) as usize;
+        let len: usize = (((value.bytes[1] & 0xF0) >> 4) + 2) as usize;
         if value.bytes.len() < len {
             return Err(CIntError::TooFew(len, value.bytes.len()));
         }
@@ -189,7 +209,7 @@ impl TryFrom<CInt> for u128 {
         let mut v: u128 = (value.bytes[0] & 0x7F) as u128;
         v |= ((value.bytes[1] & 0x0F) as u128) << 7;
         for i in 2..len {
-            v |= (value.bytes[i] as u128) << (i - 1) * 8 + 11;
+            v |= (value.bytes[i] as u128) << (i - 2) * 8 + 11;
         }
         Ok(v)
     }
@@ -271,16 +291,22 @@ impl TryFrom<CInt> for i16 {
     }
 }
 
+/// Errors that can occur during compressed integer encoding or decoding
 #[derive(Debug, Clone, PartialEq, Error)]
 pub enum CIntError {
+    /// The compressed int format is invalid, typically because the decoded length is invalid (<1 || >17)
     #[error("Invalid compressed int format")]
     InvalidFormat,
+    /// Not enough bytes in the input to decode the expected length
     #[error("Too few bytes, expected {0}, got {1}")]
     TooFew(usize, usize),
+    /// Too many bytes in the input to decode the expected length
     #[error("Too many bytes, expected {0}, got {1}")]
     TooLong(usize, usize),
+    /// The decoded value is out of range for the target type
     #[error("Value out of range, expected max {0}, got {1}")]
     ValueOutOfRange(u128, u128),
+    /// The compressed int is empty (no bytes)
     #[error("Compressed int is empty")]
     Empty,
 }
@@ -291,19 +317,43 @@ mod tests {
 
     use crate::CInt;
 
+    fn two_pow<T>(i: usize) -> T
+    where
+        T: num_traits::PrimInt,
+    {
+        T::from(1).unwrap() << i
+    }
+
     macro_rules! test_xxx {
         ($i:ident, $t:ty) => {
             #[test]
             fn $i() {
-                let b = <$t>::BITS;
+                let b: usize = <$t>::BITS as usize;
                 for i in 0..b {
-                    let v: $t = ((2 ^ i) - 1).try_into().unwrap();
+                    let v: $t = (two_pow::<$t>(i)).try_into().unwrap();
+                    println!("Test 2^{} {}", i, v);
                     let c: super::CInt = v.try_into().unwrap();
                     let v2: $t = c.try_into().unwrap();
                     assert_eq!(v, v2);
                 }
             }
         };
+    }
+
+    #[test]
+    fn test_macro_code() {
+        let b: usize = u128::BITS as usize;
+        for i in 0..b {
+            let v: u128 = two_pow(i);
+            println!("Test 2^{} {}", i, v);
+            let c: super::CInt = v.try_into().unwrap();
+            let v2: u128 = c.try_into().unwrap();
+            assert_eq!(v, v2);
+        }
+        let v: u128 = (u128::MAX).try_into().unwrap();
+        let c: super::CInt = v.try_into().unwrap();
+        let v2: u128 = c.try_into().unwrap();
+        assert_eq!(v, v2);
     }
 
     test_xxx!(test_cint_u16, u16);
@@ -319,7 +369,8 @@ mod tests {
     #[test]
     fn test_cint_vec() {
         for i in 0..128 {
-            let v: u128 = ((2 ^ i) - 1).try_into().unwrap();
+            let v: u128 = two_pow(i);
+            println!("Test 2^{} {}", i, v);
             let c: super::CInt = v.try_into().unwrap();
             let v2: &mut Vec<u8> = &mut c.try_into().unwrap();
             let v3: u128 = CInt::try_from(v2).unwrap().try_into().unwrap();
@@ -330,7 +381,7 @@ mod tests {
     #[test]
     fn test_cint_arr() {
         for i in 0..128 {
-            let v: u128 = ((2 ^ i) - 1).try_into().unwrap();
+            let v: u128 = two_pow(i);
             let c: super::CInt = v.try_into().unwrap();
             let v2: Vec<u8> = c.try_into().unwrap();
             let v3: u128 = CInt::try_from(v2.as_slice()).unwrap().try_into().unwrap();
@@ -341,10 +392,10 @@ mod tests {
     #[test]
     fn test_cint_read() {
         for i in 0..128 {
-            let v: u128 = ((2 ^ i) - 1).try_into().unwrap();
+            let v: u128 = two_pow(i);
             let c: super::CInt = v.try_into().unwrap();
             let v2: Vec<u8> = c.try_into().unwrap();
-            let v3: u128 = CInt::try_from_reader(&mut BufReader::new(v2.as_slice()))
+            let v3: u128 = CInt::read_from(&mut BufReader::new(v2.as_slice()))
                 .unwrap()
                 .try_into()
                 .unwrap();
