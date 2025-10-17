@@ -1,0 +1,21 @@
+[package]
+name = "epiloglite-derive"
+version = "0.1.0"
+edition = "2021"
+description = "Procedural macros for EpilogLite ORM support."
+license = "MIT OR Apache-2.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+epiloglite-core = { path = "../epiloglite-core" }
+once_cell = "1"
+proc-macro2 = "1"
+quote = "1"
+serde.workspace = true
+serde_json.workspace = true
+syn = { version = "2", features = ["full"] }
+
+[dev-dependencies]
+flagset = "0.4"

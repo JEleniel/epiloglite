@@ -3,17 +3,16 @@
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
 
-EpilogLite is a pure Rust implementation of SQLite, designed for safety, reliability, and performance. The engine is built with **100% safe Rust** (no `unsafe` code). It also provides a drop-in compatible alternative to SQLite with modern Rust idioms (unsafe code is required for the "C" ABI).
+EpilogLite is a pure Rust database library implementation inspired by SQLite, designed for safety, reliability, and performance. The engine is built with **100% safe Rust** (no `unsafe` code).
 
 ## 🎯 Goals
 
 EpilogLite aims to:
 
 1. Provide a **safe** alternative to SQLite using pure Rust
-2. Maintain **SQLite 3 compatibility** for existing databases
-3. Offer **modern Rust idioms** (builders, async, etc.)
-4. Support **all major platforms** (Windows, Linux, macOS, mobile, embedded)
-5. Achieve **high performance** without sacrificing safety
+2. Offer **modern Rust idioms** (builders, async, etc.)
+3. Support **all major platforms** (Windows, Linux, macOS, mobile, embedded)
+4. Achieve **high performance** without sacrificing safety
 
 ## ✨ Features
 

@@ -1,39 +1,38 @@
-//! Database file header parsing and serialization
-use std::{
-    io::{self, Read},
-    ops::RangeInclusive,
-};
+use epiloglite_core::DatabaseFlags;
+/// Database file header parsing and serialization
+use std::io::{self};
 
-use crc_adler::crc32;
+use bincode::{
+    de::read::Reader,
+    enc::write::Writer,
+    error::{DecodeError, EncodeError},
+};
+use flagset::FlagSet;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::{CInt, CIntError, persistence::offsetpointer::OffsetPointer};
-
-/// Magic header string for EL database files
-pub const EPLITE_SIGNATURE: &[u8] = b"EpilogLite";
-/// Current file format version
-pub const CURRENT_FORMAT_VERSION: u8 = 1;
-/// Const default page size (4096 bytes)
-pub const DEFAULT_PAGE_SIZE_EXPONENT: u8 = 12;
-/// Valid page size range (2^9 to 2^128  bytes)
-pub const PAGE_SIZE_RANGE: RangeInclusive<usize> = 0x200..=0x10000000000000000000000000000000;
-/// Min header size in bytes
-pub const MIN_HEADER_SIZE: usize = 21;
-/// Max header size in bytes
-pub const MAX_HEADER_SIZE: usize = 101;
+use crate::BINCODE_CONFIG;
+use crate::CInt;
+use crate::CIntError;
+use crate::calculate_crc;
+use crate::eplite::persistence::{
+    CURRENT_FORMAT_VERSION, DEFAULT_PAGE_SIZE_EXPONENT, EPLITE_SIGNATURE, MAX_HEADER_SIZE,
+    MIN_HEADER_SIZE, PAGE_SIZE_RANGE,
+};
+use epiloglite_core::OffsetPointer;
 
 /// Database file header
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct DatabaseHeader {
     /// Signature string (Magic Header)
-    pub signature: Vec<u8>,
+    pub signature: String,
     /// File format
     pub format_version: u8,
-    /// Page size exponent (Page size = 2^(page_size) bytes)
+    /// Page size exponent (Page size = 2^page_size_exponent bytes)
+    /// Valid page size exponent range (9 to 64)
     pub page_size_exponent: u8,
     /// Flags
-    pub flags: CInt,
+    pub flags: FlagSet<DatabaseFlags>,
     /// Location of the start of the Free Page List
     pub freelist_offset: OffsetPointer,
     /// Application ID, for use by applications
@@ -47,153 +46,132 @@ pub struct DatabaseHeader {
 impl Default for DatabaseHeader {
     fn default() -> Self {
         let mut header = Self {
-            signature: EPLITE_SIGNATURE.to_vec(),
+            signature: EPLITE_SIGNATURE.to_string(),
             format_version: CURRENT_FORMAT_VERSION,
             page_size_exponent: DEFAULT_PAGE_SIZE_EXPONENT,
-            flags: CInt::zero(),
+            flags: FlagSet::empty(),
             freelist_offset: OffsetPointer {
-                page_number: CInt::zero(),
-                offset: CInt::from(MAX_HEADER_SIZE as u128), // Always leave room for the header to change
+                page_id: CInt::zero(),
+                offset: CInt::from(MAX_HEADER_SIZE), // Always leave room for the header to change
             },
             application_id: CInt::zero(),
             migration_version: CInt::zero(),
             crc: 0x00000000,
         };
-        header.crc = header.calculate_crc();
+        let crc = calculate_crc(&header);
+        header.crc = crc;
         header
     }
 }
 
 impl DatabaseHeader {
-    /// Calculate the CRC32 checksum of the header (excluding the CRC field itself)
-    pub fn calculate_crc(&self) -> u32 {
-        let mut bytes = self.to_bytes();
-        bytes.truncate(bytes.len() - 4);
-        crc32(&bytes)
-    }
-
     /// The calculated page size in bytes
     pub fn page_size(&self) -> usize {
         (1 as usize) << self.page_size_exponent
     }
 
-    /// Get the bytes of the header
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = self.signature.clone();
-        bytes.push(self.format_version);
-        bytes.push(self.page_size_exponent);
-        bytes.extend(&self.flags.bytes());
-        bytes.extend(&self.freelist_offset.page_number.bytes());
-        bytes.extend(&self.freelist_offset.offset.bytes());
-        bytes.extend(&self.application_id.bytes());
-        bytes.extend(&self.migration_version.bytes());
-        bytes.extend(&self.crc.to_be_bytes());
-        bytes
+    /// Builder-style setter for page_size_exponent
+    pub fn with_page_size_exponent(&mut self, page_size_exponent: u8) -> &mut Self {
+        self.page_size_exponent = page_size_exponent;
+        self.crc = calculate_crc(self);
+        self
     }
 
-    /// Parse a header from a byte slice
-    pub fn try_from_bytes(bytes: &[u8]) -> Result<Self, HeaderError> {
-        if bytes.len() < MIN_HEADER_SIZE as usize || bytes.len() > MAX_HEADER_SIZE as usize {
-            return Err(HeaderError::InvalidSize(
-                bytes.len(),
-                MIN_HEADER_SIZE,
-                MAX_HEADER_SIZE,
-            ));
-        }
-        let mut header = Self::default();
-        header.signature = bytes[0..10].to_vec();
-        header.format_version = bytes[10];
-        header.page_size_exponent = bytes[11];
-        let mut rem_bytes = bytes[12..].to_vec();
-
-        header.flags = CInt::try_from(&mut rem_bytes)?;
-        header.freelist_offset.page_number = CInt::try_from(&mut rem_bytes)?;
-        header.freelist_offset.offset = CInt::try_from(&mut rem_bytes)?;
-        header.application_id = CInt::try_from(&mut rem_bytes)?;
-        header.migration_version = CInt::try_from(&mut rem_bytes)?;
-        header.crc = u32::from_be_bytes([rem_bytes[0], rem_bytes[1], rem_bytes[2], rem_bytes[3]]);
-
-        header.validate()?;
-
-        Ok(header)
+    /// Builder-style setter for flags
+    pub fn with_flags(&mut self, flags: u8) -> &mut Self {
+        self.flags = FlagSet::empty();
+        self.crc = calculate_crc(self);
+        self
     }
 
-    /// Read and validate a header from a reader
-    pub fn try_from<T>(reader: &mut T) -> Result<Self, HeaderError>
-    where
-        T: Read,
-    {
-        let mut header = DatabaseHeader::default();
-
-        let signature_buf = &mut [0u8; 10];
-        reader.read_exact(signature_buf)?;
-        header.signature = signature_buf.to_vec();
-
-        let mut byte_buf = [0u8; 1];
-        reader.read_exact(&mut byte_buf)?;
-        header.format_version = byte_buf[0];
-
-        reader.read_exact(&mut byte_buf)?;
-        header.page_size_exponent = byte_buf[0];
-
-        header.flags = CInt::read_from(reader)?;
-
-        header.freelist_offset.page_number = CInt::read_from(reader)?;
-        header.freelist_offset.offset = CInt::read_from(reader)?;
-
-        header.application_id = CInt::read_from(reader)?;
-        header.migration_version = CInt::read_from(reader)?;
-
-        let mut crc_buf = [0u8; 4];
-        reader.read_exact(&mut crc_buf)?;
-        header.crc = u32::from_be_bytes(crc_buf);
-
-        header.validate()?;
-
-        Ok(header)
+    /// Builder-style setter for application_id
+    pub fn with_application_id(&mut self, application_id: &CInt) -> &mut Self {
+        self.application_id = application_id.clone();
+        self.crc = calculate_crc(self);
+        self
     }
 
-    /// Serialize the header to a writer
-    pub fn write_to<T>(&self, writer: &mut T) -> Result<(), std::io::Error>
-    where
-        T: std::io::Write,
-    {
-        writer.write_all(&self.to_bytes())?;
-        Ok(())
+    /// Builder-style setter for migration_version
+    pub fn with_migration_version(&mut self, migration_version: &CInt) -> &mut Self {
+        self.migration_version = migration_version.clone();
+        self.crc = calculate_crc(self);
+        self
     }
 
-    pub fn validate(&self) -> Result<(), HeaderError> {
+    /// Deserialize a JournalEntry from a reader
+    pub fn try_from_reader<T: Reader>(reader: &mut T) -> Result<Self, DecodeError> {
+        bincode::serde::decode_from_reader(reader, BINCODE_CONFIG)
+    }
+
+    /// Serialize the JournalEntry to a writer
+    pub fn try_to_writer<T: Writer>(&self, writer: &mut T) -> Result<(), EncodeError> {
+        bincode::serde::encode_into_writer(self, writer, BINCODE_CONFIG)
+    }
+
+    /// Validate the header fields and CRC
+    pub fn validate(&self) -> Result<bool, HeaderError> {
         if self.signature != EPLITE_SIGNATURE {
-            return Err(HeaderError::InvalidHeaderSignature(
-                String::from_utf8_lossy(&self.signature).to_string(),
-            ));
+            return Err(HeaderError::InvalidHeaderSignature(self.signature.clone()));
         }
         if self.format_version > CURRENT_FORMAT_VERSION {
             return Err(HeaderError::FormatTooNew(self.format_version));
         }
-        if !PAGE_SIZE_RANGE.contains(&(self.page_size())) {
+        if !PAGE_SIZE_RANGE.contains(&(self.page_size_exponent)) {
             return Err(HeaderError::InvalidPageSize(self.page_size()));
         }
-        if self.freelist_offset.page_number != CInt::zero()
-            || self.freelist_offset.offset != CInt::from(MAX_HEADER_SIZE as u128)
+        if self.freelist_offset.page_id != CInt::zero()
+            || self.freelist_offset.offset != CInt::from(MAX_HEADER_SIZE as usize)
         {
             return Err(HeaderError::InvalidFreelistOffset(
-                self.freelist_offset.page_number.clone(),
+                self.freelist_offset.page_id.clone(),
                 self.freelist_offset.offset.clone(),
-                CInt::from(MAX_HEADER_SIZE as u128),
+                CInt::from(MAX_HEADER_SIZE as usize),
             ));
         }
-        let crc = self.calculate_crc();
+        let crc = calculate_crc(self);
         if crc != self.crc {
             return Err(HeaderError::InvalidCRC(crc, self.crc));
         }
-        Ok(())
+        Ok(true)
+    }
+}
+
+impl TryFrom<&[u8]> for DatabaseHeader {
+    type Error = HeaderError;
+
+    /// Deserialize a DatabaseHeader from a byte slice
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        if value.len() < MIN_HEADER_SIZE || value.len() > MAX_HEADER_SIZE {
+            return Err(HeaderError::InvalidSize(
+                value.len(),
+                MIN_HEADER_SIZE,
+                MAX_HEADER_SIZE,
+            ));
+        }
+        let (header, _): (DatabaseHeader, _) =
+            bincode::serde::decode_from_slice(value, BINCODE_CONFIG)?;
+        Ok(header)
+    }
+}
+
+impl TryInto<Vec<u8>> for &DatabaseHeader {
+    type Error = EncodeError;
+
+    /// Serialize the DatabaseHeader to a byte vector
+    fn try_into(self) -> Result<Vec<u8>, Self::Error> {
+        bincode::serde::encode_to_vec(self, BINCODE_CONFIG)
     }
 }
 
 /// Errors that can be returned while parsing a database header
 #[derive(Error, Debug)]
 pub enum HeaderError {
+    /// Decoding error
+    #[error("Decoding error {0:?}")]
+    DecodingError(DecodeError),
+    /// Encoding error
+    #[error("Encoding error {0:?}")]
+    EncodingError(EncodeError),
     /// Invalid header signature (Magic String)
     #[error("Invalid header signature (Magic String) {0}")]
     InvalidHeaderSignature(String),
@@ -232,6 +210,14 @@ impl From<io::Error> for HeaderError {
     }
 }
 
-#[cfg(test)]
-#[path = "tests/t_databaseheader.rs"]
-mod t_databaseheader;
+impl From<DecodeError> for HeaderError {
+    fn from(err: DecodeError) -> Self {
+        HeaderError::DecodingError(err)
+    }
+}
+
+impl From<EncodeError> for HeaderError {
+    fn from(err: EncodeError) -> Self {
+        HeaderError::EncodingError(err)
+    }
+}

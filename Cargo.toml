@@ -9,7 +9,7 @@ categories.workspace = true
 
 [workspace]
 resolver = "3"
-members = ["."]
+members = [".", "epiloglite-derive"]
 
 [workspace.package]
 version = "1.0.0-alpha.1"
@@ -28,8 +28,11 @@ categories = ["database-implementations"]
 
 [workspace.dependencies]
 async-trait = { version = "0.1" }
+bincode = { version = "2.0.1", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 crc-adler = { version = "0.1.1" }
+epiloglite-core = { path = "./epiloglite-core" }
+epiloglite-derive = { path = "epiloglite-derive" }
 flagset = { version = "0.4.6", features = ["serde"] }
 log = { version = "0.4" }
 logos = { version = "0.15.0" }
@@ -40,6 +43,7 @@ serde_json = { version = "1.0" }
 strum = { version = "0.27.2", features = ["derive"] }
 thiserror = { version = "2.0" }
 tokio = { version = "1", features = ["full"] }
+uuid = { version = "1.18.1", features = ["fast-rng", "serde", "v4"] }
 
 [workspace.lints.rust]
 missing_docs = "warn"
@@ -51,18 +55,23 @@ path = "src/lib.rs"
 
 [dependencies]
 async-trait.workspace = true
+bincode.workspace = true
 chrono.workspace = true
 crc-adler.workspace = true
+epiloglite-core.workspace = true
+epiloglite-derive.workspace = true
 flagset.workspace = true
 log.workspace = true
 logos.workspace = true
 num-traits.workspace = true
+once_cell = "1.21.3"
 regex.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+uuid.workspace = true
 
 [features]
 default = []

@@ -1,0 +1,759 @@
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/cabi.rs
+FN:45,result_to_code
+FNF:1
+FNDA:0,result_to_code
+DA:45,0
+DA:46,0
+DA:47,0
+DA:48,0
+LF:4
+LH:0
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/database.rs
+FN:13,Database::open
+FN:33,Database::create_database
+FN:38,Database::path
+FN:43,Database::close
+FNF:4
+FNDA:0,Database::open
+FNDA:0,Database::create_database
+FNDA:0,Database::path
+FNDA:0,Database::close
+DA:13,0
+DA:16,0
+DA:17,0
+DA:18,0
+DA:22,0
+DA:24,0
+DA:25,0
+DA:27,0
+DA:28,0
+DA:33,0
+DA:38,0
+DA:39,0
+DA:43,0
+LF:13
+LH:0
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/persistence/backingstores/backingstoretrait.rs
+FN:89,<impl From for BackingStoreError>::from
+FNF:1
+FNDA:0,<impl From for BackingStoreError>::from
+DA:77,0
+DA:78,0
+DA:83,0
+DA:84,0
+DA:89,0
+DA:90,0
+LF:6
+LH:0
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/persistence/backingstores/memory.rs
+FN:23,MemoryBackingStore::new
+FN:30,MemoryBackingStore::is_free_page
+FN:47,<impl BackingStore for MemoryBackingStore>::read_page
+FN:65,<impl BackingStore for MemoryBackingStore>::write_page
+FN:91,<impl BackingStore for MemoryBackingStore>::allocate_page
+FN:116,<impl BackingStore for MemoryBackingStore>::free_page
+FN:127,<impl BackingStore for MemoryBackingStore>::total_pages
+FN:131,<impl BackingStore for MemoryBackingStore>::free_pages
+FNF:8
+FNDA:0,MemoryBackingStore::new
+FNDA:0,MemoryBackingStore::is_free_page
+FNDA:0,<impl BackingStore for MemoryBackingStore>::read_page
+FNDA:0,<impl BackingStore for MemoryBackingStore>::write_page
+FNDA:0,<impl BackingStore for MemoryBackingStore>::allocate_page
+FNDA:0,<impl BackingStore for MemoryBackingStore>::free_page
+FNDA:0,<impl BackingStore for MemoryBackingStore>::total_pages
+FNDA:0,<impl BackingStore for MemoryBackingStore>::free_pages
+DA:23,0
+DA:26,0
+DA:30,0
+DA:31,0
+DA:32,0
+DA:33,0
+DA:34,0
+DA:39,0
+DA:40,0
+DA:41,0
+DA:47,0
+DA:51,0
+DA:52,0
+DA:53,0
+DA:54,0
+DA:57,0
+DA:58,0
+DA:61,0
+DA:62,0
+DA:65,0
+DA:73,0
+DA:74,0
+DA:75,0
+DA:76,0
+DA:79,0
+DA:80,0
+DA:82,0
+DA:83,0
+DA:84,0
+DA:87,0
+DA:88,0
+DA:91,0
+DA:92,0
+DA:95,0
+DA:96,0
+DA:97,0
+DA:98,0
+DA:101,0
+DA:103,0
+DA:106,0
+DA:107,0
+DA:108,0
+DA:110,0
+DA:113,0
+DA:116,0
+DA:117,0
+DA:118,0
+DA:119,0
+DA:120,0
+DA:123,0
+DA:124,0
+DA:127,0
+DA:128,0
+DA:131,0
+DA:132,0
+DA:134,0
+DA:135,0
+DA:136,0
+LF:58
+LH:0
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/persistence/databaseheader.rs
+FN:43,<impl Default for DatabaseHeader>::default
+FN:65,DatabaseHeader::page_size
+FN:70,DatabaseHeader::try_from_reader
+FN:75,DatabaseHeader::try_to_writer
+FN:80,DatabaseHeader::validate
+FN:111,<impl TryFrom for DatabaseHeader>::try_from
+FN:129,<impl TryInto for &DatabaseHeader>::try_into
+FN:188,<impl From for HeaderError>::from
+FNF:8
+FNDA:8,<impl Default for DatabaseHeader>::default
+FNDA:3,DatabaseHeader::page_size
+FNDA:0,DatabaseHeader::try_from_reader
+FNDA:0,DatabaseHeader::try_to_writer
+FNDA:6,DatabaseHeader::validate
+FNDA:3,<impl TryFrom for DatabaseHeader>::try_from
+FNDA:1,<impl TryInto for &DatabaseHeader>::try_into
+FNDA:0,<impl From for HeaderError>::from
+DA:43,8
+DA:45,24
+DA:49,16
+DA:53,8
+DA:54,8
+DA:57,24
+DA:58,8
+DA:59,8
+DA:65,3
+DA:66,3
+DA:70,0
+DA:71,0
+DA:75,0
+DA:76,0
+DA:80,6
+DA:81,6
+DA:82,1
+DA:85,1
+DA:88,1
+DA:90,3
+DA:91,2
+DA:93,1
+DA:94,1
+DA:95,1
+DA:96,1
+DA:101,1
+DA:111,3
+DA:112,5
+DA:113,2
+DA:114,2
+DA:115,2
+DA:116,2
+DA:119,1
+DA:120,0
+DA:129,1
+DA:130,3
+DA:170,0
+DA:171,0
+DA:176,0
+DA:177,0
+DA:182,0
+DA:183,0
+DA:188,0
+DA:189,0
+LF:44
+LH:31
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/persistence/journalentry.rs
+FN:154,JournalEntry::try_from_reader
+FN:159,JournalEntry::try_to_writer
+FN:168,<impl TryInto for &JournalEntry>::try_into
+FN:177,<impl TryFrom for JournalEntry>::try_from
+FNF:4
+FNDA:0,JournalEntry::try_from_reader
+FNDA:0,JournalEntry::try_to_writer
+FNDA:1,<impl TryInto for &JournalEntry>::try_into
+FNDA:2,<impl TryFrom for JournalEntry>::try_from
+DA:154,0
+DA:155,0
+DA:159,0
+DA:160,0
+DA:168,1
+DA:169,3
+DA:177,2
+DA:178,1
+DA:179,7
+LF:9
+LH:5
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/persistence/metadataentry.rs
+FN:52,MetadataEntry::try_from_reader
+FN:57,MetadataEntry::try_to_writer
+FN:66,<impl TryInto for &MetadataEntry>::try_into
+FN:75,<impl TryFrom for MetadataEntry>::try_from
+FNF:4
+FNDA:0,MetadataEntry::try_from_reader
+FNDA:0,MetadataEntry::try_to_writer
+FNDA:1,<impl TryInto for &MetadataEntry>::try_into
+FNDA:2,<impl TryFrom for MetadataEntry>::try_from
+DA:52,0
+DA:53,0
+DA:57,0
+DA:58,0
+DA:66,1
+DA:67,3
+DA:75,2
+DA:76,1
+DA:77,7
+LF:9
+LH:5
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/persistence/offsetpointer.rs
+FN:21,OffsetPointer::null
+FN:29,OffsetPointer::try_from_reader
+FN:34,OffsetPointer::try_to_writer
+FN:43,<impl TryInto for &OffsetPointer>::try_into
+FN:52,<impl TryFrom for OffsetPointer>::try_from
+FNF:5
+FNDA:8,OffsetPointer::null
+FNDA:0,OffsetPointer::try_from_reader
+FNDA:0,OffsetPointer::try_to_writer
+FNDA:1,<impl TryInto for &OffsetPointer>::try_into
+FNDA:2,<impl TryFrom for OffsetPointer>::try_from
+DA:21,8
+DA:23,8
+DA:24,8
+DA:29,0
+DA:30,0
+DA:34,0
+DA:35,0
+DA:43,1
+DA:44,3
+DA:52,2
+DA:53,1
+DA:54,7
+LF:12
+LH:8
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/persistence/page.rs
+FN:49,FreePage::new
+FN:58,FreePage::try_from_reader
+FN:63,FreePage::try_to_writer
+FN:72,<impl TryInto for &FreePage>::try_into
+FN:81,<impl TryFrom for FreePage>::try_from
+FN:105,DataPage<T>::entries
+FN:110,DataPage<T>::get_entry
+FN:118,DataPage<T>::add_entry
+FN:130,DataPage<T>::remove_entry
+FNF:9
+FNDA:2,FreePage::new
+FNDA:0,FreePage::try_from_reader
+FNDA:0,FreePage::try_to_writer
+FNDA:1,<impl TryInto for &FreePage>::try_into
+FNDA:1,<impl TryFrom for FreePage>::try_from
+FNDA:3,DataPage<T>::entries
+FNDA:2,DataPage<T>::get_entry
+FNDA:2,DataPage<T>::add_entry
+FNDA:1,DataPage<T>::remove_entry
+DA:49,2
+DA:52,2
+DA:58,0
+DA:59,0
+DA:63,0
+DA:64,0
+DA:72,1
+DA:73,3
+DA:81,1
+DA:82,4
+DA:105,3
+DA:106,3
+DA:110,2
+DA:111,3
+DA:112,1
+DA:114,0
+DA:118,2
+DA:119,8
+DA:120,6
+DA:121,1
+DA:123,0
+DA:124,0
+DA:125,0
+DA:126,0
+DA:130,1
+DA:131,2
+DA:132,0
+DA:134,0
+DA:135,0
+DA:137,0
+DA:138,0
+DA:140,0
+LF:32
+LH:17
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/persistence/rowidindex.rs
+FN:20,RowIdIndex::new
+FN:27,RowIdIndex::insert
+FN:32,RowIdIndex::get
+FN:37,RowIdIndex::remove
+FN:43,RowIdIndex::get_entries
+FN:54,RowIdIndex::len
+FN:59,RowIdIndex::try_from_reader
+FN:64,RowIdIndex::try_to_writer
+FN:73,<impl TryInto for &RowIdIndex>::try_into
+FN:82,<impl TryFrom for RowIdIndex>::try_from
+FNF:10
+FNDA:5,RowIdIndex::new
+FNDA:6,RowIdIndex::insert
+FNDA:3,RowIdIndex::get
+FNDA:1,RowIdIndex::remove
+FNDA:1,RowIdIndex::get_entries
+FNDA:1,RowIdIndex::len
+FNDA:0,RowIdIndex::try_from_reader
+FNDA:0,RowIdIndex::try_to_writer
+FNDA:1,<impl TryInto for &RowIdIndex>::try_into
+FNDA:2,<impl TryFrom for RowIdIndex>::try_from
+DA:20,5
+DA:22,5
+DA:27,6
+DA:28,24
+DA:32,3
+DA:33,9
+DA:37,1
+DA:38,5
+DA:43,1
+DA:44,2
+DA:45,1
+DA:47,9
+DA:49,1
+DA:50,1
+DA:54,1
+DA:55,2
+DA:59,0
+DA:60,0
+DA:64,0
+DA:65,0
+DA:73,1
+DA:74,3
+DA:82,2
+DA:83,8
+LF:24
+LH:20
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/persistence/tests/t_journalentry.rs
+FN:5,make_crc
+FNF:1
+FNDA:8,make_crc
+DA:5,8
+DA:6,8
+LF:2
+LH:2
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/shared/bincode.rs
+FN:17,try_from_reader
+FN:26,try_to_writer
+FN:35,try_into_vec
+FN:43,try_from_slice
+FNF:4
+FNDA:0,try_from_reader
+FNDA:0,try_to_writer
+FNDA:3,try_into_vec
+FNDA:0,try_from_slice
+DA:17,0
+DA:22,0
+DA:26,0
+DA:31,0
+DA:35,3
+DA:39,9
+DA:43,0
+DA:47,0
+DA:48,0
+LF:9
+LH:2
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/shared/cint.rs
+FN:23,CInt::bytes
+FN:29,CInt::read_from
+FN:61,CInt::zero
+FN:69,<impl Add for CInt>::add
+FN:79,<impl Sub for CInt>::sub
+FN:89,<impl Mul for CInt>::mul
+FN:99,<impl Div for CInt>::div
+FN:107,<impl AddAssign for CInt>::add_assign
+FN:113,<impl SubAssign for CInt>::sub_assign
+FN:119,<impl MulAssign for CInt>::mul_assign
+FN:125,<impl DivAssign for CInt>::div_assign
+FN:156,<impl TryFrom for CInt>::try_from
+FN:170,<impl From for Vec<u8>>::from
+FN:253,<impl From for CInt>::from
+FN:262,<impl TryFrom for u128>::try_from
+FN:294,<impl TryFrom for usize>::try_from
+FN:306,<impl TryFrom for u64>::try_from
+FN:318,<impl TryFrom for u32>::try_from
+FN:330,<impl TryFrom for u16>::try_from
+FN:342,<impl TryFrom for i128>::try_from
+FN:352,<impl TryFrom for i64>::try_from
+FN:362,<impl TryFrom for i32>::try_from
+FN:372,<impl TryFrom for i16>::try_from
+FNF:23
+FNDA:0,CInt::bytes
+FNDA:128,CInt::read_from
+FNDA:49,CInt::zero
+FNDA:1,<impl Add for CInt>::add
+FNDA:1,<impl Sub for CInt>::sub
+FNDA:0,<impl Mul for CInt>::mul
+FNDA:0,<impl Div for CInt>::div
+FNDA:1,<impl AddAssign for CInt>::add_assign
+FNDA:1,<impl SubAssign for CInt>::sub_assign
+FNDA:0,<impl MulAssign for CInt>::mul_assign
+FNDA:0,<impl DivAssign for CInt>::div_assign
+FNDA:128,<impl TryFrom for CInt>::try_from
+FNDA:384,<impl From for Vec<u8>>::from
+FNDA:16,<impl From for CInt>::from
+FNDA:997,<impl TryFrom for u128>::try_from
+FNDA:0,<impl TryFrom for usize>::try_from
+FNDA:128,<impl TryFrom for u64>::try_from
+FNDA:64,<impl TryFrom for u32>::try_from
+FNDA:32,<impl TryFrom for u16>::try_from
+FNDA:128,<impl TryFrom for i128>::try_from
+FNDA:64,<impl TryFrom for i64>::try_from
+FNDA:32,<impl TryFrom for i32>::try_from
+FNDA:16,<impl TryFrom for i16>::try_from
+DA:23,0
+DA:24,0
+DA:29,128
+DA:30,384
+DA:31,512
+DA:32,128
+DA:35,7
+DA:39,121
+DA:40,121
+DA:41,242
+DA:42,121
+DA:43,121
+DA:47,121
+DA:48,0
+DA:51,915
+DA:52,915
+DA:53,1830
+DA:54,915
+DA:55,915
+DA:57,121
+DA:61,49
+DA:62,49
+DA:69,1
+DA:70,5
+DA:71,4
+DA:72,2
+DA:79,1
+DA:80,5
+DA:81,4
+DA:82,2
+DA:89,0
+DA:90,0
+DA:91,0
+DA:92,0
+DA:99,0
+DA:100,0
+DA:101,0
+DA:102,0
+DA:107,1
+DA:108,3
+DA:113,1
+DA:114,3
+DA:119,0
+DA:120,0
+DA:125,0
+DA:126,0
+DA:133,128
+DA:134,128
+DA:135,0
+DA:138,121
+DA:139,121
+DA:142,0
+DA:156,128
+DA:157,128
+DA:158,0
+DA:161,0
+DA:170,384
+DA:171,768
+DA:176,1071
+DA:177,3213
+DA:178,3213
+DA:180,3213
+DA:181,9639
+DA:182,1071
+DA:183,1071
+DA:184,162
+DA:186,909
+DA:189,3636
+DA:192,48
+DA:196,6860
+DA:197,5999
+DA:198,87816
+DA:208,15
+DA:209,30
+DA:214,64
+DA:215,128
+DA:220,32
+DA:221,64
+DA:226,16
+DA:227,32
+DA:232,128
+DA:233,640
+DA:234,256
+DA:239,64
+DA:240,256
+DA:241,128
+DA:246,93
+DA:247,372
+DA:248,186
+DA:253,16
+DA:254,64
+DA:255,32
+DA:262,997
+DA:263,997
+DA:264,0
+DA:268,88
+DA:273,0
+DA:276,0
+DA:279,0
+DA:284,5999
+DA:294,0
+DA:295,0
+DA:296,0
+DA:297,0
+DA:299,0
+DA:306,128
+DA:307,384
+DA:309,0
+DA:318,64
+DA:319,192
+DA:321,0
+DA:330,32
+DA:331,96
+DA:333,0
+DA:342,128
+DA:343,384
+DA:352,64
+DA:353,192
+DA:362,32
+DA:363,96
+DA:372,16
+DA:373,48
+LF:122
+LH:91
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/shared/crc.rs
+FN:5,calculate_crc
+FNF:1
+FNDA:14,calculate_crc
+DA:5,14
+DA:9,70
+DA:10,14
+DA:11,0
+DA:14,0
+DA:15,0
+LF:6
+LH:3
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/shared/datatype.rs
+FN:44,DataType::is_numeric
+FN:49,DataType::is_integer
+FN:66,DataType::is_float
+FNF:3
+FNDA:4,DataType::is_numeric
+FNDA:8,DataType::is_integer
+FNDA:7,DataType::is_float
+DA:44,4
+DA:45,11
+DA:49,8
+DA:50,6
+DA:51,8
+DA:66,7
+DA:67,12
+LF:7
+LH:7
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/eplite/shared/identifier.rs
+FN:8,<impl Identifier for String>::is_valid_identifier
+FNF:1
+FNDA:29,<impl Identifier for String>::is_valid_identifier
+DA:8,29
+DA:10,145
+DA:11,87
+LF:3
+LH:3
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/os/async_file.rs
+FN:37,AsyncDefaultFile::open
+FNF:1
+FNDA:0,AsyncDefaultFile::open
+DA:37,0
+DA:38,0
+DA:39,0
+DA:40,0
+DA:41,0
+DA:42,0
+DA:43,0
+DA:45,0
+DA:46,0
+DA:47,0
+LF:10
+LH:0
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/os/file.rs
+FN:25,DefaultFile::open
+FNF:1
+FNDA:0,DefaultFile::open
+DA:25,0
+DA:26,0
+DA:27,0
+DA:28,0
+DA:29,0
+DA:30,0
+DA:31,0
+DA:33,0
+DA:34,0
+DA:35,0
+LF:10
+LH:0
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/os.rs
+FN:27,OperatingSystem::identify
+FN:49,Architecture::identify
+FNF:2
+FNDA:0,OperatingSystem::identify
+FNDA:0,Architecture::identify
+DA:27,0
+DA:28,0
+DA:29,0
+DA:30,0
+DA:31,0
+DA:32,0
+DA:33,0
+DA:34,0
+DA:35,0
+DA:49,0
+DA:50,0
+DA:51,0
+DA:52,0
+DA:53,0
+DA:54,0
+LF:15
+LH:0
+end_of_record
+TN:
+SF:/home/jeleniel/repos/epiloglite/src/semver.rs
+FN:90,<impl TryFrom for SemVer>::try_from
+FN:121,<impl Into for SemVer>::into
+FNF:2
+FNDA:0,<impl TryFrom for SemVer>::try_from
+FNDA:0,<impl Into for SemVer>::into
+DA:15,0
+DA:16,0
+DA:18,0
+DA:19,0
+DA:22,0
+DA:23,0
+DA:26,0
+DA:27,0
+DA:28,0
+DA:30,0
+DA:31,0
+DA:32,0
+DA:34,0
+DA:35,0
+DA:36,0
+DA:39,0
+DA:40,0
+DA:41,0
+DA:42,0
+DA:44,0
+DA:46,0
+DA:47,0
+DA:49,0
+DA:52,0
+DA:53,0
+DA:54,0
+DA:56,0
+DA:57,0
+DA:58,0
+DA:60,0
+DA:61,0
+DA:62,0
+DA:65,0
+DA:66,0
+DA:67,0
+DA:68,0
+DA:69,0
+DA:75,0
+DA:76,0
+DA:81,0
+DA:90,0
+DA:91,0
+DA:92,0
+DA:94,0
+DA:97,0
+DA:98,0
+DA:99,0
+DA:101,0
+DA:104,0
+DA:105,0
+DA:107,0
+DA:111,0
+DA:112,0
+DA:113,0
+DA:114,0
+DA:115,0
+DA:121,0
+DA:122,0
+LF:58
+LH:0
+end_of_record

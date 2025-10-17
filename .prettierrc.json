@@ -16,10 +16,18 @@
 			}
 		},
 		{
-			"files": ["*.md", "*.markdown"],
+			"files": ["*.md", "*.markdown", "[instructions]"],
 			"options": {
+				"parser": "markdown",
+				"emphasis": "_",
+				"strong": "*",
 				"tabWidth": 4,
-				"useTabs": true
+				"useTabs": false,
+				"markdownListMarker": "-",
+				"markdownPipeLeadingAndTrailing": true,
+				"codeFences": "backtick",
+				"proseWrap": "always",
+				"embeddedLanguageFormatting": "off"
 			}
 		}
 	],

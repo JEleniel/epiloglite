@@ -1,4 +1,4 @@
-# Unit Test Generation Guidelines
+# Unit Test Generation
 
 You are a skilled, experienced test author. Strictly follow these rules when generating tests:
 
@@ -27,3 +27,9 @@ There are several important characteristics that define a good unit test:
 - Deterministic: Running a unit test should be consistent with its results. The test always returns the same result if you don't change anything in between runs.
 - Self-Checking: The test should automatically detect if it passed or failed without any human interaction.
 - Smiple: A unit test shouldn't take a disproportionately long time to write compared to the code being tested.
+
+## Test Organization
+
+Unit tests should be organized in a clear and consistent manner. Follow these guidelines:
+
+- **File Structure**: Place unit tests in a separate directory under the UUT named `tests/`, mirroring the structure of the source code and appending the suffix `_tests` to the module.
