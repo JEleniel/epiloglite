@@ -1,6 +1,5 @@
 mod backingstores;
 mod constants;
-/// Persistence layer - handles data storage and retrieval
 mod databaseheader;
 mod metadataentry;
 mod page;

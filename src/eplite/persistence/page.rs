@@ -1,6 +1,5 @@
 use epiloglite_core::PageFlags;
 use flagset::FlagSet;
-use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -20,9 +19,11 @@ pub struct PageHeader {
     pub flags: FlagSet<PageFlags>,
     /// Pointer to the next overflow page, if any.
     pub next_page_id: CInt,
-    /// CRC32 checksum of the page (excluding the footer).
-    pub page_crc: u32,
     /// Maximum size of the page in bytes, including the header and footer.
+    /// The lowest record_id on the page
+    pub min_record_id: CInt,
+    /// The highest record_id on the page
+    pub max_record_id: CInt,
     #[serde(skip)]
     pub max_page_size: usize,
     /// Current page size in bytes, excluding the header and footer.
@@ -36,14 +37,12 @@ pub struct PageHeader {
 pub struct Page {
     /// The header of the page.
     pub header: PageHeader,
-    /// The lowest record_id on the page
-    pub min_record_id: CInt,
-    /// The highest record_id on the page
-    pub max_record_id: CInt,
     /// The slot index for the page
     pub slot_index: SlotIndexEntry_Collection,
     /// The data in the page.
     pub data: Vec<u8>,
+    /// CRC32 checksum of the page (excluding the footer).
+    pub crc: u32,
 }
 
 impl Page {
@@ -53,24 +52,15 @@ impl Page {
             flags: FlagSet::empty(),
             max_page_size,
             next_page_id: 0.into(),
-            page_crc: 0,
             page_id,
             page_size: 0,
             table_id,
-        };
-        let header_size = try_into_vec(&header).unwrap().len();
-        let mut new_page: Page = Page {
-            header,
-            data: Vec::new(),
             min_record_id: 0.into(),
             max_record_id: 0.into(),
-            slot_index: SlotIndexEntry_Collection {
-                slots: Vec::new(),
-                fields: SlotIndexEntry_Collection::fields_metadata(),
-            },
         };
+
         let crc = calculate_crc(&new_page);
-        new_page.header.page_crc = crc;
+        new_page.crc = crc;
         new_page.header.page_size = header_size; // Initial size is just the header
         new_page
     }
