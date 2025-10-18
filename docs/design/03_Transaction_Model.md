@@ -99,9 +99,9 @@ Before modifying any page, the original content is written to the journal file.
 1. Open or create journal file
 2. Write journal header with metadata
 3. For each page to be modified:
-	- Write page number
-	- Write original page content
-	- Write page checksum
+	+ Write page number
+	+ Write original page content
+	+ Write page checksum
 4. Update journal page count
 
 **Journal File Structure:**
@@ -166,9 +166,9 @@ Write all modified pages from the page cache to the database file.
 **Operations:**
 
 1. For each dirty page:
-	- Seek to page position
-	- Write page content
-	- Update in-memory state
+	+ Seek to page position
+	+ Write page content
+	+ Update in-memory state
 2. Update database header if needed
 
 **Ordering:**
