@@ -1,12 +1,19 @@
 use epiloglite_core::RecordFlags;
-use epiloglite_derive::collection;
+use epiloglite_derive::data_field;
 use flagset::FlagSet;
+
+pub trait RecordTrait {
+    fn id(&self) -> CInt;
+    fn set_id(&mut self, id: CInt);
+    fn flags(&self) -> &FlagSet<RecordFlags>;
+    fn flags_mut(&mut self) -> &mut FlagSet<RecordFlags>;
+}
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct CInt(pub i64);
 
-#[collection]
+#[data_field]
 pub struct FlagTest {
     pub value: i32,
 }

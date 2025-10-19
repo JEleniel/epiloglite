@@ -34,124 +34,79 @@ All code must:
     + Include positive and negative cases.
     + Include security tests, e.g. bad input handling.
 - Use secure coding practices to prevent common vulnerabilities.
-- Never crash. Implement proper error handling and logging.
 
-### Coding Style
+```markdown
+# Copilot Instructions
 
-- Follow language-specific style guidelines and best practices unless otherwise instructed.
-- Use the language appropriate toole (e.g. `rustfmt`, `prettier`, `markdownlint`) to automatially format files.
-- Prefer tabs over spaces for indentation when appropriate for the language.
-- Write clear, concise, and well-documented code.
-- Include comments explaining non-obvious logic.
-- Avoid hardcoding information (e.g., API keys, passwords) or configurable values.
-- NEVER USE YML or YAML. Use JSON for configuration files. Provide an appropriate [JSON (Draft 07) Schema](https://json-schema.org/draft-07/schema). Include `additionalProperties: false` and `additionalItems: false` as appropriate.
-- Place tests in a `tests/` folder under the unit under test, or in a `tests/` folder at the root of the project for integration tests.
-    + Use a consistent naming convention for test files and test functions. For example, in Rust the tests for `mod.rs` sohould be in `tests/mod_tests.rs`.
-    + Each test function should test a single behavior or case.
-    + Use Arrange-Act-Assert (AAA) pattern for structuring tests.
-    + Use descriptive names for test cases.
-    + Ensure tests are isolated and do not depend on external state or order of execution.
-    + Mock external dependencies where appropriate.
-    + Include setup and teardown logic as needed.
+All paths are relative to the repository root.
 
-### Version Control Guidelines
+These instructions explain the project-level guidance Copilot and other automated agents should follow when contributing or suggesting changes. When in doubt about repository policy or modifying configuration in `.github/`, propose changes and create a PR for human review; do not push unilateral changes to repository metadata unless you have explicit maintainer approval.
 
-- Write clear, descriptive commit messages.
-- Each commit should represent a single logical change.
-- Keep commits small and focused.
+## Priorities
+
+1. Security
+2. Robustness
+3. Scalability
+4. Performance
+5. Maintainability
+
+## Standards
+
+
+When applicable, prefer established standards and best practices such as:
+
+- The Twelve-Factor App: https://12factor.net/
+- WCAG (accessibility) where relevant
+- OWASP ASVS (if relevant to the scope)
+
+## Acceptance Criteria
+
+Generated or suggested code should meet these baseline expectations:
+
+- Build and typecheck cleanly with zero errors; avoid introducing new compiler errors.
+  - For Rust code, prefer following `rustfmt` defaults and `cargo clippy` guidance.
+- Include unit tests for new behavior (positive and negative cases where appropriate).
+  - Tests should mock external resources and stay focused on the unit under test.
+- Follow secure-coding practices and handle errors robustly; avoid panics in library code.
+
+## Formatting and Style
+
+- Follow language-specific and tooling defaults (e.g., Rust: rustfmt; use rustfmt defaults rather than enforcing tabs/spaces manually).
+- Use automated formatters where available (`rustfmt`, `prettier`, `markdownlint`).
+- Prefer the repository's canonical format over personal preference. If a project-wide formatter is not configured, propose one (e.g., add rustfmt config).
+
+Note: Configuration file format should follow the tool's expectations. While JSON is preferred for some config types, many tools (including GitHub Actions) require YAML and Rust uses TOML for Cargo. Do not replace format types required by tools.
+
+## Tests and Coverage
+
+- Aim for high test quality and meaningful coverage (for guidance, target >= 80% for critical modules), but prioritize correct, well-scoped tests over chasing a specific percentage.
+- Organize tests using language conventions (for Rust, use module-level tests or `tests/` integration tests as appropriate).
+
+## Version Control and Commits
+
+- Write clear, descriptive commit messages. Keep commits focused and logically grouped.
 - Branch names should be descriptive and follow project conventions.
-- Include relevant issue/ticket numbers in commit messages when applicable.
 
-## Agent Personality
+## Agent Behavior & Personality
 
-- Maintain a professional, friendly demeanor at all times.
-- Avoid apologizing, making conciliatory statements, or simply agreeing with the user with statements such as "You're right" or "Yes".
-- Review all responses for factuality, accuracy, and precision. Do not confabulate information. If you are unsure, simply say so.
-    + If in doubt about architecture or conventions, ask maintainers or follow existing patterns in the codebase.
-- Avoid hyperbole and excitement, stick to the task at hand and complete it pragmatically.
-- Always ensure responses are relevant to the context of the code provided.
-- Avoid unnecessary detail and keep responses concise.
-- Revalidate before responding. Think step by step.
+- Be professional, concise, and accurate.
+- Do not invent facts or misrepresent repository state; ask maintainers when uncertain.
+- Avoid unnecessary verbosity; be direct and provide concrete suggestions and diffs when proposing changes.
 
-## Other Key Documentation
+## Project Files and .github
 
-[Project Information](README.md)
-[Design Documentation](docs/design/)
+- You may read files in `.github/` to understand repository policies.
+- Do not modify `.github/` files directly without explicit maintainer approval. Instead, create a PR with proposed changes and include tests or validation where applicable.
 
-## Project Structure
+## Secrets and Security
 
-- Place documentation `docs/` folder, with a `docs/README.md` as the entry point.
-    + Design documentation must be in the `docs/design/` folder.
-    + Files in the `docs/design/agents/` folder are for machine agent use.
-- Respect the `.gitignore` file; do not read or modify files listed in it unless otherwise instructed.
-- You may read, but not modify files in the `.github` folder.
-    + The `.github/templates/` folder contains examples for various files, named with the additional extension `.template` that must be remooved.
-    + All other folders in `.github` should be ignored.
-- Other dot folders (e.g. `.analyze`) are used by various tooling and should be ignored.
+- Never commit secrets or private keys to the repository. Use environment variables or a secrets manager.
+- Report security issues privately following the SECURITY.md guidance.
 
-## Secrets and security
+## Technologies and Libraries
 
-- Never store secrets, credentials, or private keys in the repository. Use environment variables or a secrets manager.
-- Report security issues privately via the SECURITY.md process.
-
-## Technologies, Libraries, and Frameworks
-
-- Unless instructed to use a specific library or framework, ensure that libraries and frameworks used are actively
-    maintained and widely adopted.
-    + At least one year old
-    + Updated within the past six months
-
-### Preferred Libraries and Frameworks
-
-The following libraries, related child libraries, and frameworks have been reviewed and are the preferred solution in
-their space:
-
-#### Rust
-
-- base64
-- bitflags
-- chrono
-- clap
-- config v0.15
-- fern
-- libloading
-- log
-- lowlevel-types
-- num-traits
-- rand
-- regex
-- reqwest
-- rustls
-- serde
-- serde_json
-- serde-binary-adv
-- strum
-- thiserror
-- tokio
-- tower
-- tracing
-- url
-- uuid
-
-#### Node.js / Typescript / Javascript
-
-- @types/node
-- Axios
-- Bcrypt
-- Cors
-- DotEnv / @dotenvx/dotenvx
-- Express.js
-- Helmet
-- MySQL 2
-- Passport
-- Prefer `pnpm` over `npm`
-- Prettier & Prettier Plugins
-- Svelte/SvelteKit
-- TailwindCSS (4+)
-- Typescript
-- uuid
-- Vite
+- Prefer well-maintained libraries with recent activity. For Rust, examples of commonly used crates include `serde`, `tokio`, `regex`, `thiserror`, `uuid`, etc.
 
 ## Project Overview
 
-EpilogLite is a pure Rust database library implementation inspired by SQLite, designed for safety, reliability, and performance. The engine is built with **100% safe Rust** (no `unsafe` code).
+EpilogLite is a pure Rust database library implementation inspired by SQLite, designed for safety, reliability, and performance. The engine aims to be 100% safe Rust (no `unsafe` code) where feasible.

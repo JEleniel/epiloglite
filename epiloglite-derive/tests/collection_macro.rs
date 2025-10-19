@@ -1,14 +1,23 @@
 use epiloglite_core::RecordFlags;
-use epiloglite_derive::collection;
+use epiloglite_derive::data_field;
 use flagset::FlagSet;
+
+// Mirror the trait expected by the derive macro. We keep it local to the test
+// so that the macro's `impl RecordTrait for ...` resolves to this definition.
+pub trait RecordTrait {
+    fn id(&self) -> CInt;
+    fn set_id(&mut self, id: CInt);
+    fn flags(&self) -> &FlagSet<RecordFlags>;
+    fn flags_mut(&mut self) -> &mut FlagSet<RecordFlags>;
+}
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 // Dummy CInt for test
-#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Copy, Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct CInt(pub i64);
 
-#[collection]
+#[data_field]
 pub struct TestRecord {
     pub name: String,
 }
@@ -23,33 +32,7 @@ fn test_record_id_added() {
     assert_eq!(rec.record_id, CInt(1)); // Ensure record_id is included
 }
 
-#[test]
-fn test_container_metadata_readonly() {
-    let meta = TestRecordCollection::metadata();
-    assert_eq!(meta.len(), 1); // Only 'name' is present in metadata
-    assert_eq!(meta[0].name, "name");
-}
-
-#[test]
-fn test_container_struct() {
-    let rec = TestRecord {
-        record_id: CInt(2),
-        record_flags: FlagSet::empty(),
-        name: "bar".to_string(),
-    };
-    let cont = TestRecordCollection {
-        // Ensure all fields are included
-        container_id: CInt(10),
-        name: "container".to_string(),
-        records: vec![rec.clone()],
-    };
-    assert_eq!(cont.records[0].name, "bar");
-    assert_eq!(cont.container_id, CInt(10));
-    let meta = TestRecordCollection::metadata();
-    assert_eq!(meta[0].name, "name");
-}
-
-#[collection]
+#[data_field]
 pub struct WithId {
     pub record_id: CInt,
     pub value: i32,

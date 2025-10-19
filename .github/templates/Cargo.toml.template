@@ -8,9 +8,6 @@ license = { workspace = true }
 keywords = { workspace = true }
 categories = { workspace = true }
 
-[workspace]
-resolver = "3"
-members = []
 
 [workspace.package]
 version = "0.1.0-alpha.1"
@@ -41,3 +38,4 @@ tokio = { workspace = true }
 
 [lints]
 workspace = true
+```

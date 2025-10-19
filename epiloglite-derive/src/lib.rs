@@ -1,19 +1,18 @@
 use proc_macro::TokenStream;
-use quote::{format_ident, quote};
+use quote::quote;
 use syn::parse::Parser;
 use syn::{parse_macro_input, Attribute, Field, Fields, ItemStruct, Type, TypePath};
 
 #[proc_macro_attribute]
-pub fn collection(_attr: TokenStream, item: TokenStream) -> TokenStream {
-    // Parse the input struct
+pub fn data_field(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemStruct);
     let struct_ident = &input.ident;
     let mut fields = match &input.fields {
         Fields::Named(named) => named.named.clone(),
-        _ => panic!("collection macro only supports structs with named fields"),
+        _ => panic!("data_field macro only supports structs with named fields"),
     };
 
-    // Check for record_id field
+    // Check for record_id and flags fields
     let mut has_record_id = false;
     let mut has_record_flags = false;
     for field in fields.iter() {
@@ -26,14 +25,14 @@ pub fn collection(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             } else if ident == "record_flags" {
                 has_record_flags = true;
-                // Ensure type is CInt
-                if !is_record_flags_type(&field.ty) {
-                    panic!("record_flags field must be of type RecordFlags");
+                // Ensure type is FlagSet<RecordFlags>
+                if !is_flagset_type(&field.ty) {
+                    panic!("record_flags field must be of type FlagSet<RecordFlags>");
                 }
             }
         }
     }
-    // If not present, add it
+    // If not present, add them
     if !has_record_id {
         let field: Field = syn::parse_quote! { pub record_id: CInt };
         fields.insert(0, field);
@@ -57,39 +56,91 @@ pub fn collection(_attr: TokenStream, item: TokenStream) -> TokenStream {
         semi_token: None,
     };
 
-    // Generate the container struct with fields: Vec<FieldMetadata>
-    let container_ident = format_ident!("{}Collection", struct_ident);
-    let field_metadata = build_field_metadata(&input);
-    let container = quote! {
-        #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-        pub struct #container_ident {
-            pub container_id: CInt,
-            pub name: String,
-            pub records: Vec<#struct_ident>,
-        }
-        impl #container_ident {
-            // Use lazy_static for metadata
-            pub fn metadata() -> &'static [epiloglite_core::FieldMetadata] {
-                static META: once_cell::sync::Lazy<Vec<epiloglite_core::FieldMetadata>> = once_cell::sync::Lazy::new(|| {
-                    #field_metadata
-                });
-                &META
+    let imp = quote! {
+        impl RecordTrait for #struct_ident {
+            fn id(&self) -> CInt {
+                self.record_id
             }
-
-            pub fn new(container_id: CInt, name: String) -> Self {
-                Self {
-                    container_id,
-                    name,
-                    records: Vec::new(),
-                }
+            fn set_id(&mut self, id: CInt) {
+                self.record_id = id;
+            }
+            fn flags(&self) -> &FlagSet<RecordFlags> {
+                &self.record_flags
+            }
+            fn flags_mut(&mut self) -> &mut FlagSet<RecordFlags> {
+                &mut self.record_flags
             }
         }
     };
 
+    // // Generate the container struct with fields: Vec<FieldMetadata>
+    // let container_ident = format_ident!("{}Collection", struct_ident);
+    // let field_metadata = build_field_metadata(&input);
+    // let container = quote! {
+    // #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+    // pub struct #container_ident {
+    //     container_id: CInt,
+    //     name: String,
+    //     min_row_id: CInt,
+    //     max_row_id: CInt,
+    //     records: Vec<#struct_ident>,
+    // }
+    // impl ContainerTrait<#struct_ident> for #container_ident {
+    //     // Use lazy_static for metadata
+    //     pub fn metadata() -> &'static [epiloglite_core::FieldMetadata] {
+    //         static META: once_cell::sync::Lazy<Vec<epiloglite_core::FieldMetadata>> = once_cell::sync::Lazy::new(|| {
+    //             #field_metadata
+    //         });
+    //         &META
+    //     }
+
+    //     pub fn new(container_id: CInt, name: String) -> Self {
+    //         Self {
+    //             container_id,
+    //             name,
+    //             records: Vec::new(),
+    //         }
+    //     }
+
+    //     fn container_id(&self) -> CInt {
+    //         self.container_id
+    //     }
+    //     fn set_container_id(&mut self, id: CInt) {
+    //         self.container_id = id;
+    //     }
+    //     fn name(&self) -> &str {
+    //         &self.name
+    //     }
+    //     fn records(&self) -> &Vec<#struct_ident> {
+    //         &self.records
+    //     }
+
+    //     fn add_or_update_record(&mut self, record: #struct_ident) -> Result<usize, ContainerError> {
+    //         // Check if add or update
+    //         if record.record_id == 0 {
+    //             let new_id = if let Some(next_id) = self.records.find(|r| r.record_flags.contains(RecordFlags::DELETED)).map(|r| r.record_id) {
+    //                 record.record_id = next_id;
+    //             } else {
+    //                 record.record_id = self.max_row_id + 1;
+    //                 self.max_row_id = record.record_id;
+    //             };
+    //             self.records.push(record);
+    //         } else {
+    //             self.records[record_id] = record;
+    //         }
+    //             Ok(self.records.len() - 1)
+    //         }
+    //     }
+
+    // };
+
     // Output both structs
     let expanded = quote! {
         #output_struct
-        #container
+
+        #imp
+
+        // #container
     };
     TokenStream::from(expanded)
 }
@@ -107,7 +158,7 @@ fn is_cint_type(ty: &Type) -> bool {
 
 /// Checks if the type is `RecordFlags` or `FlagSet<RecordFlags>`.
 /// Returns true if the type matches the expected record flags type.
-fn is_record_flags_type(ty: &Type) -> bool {
+fn is_flagset_type(ty: &Type) -> bool {
     if let Type::Path(TypePath { path, .. }) = ty {
         let segments: Vec<_> = path.segments.iter().collect();
         // Match RecordFlags directly

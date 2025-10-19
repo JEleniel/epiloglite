@@ -9,49 +9,40 @@ body:
   - type: markdown
     attributes:
       value: |
-        Please fill out this pull request template completely. Fields marked as required must be filled.
+  Please fill out this pull request template. Fields marked as required should be completed where applicable. Small maintenance PRs may leave optional fields blank.
 
-        **Example of a good PR:**
+  **Rust-friendly example of a good PR:**
 
-        ```text
-        Type of Change:
-        New Feature
+  ```text
+  Type of Change:
+  New Feature
 
-        Breaking Changes:
-        No
+  Breaking Changes:
+  No
 
-        Description:
-        Added user authentication feature with JWT tokens.
-        - Implemented login/logout endpoints
-        - Added middleware for token validation
-        - Created user authentication service
-        - Added password hashing with bcrypt
+  Description:
+  Added persistent rowid index and basic lookup APIs.
+  - Implemented `RowIdIndex` with on-disk backing
+  - Added unit and integration tests
+  - Updated persistence documentation
 
-        Related Issues:
-        - Fixes #123
-        - Implements #456
-        - Updates #789
+  Related Issues:
+  - Fixes #123
 
-        Implementation Details:
-        - Using jsonwebtoken library for JWT handling
-        - Passwords are hashed with 10 salt rounds
-        - Token expiration set to 24h
-        - Added proper error handling for auth failures
+  Implementation Details:
+  - New module `src/eplite/persistence/rowid_index.rs`
+  - Uses existing pager API for storage
 
-        Testing:
-        - Added unit tests for auth service
-        - Integration tests for endpoints
-        - Manual testing with Postman
-        - All tests passing
+  Testing:
+  - `cargo test --workspace` passes locally
+  - Added unit and integration tests
 
-        Checklist:
-        - [x] Code adheres to style guidelines
-        - [x] Code is well-commented
-        - [x] Documentation has been updated
-        - [x] Commit messages follow guidelines
-        - [x] Changes reviewed locally
-        - [x] Code compiles without warnings
-        ```
+  Checklist:
+  - [x] Code follows rustfmt defaults
+  - [x] Unit tests added
+  - [x] Documentation updated
+  - [x] Commits are focused
+  ```
 
   - type: dropdown
     id: pr_type
@@ -79,13 +70,13 @@ body:
   - type: checkboxes
     id: testing
     attributes:
-      label: Testing Checklist (required)
+      label: Testing Checklist
       options:
         - unit_tests_updated: Unit tests have been updated or added as necessary.
-        - tests_passing: All tests are passing. (false will be rejected)
+        - tests_running_locally: Tests run locally (`cargo test`) and CI is expected to pass.
         - manual_testing: Manual testing has been performed where applicable.
-      description: Ensure that your changes have been adequately tested.
-      required: true
+      description: Ensure that your changes have been adequately tested. Mark `tests_running_locally` when you verified `cargo test` locally. CI status will be checked by maintainers.
+      required: false
 
   - type: checkboxes
     id: checklist
@@ -104,9 +95,9 @@ body:
   - type: textarea
     id: related_issues
     attributes:
-      label: Related Issue(s) (required)
+      label: Related Issue(s)
       placeholder: List related issues here, e.g., Fixes #123
-      required: true
+      required: false
 
   - type: textarea
     id: description

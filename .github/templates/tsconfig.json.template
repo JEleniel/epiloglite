@@ -1,3 +1,9 @@
+// Front-end template moved to legacy-templates to keep repository templates focused on Rust.
+// Canonical legacy copy: .github/templates/legacy-templates/tsconfig.json.template
+
+// If you need this file restored to the main templates directory, open a PR explaining why.
+
+// legacy tsconfig.json template
 {
 	"compilerOptions": {
 		"allowJs": true,

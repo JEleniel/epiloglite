@@ -16,4 +16,8 @@ const cspDirectives = {
 	'worker-src': ['self'],
 };
 
+// Front-end template moved to legacy-templates to keep repository templates focused on Rust.
+// Canonical legacy copy: .github/templates/legacy-templates/svelte.config.csp.js.template
+
+// If you need this file restored to the main templates directory, open a PR explaining why.
 export default cspDirectives;

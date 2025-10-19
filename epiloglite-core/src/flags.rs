@@ -1,16 +1,6 @@
 use flagset::flags;
 
 flags! {
-    pub enum RecordFlags: u8 {
-        NONE = 0,
-        DELETED = 1 << 0,
-        DIRTY = 1 << 1,
-        NEW = 1 << 2,
-        SYNCED = 1 << 3,
-    }
-}
-
-flags! {
     pub enum DatabaseFlags: u8 {
         /// Temporarily locked for maintenance
         Maintenance = 0b00000001,

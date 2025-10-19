@@ -57,14 +57,12 @@ where
 }
 
 /// Get the serialized size of an object in bytes
-pub fn serialized_size<T>(value: &T) -> Result<u64, SerializeError>
+pub fn serialized_size<T>(value: &T) -> Result<usize, SerializeError>
 where
     T: Debug + Serialize + DeserializeOwned,
 {
-    bincode::serde::encode_to_vec(value, BINCODE_CONFIG)?
-        .len()
-        .try_into()
-        .map_err(SerializeError::from)
+    let bytes = bincode::serde::encode_to_vec(value, BINCODE_CONFIG)?;
+    Ok(bytes.len())
 }
 
 /// Deserialize an object from a byte slice

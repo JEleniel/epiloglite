@@ -108,39 +108,32 @@ Please be sure to read and follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 > **Note:** Add your project's build commands here.
 
 ### Running Tests
+```text
+# Project README (template)
+
+Replace the sections below with project-specific information. This README is a simple starter for Rust libraries.
+
+## Overview
+
+Short project description and goals.
+
+## Documentation
+
+- See `docs/` for design and API reference.
+
+## Building and testing
 
 ```bash
-# Test commands here
+# Build
+cargo build --workspace --release
+
+# Test
+cargo test --workspace --all-features
 ```
-
-> **Note:** Add your project's test commands here.
-
-## Versioning
-
-We use [SemVer](http://semver.org/) for versioning.
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+Include your license file (e.g., `LICENSE-MIT.md` or `LICENSE-Apache.md`).
 
-## Contributors
-
-<a href="https://github.com/{username}/{repo}/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo={username}/{repo}" />
-</a>
-
-Made with [contrib.rocks](https://contrib.rocks).
-
-## Tooling
-
-The tools we use include:
-
-![Dependabot](https://img.shields.io/badge/dependabot-025E8C?style=for-the-badge&logo=dependabot&logoColor=white)
+```
 ![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
-![Linux Mint](https://img.shields.io/badge/Linux%20Mint-87CF3E?style=for-the-badge&logo=Linux%20Mint&logoColor=white)
-![VS Code](https://img.shields.io/badge/VS%20Code-0078d7.svg?style=for-the-badge&logo=visual-studio-code&logoColor=white)
-![Git](https://img.shields.io/badge/git-%23F05033.svg?style=for-the-badge&logo=git&logoColor=white)
-
-# Acknowledgements
-
-Badges provided by [Shields.io](https://shields.io)

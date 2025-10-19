@@ -1,17 +1,15 @@
 //! Trait defining the interface for a backing store, the underlying, compressed storage mechanism
 use std::{fmt::Debug, io, path::PathBuf};
 
-use serde::{Serialize, de::DeserializeOwned};
 use thiserror::Error;
 
-use crate::CInt;
 use crate::eplite::JournalEntry;
-use crate::eplite::persistence::Page;
+use crate::{CInt, eplite::persistence::backingstore::Page};
 
 /// Trait defining the interface for a backing store, the underlying, compressed storage mechanism
 pub trait BackingStore {
     /// Prepares the backing store for use, performing any necessary initialization.
-    fn open(&mut self, create: bool) -> Result<(), BackingStoreError>;
+    fn open(&mut self) -> Result<(), BackingStoreError>;
 
     /// Flushes any buffered data to the backing store, ensuring all writes are persisted.
     fn flush(&mut self) -> Result<(), BackingStoreError>;
@@ -20,19 +18,13 @@ pub trait BackingStore {
     fn close(&mut self) -> Result<(), BackingStoreError>;
 
     /// Reads a page from the backing store.
-    fn read_page<T>(&mut self, page_id: usize) -> Result<Page<T>, BackingStoreError>
-    where
-        T: Serialize + DeserializeOwned + Debug + Clone;
+    fn read_page(&mut self, page_id: usize) -> Result<Page, BackingStoreError>;
 
     /// Writes a page to the backing store.
-    fn write_page<T>(&mut self, page: Page<T>) -> Result<(), BackingStoreError>
-    where
-        T: Serialize + DeserializeOwned + Debug + Clone;
+    fn write_page(&mut self, page: Page) -> Result<(), BackingStoreError>;
 
     /// Allocates a new page in the backing store and returns its data
-    fn allocate_page<T>(&mut self) -> Result<T, BackingStoreError>
-    where
-        T: Serialize + DeserializeOwned + Debug + Clone;
+    fn allocate_page(&mut self) -> Result<Page, BackingStoreError>;
 
     /// Free a page in the backing store.
     fn free_page(&mut self, page_id: usize) -> Result<(), BackingStoreError>;

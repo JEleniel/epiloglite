@@ -25,6 +25,26 @@
 - Respond to review feedback promptly
 - Rebase your branch before merging
 
+### CI and local checks
+
+- Before opening a PR, run the following locally and ensure they pass:
+
+```bash
+# Check formatting
+cargo fmt --all -- --check
+
+# Run clippy (warnings are fine locally; maintainers may require fixes)
+cargo clippy --workspace --all-targets --all-features
+
+# Run tests
+cargo test --workspace --all-features
+```
+
+### Changes to repository configuration
+
+- Do not modify files in the `.github/` folder directly on `main` or other protected branches. Propose changes via a pull request so maintainers can review; `.github` changes affect workflows and contributor experience.
+- Changes to core code (`src/`, `epiloglite-core/`, etc.) should follow the CODEOWNERS and review policies. See `.github/CODEOWNERS` for current owners.
+
 ## Issues
 
 - Check existing issues before creating new ones

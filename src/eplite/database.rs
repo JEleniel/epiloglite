@@ -3,8 +3,6 @@ use std::path::PathBuf;
 
 use thiserror::Error;
 
-use crate::eplite::Page;
-
 /// Represents a database instance with automatic connection pooling.
 pub struct Database {
     backing_store: BackingStore,

@@ -42,29 +42,41 @@
 - Sign your commits
 - Reference related issues in commit messages
 
-### Commit Message Examples
+```text
+# Contributing
 
-Good examples:
+Thank you for contributing! This template is focused on Rust projects and describes the preferred workflow for EpilogLite.
 
-```
-feat: add user authentication system (#123)
-fix: resolve memory leak in data processing (#456)
-docs: update API documentation for new endpoints (#789)
-```
+## Before you open a PR
 
-Bad examples:
+- Ensure your branch is based on the current `main` or the target branch.
+- Run formatting, lints, and tests locally:
 
-```
-fixed stuff
-updated code
-WIP
-quick fix for #123
+```bash
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets --all-features
+cargo test --workspace --all-features
 ```
 
-## Code Review
+## Pull Request guidance
 
-- Be respectful and constructive
-- Review changes thoroughly
-- Test the changes locally
-- Provide specific feedback
-- Approve only when satisfied
+- Create a branch with a descriptive name (e.g., `feat/rowid-index`).
+- Keep changes focused and small.
+- Update docs when public behavior changes.
+- Use the project PR template and include a clear description, related issues, and testing notes.
+
+## Issues
+
+- Search for existing issues first.
+- Provide steps to reproduce, environment, and relevant logs.
+
+## Commits
+
+- Use clear, imperative commit messages.
+- Keep commits small and focused; use multiple commits when appropriate.
+
+## Repository configuration changes
+
+- Do not modify `.github/` files directly without a PR; these changes affect CI and contributor experience. Use `CODEOWNERS` to determine required reviewers.
+
+```

@@ -1,0 +1,51 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [main, master, v1.0.0, v*]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache target
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install dependencies (cargo-audit optional)
+        run: |
+          rustup component add clippy || true
+          rustup component add rustfmt || true
+
+      - name: Format check
+        run: |
+          cargo fmt --all -- --check
+
+      - name: Run clippy (warnings allowed)
+        run: |
+          cargo clippy --workspace --all-targets --all-features || true
+
+      - name: Run tests
+        run: |
+          cargo test --workspace --all-features -- --nocapture

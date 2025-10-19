@@ -31,43 +31,14 @@ When you submit a vulnerability report, our team will:
 4. Credit you in the security advisory (unless you prefer to remain anonymous)
 
 > **Note:** Replace `{username}` and `{repo}` in links with your GitHub username and repository name when using this template.
+```text
+# Security Policy (template)
 
-## Scope
+If you find a security issue, please report it responsibly. Do not open a public issue for security-sensitive bugs.
 
-If you believe you've found a security vulnerability in {repo}, we encourage you to let us know right away. We will investigate all legitimate reports and do our best to quickly fix the problem.
+- Use GitHub security advisories or contact maintainers privately.
+- Include clear reproduction steps, impact, and possible mitigations.
 
-### In Scope
-
-- Code injection
-- Authentication issues
-- Access control issues
+Maintain a record of response expectations and crediting policy in a separate SECURITY.md in the repo root.
+```
 - Encryption issues
-- Data exposure
-
-### Out of Scope
-
-- Bugs that don't have a security impact
-- DOS attacks
-- Spam attacks
-- Social engineering
-- Physical security
-
-## Security Updates
-
-Security patches will be released as soon as possible after a vulnerability is confirmed. These updates will be:
-
-1. Released as a new version
-2. Documented in the release notes
-3. Published as a security advisory on GitHub
-
-## Third-Party Modules
-
-Report security bugs in third-party modules to the person or team maintaining the module. If the issue is confirmed, they will be responsible for fixing it and disclosing it to their users.
-
-## Bug Bounty
-
-While we don't offer a paid bug bounty program at this time, we are grateful to the security research community for helping us identify and address vulnerabilities.
-
-## Attribution
-
-We will publicly acknowledge security researchers who responsibly disclose vulnerabilities to us, unless they wish to remain anonymous.

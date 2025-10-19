@@ -1,9 +1,8 @@
-# EpilogLite™
+# EpilogLite
 
 [![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![SQLite](https://img.shields.io/badge/sqlite-%2307405e.svg?style=for-the-badge&logo=sqlite&logoColor=white)](https://sqlite.org/)
 
-EpilogLite is a pure Rust database library implementation inspired by SQLite, designed for safety, reliability, and performance. The engine is built with **100% safe Rust** (no `unsafe` code).
+EpilogLite is a pure Rust database library inspired by SQLite, focused on safety, reliability, and performance. The engine aims to be idiomatic Rust and, where possible, avoids `unsafe` code.
 
 ## 🎯 Goals
 
@@ -248,28 +247,22 @@ cargo build --example no_std_basic --no-default-features --features no-std
 
 ## 🧪 Testing
 
-Run the test suite:
+Run the test suite locally (CI runs the same checks):
 
 ```bash
 # Run all tests
-cargo test
+cargo test --workspace
 
-# Run specific test category
-cargo test integration
-cargo test query_builder
-
-# Run with output
-cargo test -- --nocapture
+# Run with captured output (useful for debugging)
+cargo test --workspace -- --nocapture
 ```
 
-Current test coverage: **93 tests passing** (88 unit + 5 integration)
+## 📖 Additional documentation
 
-## 📖 Additional Documentation
-
-- [Architecture](docs/design/ARCHITECTURE.md) - System architecture overview
-- [File Format](docs/design/FILEFORMAT.md) - Database file format specification
-- [Virtual Machine](docs/design/VIRTUALMACHINE.md) - Bytecode execution engine
-- [C/C++ Interface](docs/design/C-CPP-Interface.md) - C API design (planned)
+- Architecture overview: `docs/design/02_Architecture_Overview.md`
+- Storage & file format: `docs/design/persistence/FileFormat.md`
+- Write-ahead log / WAL details: `docs/WAL_IMPLEMENTATION.md`
+- Design and SQL syntax reference: `docs/design/README.md`
 
 ## 🤝 Contributing
 
