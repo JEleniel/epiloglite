@@ -2,7 +2,7 @@ use epiloglite_core::CInt;
 use flagset::{FlagSet, flags};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SlotIndexEntry {
     pub flags: FlagSet<SlotFlags>,
     pub record_id: CInt,

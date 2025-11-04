@@ -5,11 +5,11 @@ use crate::eplite::persistence::{MetadataEntry, OffsetPointer};
 #[test]
 fn test_table_variant() {
     let entry = MetadataEntry::Table {
-        table_id: CInt::from(1),
+        table_id: CInt::from(1usize),
         name: "test_table".to_string(),
         first_page: OffsetPointer {
-            page_id: CInt::from(2),
-            offset: CInt::from(3),
+            page_id: CInt::from(2usize),
+            offset: CInt::from(3usize),
         },
         crc: 0x12345678,
     };
@@ -36,10 +36,10 @@ fn test_table_variant() {
         crc,
     } = entry
     {
-        assert_eq!(table_id, CInt::from(1));
+        assert_eq!(table_id, CInt::from(1usize));
         assert_eq!(name, "test_table");
-        assert_eq!(first_page.page_id, CInt::from(2));
-        assert_eq!(first_page.offset, CInt::from(3));
+        assert_eq!(first_page.page_id, CInt::from(2usize));
+        assert_eq!(first_page.offset, CInt::from(3usize));
         assert_eq!(crc, 0x12345678);
     } else {
         panic!("Not a Table variant");
@@ -49,8 +49,8 @@ fn test_table_variant() {
 #[test]
 fn test_index_variant() {
     let entry = MetadataEntry::Index {
-        index_id: CInt::from(1),
-        table_id: CInt::from(2),
+        index_id: CInt::from(1usize),
+        table_id: CInt::from(2usize),
         name: "idx".to_string(),
         index_def: vec![1, 2, 3],
         crc: 0x87654321,
@@ -63,8 +63,8 @@ fn test_index_variant() {
         crc,
     } = entry
     {
-        assert_eq!(index_id, CInt::from(1));
-        assert_eq!(table_id, CInt::from(2));
+        assert_eq!(index_id, CInt::from(1usize));
+        assert_eq!(table_id, CInt::from(2usize));
         assert_eq!(name, "idx");
         assert_eq!(index_def, vec![1, 2, 3]);
         assert_eq!(crc, 0x87654321);
@@ -76,7 +76,7 @@ fn test_index_variant() {
 #[test]
 fn test_view_variant() {
     let entry = MetadataEntry::View {
-        view_id: CInt::from(1),
+        view_id: CInt::from(1usize),
         name: "view1".to_string(),
         view_def: vec![4, 5, 6],
         crc: 0xABCDEF01,
@@ -88,7 +88,7 @@ fn test_view_variant() {
         crc,
     } = entry
     {
-        assert_eq!(view_id, CInt::from(1));
+        assert_eq!(view_id, CInt::from(1usize));
         assert_eq!(name, "view1");
         assert_eq!(view_def, vec![4, 5, 6]);
         assert_eq!(crc, 0xABCDEF01);
@@ -100,11 +100,11 @@ fn test_view_variant() {
 #[test]
 fn test_serialize_deserialize_roundtrip() {
     let entry = MetadataEntry::Table {
-        table_id: CInt::from(1),
+        table_id: CInt::from(1usize),
         name: "test_table".to_string(),
         first_page: OffsetPointer {
-            page_id: CInt::from(2),
-            offset: CInt::from(3),
+            page_id: CInt::from(2usize),
+            offset: CInt::from(3usize),
         },
         crc: 0x12345678,
     };

@@ -12,7 +12,7 @@ fn test_begin_commit_rollback_transaction_variants() {
     let now = Utc::now();
     let begin = JournalEntry::BeginTransaction {
         timestamp: now,
-        transaction_id: CInt::from(1),
+        transaction_id: CInt::from(1usize),
         crc: make_crc(),
     };
     // Additional tests would follow...
@@ -30,17 +30,17 @@ fn test_begin_commit_rollback_transaction_variants() {
     let now = Utc::now();
     let begin = JournalEntry::BeginTransaction {
         timestamp: now,
-        transaction_id: CInt::from(1),
+        transaction_id: CInt::from(1usize),
         crc: make_crc(),
     };
     let commit = JournalEntry::CommitTransaction {
         timestamp: now,
-        transaction_id: CInt::from(1),
+        transaction_id: CInt::from(1usize),
         crc: make_crc(),
     };
     let rollback = JournalEntry::RollbackTransaction {
         timestamp: now,
-        transaction_id: CInt::from(1),
+        transaction_id: CInt::from(1usize),
         crc: make_crc(),
     };
     assert!(matches!(begin, JournalEntry::BeginTransaction { .. }));
@@ -53,11 +53,12 @@ fn test_create_and_drop_variants() {
     let now = Utc::now();
     let create_table = JournalEntry::CreateTable {
         timestamp: now,
-        table_id: CInt::from(1),
+        table_id: CInt::from(1usize),
     };
     let drop_table = JournalEntry::DropTable {
         timestamp: now,
-        table_id: CInt::from(1),
+        table_id: CInt::from(1usize),
+        table_id: CInt::from(1usize),
         table_def: vec![1, 2, 3],
         crc: make_crc(),
     };
@@ -70,7 +71,7 @@ fn test_insert_update_delete_variants() {
     let now = Utc::now();
     let insert = JournalEntry::Insert {
         timestamp: now,
-        table_id: CInt::from(1),
+        table_id: CInt::from(1usize),
         row_id: CInt::from(2),
         row_data: vec![1, 2, 3],
         crc: make_crc(),
@@ -79,14 +80,16 @@ fn test_insert_update_delete_variants() {
         timestamp: now,
         after: true,
         upsert: false,
-        table_id: CInt::from(1),
+        table_id: CInt::from(1usize),
+        table_id: CInt::from(1usize),
         row_id: CInt::from(2),
         row_data: vec![4, 5, 6],
         crc: make_crc(),
     };
     let delete = JournalEntry::Delete {
         timestamp: now,
-        table_id: CInt::from(1),
+        table_id: CInt::from(1usize),
+        table_id: CInt::from(1usize),
         row_id: CInt::from(2),
         row_data: vec![7, 8, 9],
         crc: make_crc(),
@@ -101,7 +104,8 @@ fn test_serialize_deserialize_roundtrip() {
     let now = Utc::now();
     let entry = JournalEntry::Insert {
         timestamp: now,
-        table_id: CInt::from(1),
+        table_id: CInt::from(1usize),
+        table_id: CInt::from(1usize),
         row_id: CInt::from(2),
         row_data: vec![1, 2, 3],
         crc: make_crc(),

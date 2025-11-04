@@ -3,12 +3,12 @@ use crate::CInt;
 use crate::eplite::persistence::{Page, PageError, PageFlags, PageHeader};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 struct DummyRow(u32);
 
 #[test]
 fn test_page_header_fields() {
-    let table_id = CInt::from(1);
+    let table_id = CInt::from(1usize);
     let header = PageHeader {
         page_id: CInt::from(0),
         table_id: table_id.clone(),
@@ -25,12 +25,12 @@ use crate::eplite::persistence::{Page, PageError, PageFlags, PageHeader};
 // use epiloglite_core::{try_from_slice, try_into_vec};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 struct DummyRow(u32);
 
 #[test]
 fn test_page_header_fields() {
-    let table_id = CInt::from(1);
+    let table_id = CInt::from(1usize);
     let header = PageHeader {
         page_id: CInt::from(0),
         table_id: table_id.clone(),
@@ -50,7 +50,7 @@ fn test_data_page_entry_management() {
     let mut page: Page<DummyRow> = Page {
         header: PageHeader {
             page_id: CInt::from(0),
-            table_id: CInt::from(1),
+            table_id: CInt::from(1usize),
             flags: flagset::FlagSet::<PageFlags>::empty(),
             next_page_id: CInt::from(0),
             page_crc: 0,
@@ -72,7 +72,7 @@ fn test_data_page_entry_out_of_bounds() {
     let page: Page<DummyRow> = Page {
         header: PageHeader {
             page_id: CInt::from(0),
-            table_id: CInt::from(1),
+            table_id: CInt::from(1usize),
             flags: flagset::FlagSet::<PageFlags>::empty(),
             next_page_id: CInt::from(0),
             page_crc: 0,

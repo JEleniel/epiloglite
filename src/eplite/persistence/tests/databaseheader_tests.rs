@@ -112,7 +112,7 @@ fn test_invalid_page_size() {
 #[test]
 fn test_invalid_freelist_offset() {
     let mut header = DatabaseHeader::default();
-    header.freelist_offset.page_id = CInt::from(1);
+    header.freelist_offset.page_id = CInt::from(1usize);
     header.crc = calculate_crc(&header);
     let result = header.validate();
     assert!(matches!(

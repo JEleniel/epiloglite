@@ -9,7 +9,7 @@ use crate::{BINCODE_CONFIG, CInt};
 use epiloglite_core::OffsetPointer;
 
 /// Represents a metadata entry in the database, a.k.a. a *_def
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum MetadataEntry {
     /// Represents a table definition
     Table {

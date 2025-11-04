@@ -1,0 +1,5 @@
+error: record_id field must be of type u128
+  --> tests/ui/negative_missing_fields.rs:10:20
+   |
+10 |     pub record_id: u64, // wrong type, should trigger panic in macro expansion
+   |                    ^^^

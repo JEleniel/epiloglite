@@ -1,7 +1,7 @@
 use epiloglite_core::CInt;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Collection<T> {
     pub collection_id: CInt,
     pub name: String,

@@ -1,172 +1,399 @@
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::parse::Parser;
-use syn::{parse_macro_input, Attribute, Field, Fields, ItemStruct, Type, TypePath};
+//! epiloglite-derive
+//!
+//! Provides the `#[record]` attribute macro used by EpilogLite to annotate
+//! record types. The macro's responsibilities are intentionally small and
+//! idiomatic:
+//!
+//! - Ensure the struct contains the engine storage fields `record_id: u128`
+//!   and `record_flags: flagset::FlagSet<epiloglite_core::RecordFlags>`;
+//!   the macro will inject these fields if missing.
+//! - Implement the `epiloglite_core::Record` trait for the type.
+//! - Emit a runtime metadata root via a generated `pub fn metadata() ->
+//!   epiloglite_core::Metadata` on the type using `epiloglite_core::DataType`.
+//!
+//! Important: the macro intentionally does NOT add `#[derive(...)]`
+//! attributes. It preserves the struct attributes as authored. Because the
+//! `Record` trait requires `Clone + Debug + serde::Serialize +
+//! DeserializeOwned`, your type must implement those traits (usually via
+//! `#[derive(...)]`) when you plan to use the `Record` APIs.
+//!
+//! Example:
+//!
+//! ```rust,ignore
+//! use epiloglite_core::Record;
+//! use epiloglite_core::RecordFlags;
+//! use epiloglite_derive::record;
+//! use flagset::FlagSet;
+//!
+//! #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+//! #[record]
+//! pub struct MyRecord {
+//!     pub name: String,
+//!     pub value: i32,
+//! }
+//!
+//! fn example() {
+//!     // The macro ensures `record_id`/`record_flags` exist on the type. You
+//!     // still need the derives required by `Record` when you instantiate or
+//!     // use trait methods. For documentation purposes we can inspect the
+//!     // generated metadata without creating an instance:
+//!     let md = MyRecord::metadata();
+//!     println!("metadata: {:?}", md);
+//! }
+//! ```
+//!
+//! Why we don't support unnamed (tuple) fields
+//! -------------------------------------------
+//! The derive macro only supports structs with named fields (regular struct
+//! syntax `struct S { a: u32, b: String }`). Tuple/unnamed-field structs
+//! (e.g. `struct S(u32, String);`) are not supported because:
+//! - Metadata requires stable, serializable field names. Tuple fields do not
+//!   have identifiers and cannot be expressed as a named metadata tree.
+//! - The macro inserts `record_id` and `record_flags` as named fields. For a
+//!   tuple struct that would change the tuple layout and break code that
+//!   depends on positional indexing; it is not safe to inject named fields
+//!   into an unnamed-field type.
+//! - Enforcing named fields keeps the implementation simple and the resulting
+//!   metadata clear and deterministic for the storage engine.
+//!
+//! If you need tuple-like behavior, wrap positional fields in a named-field
+//! struct or provide an explicit conversion layer so the derive can operate on
+//! a named representation.
 
+use proc_macro::TokenStream;
+use proc_macro2::Span;
+use quote::quote;
+use syn::spanned::Spanned;
+use syn::{parse_macro_input, Field, Fields, ItemStruct, Type, TypePath};
+use thiserror::Error as ThisError;
+
+/// Errors produced by the `#[record]` macro during expansion.
+#[derive(Debug, ThisError)]
+enum RecordMacroError {
+    /// Struct shape is not supported (only named-field structs are supported).
+    #[error("record macro only supports structs with named fields")]
+    UnsupportedStructShape,
+    //// `record_id` field is not of type `u128`.
+    #[error("record_id field must be of type u128")]
+    InvalidRecordIdType,
+    /// `record_flags` field is not of type `FlagSet<RecordFlags>`.
+    #[error("record_flags field must be of type FlagSet<RecordFlags>")]
+    InvalidRecordFlagsType,
+}
+
+impl RecordMacroError {
+    /// Convert to a `syn::Error` anchored at a token span.
+    fn to_compile_error(&self, span: proc_macro2::Span) -> proc_macro2::TokenStream {
+        syn::Error::new(span, format!("{}", self)).to_compile_error()
+    }
+}
+
+/// Procedural attribute macro that ensures a struct has `record_id: u128` and
+/// `record_flags: FlagSet<RecordFlags>` fields, derives required traits, and
+/// implements `epiloglite_core::Record` for the struct so it can be used by
+/// the EpilogLite core APIs.
+///
+/// The macro only supports structs with named fields. See the crate-level
+/// documentation at the top of this file for the rationale.
 #[proc_macro_attribute]
-pub fn data_field(_attr: TokenStream, item: TokenStream) -> TokenStream {
+pub fn record(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemStruct);
     let struct_ident = &input.ident;
     let mut fields = match &input.fields {
         Fields::Named(named) => named.named.clone(),
-        _ => panic!("data_field macro only supports structs with named fields"),
+        _ => {
+            let ts = RecordMacroError::UnsupportedStructShape.to_compile_error(Span::call_site());
+            return TokenStream::from(ts);
+        }
     };
 
-    // Check for record_id and flags fields
+    // Check for record_id and record_flags fields
     let mut has_record_id = false;
     let mut has_record_flags = false;
     for field in fields.iter() {
         if let Some(ident) = &field.ident {
             if ident == "record_id" {
                 has_record_id = true;
-                // Ensure type is CInt
-                if !is_cint_type(&field.ty) {
-                    panic!("record_id field must be of type CInt");
+                // Inline check for u128
+                let is_u128 = if let Type::Path(TypePath { path, .. }) = &field.ty {
+                    path.segments
+                        .last()
+                        .map(|seg| seg.ident == "u128")
+                        .unwrap_or(false)
+                } else {
+                    false
+                };
+                if !is_u128 {
+                    let ts =
+                        RecordMacroError::InvalidRecordIdType.to_compile_error(field.ty.span());
+                    return TokenStream::from(ts);
                 }
             } else if ident == "record_flags" {
                 has_record_flags = true;
-                // Ensure type is FlagSet<RecordFlags>
-                if !is_flagset_type(&field.ty) {
-                    panic!("record_flags field must be of type FlagSet<RecordFlags>");
+                // Inline check for FlagSet<RecordFlags> or RecordFlags
+                let mut is_flagset = false;
+                if let Type::Path(TypePath { path, .. }) = &field.ty {
+                    let segments: Vec<_> = path.segments.iter().collect();
+                    if let Some(last) = segments.last() {
+                        if last.ident == "RecordFlags" {
+                            is_flagset = true;
+                        }
+                        if last.ident == "FlagSet" {
+                            if let syn::PathArguments::AngleBracketed(ref args) = last.arguments {
+                                for arg in &args.args {
+                                    if let syn::GenericArgument::Type(Type::Path(ref inner_path)) =
+                                        arg
+                                    {
+                                        if inner_path
+                                            .path
+                                            .segments
+                                            .last()
+                                            .map(|seg| seg.ident == "RecordFlags")
+                                            .unwrap_or(false)
+                                        {
+                                            is_flagset = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if !is_flagset {
+                    let ts =
+                        RecordMacroError::InvalidRecordFlagsType.to_compile_error(field.ty.span());
+                    return TokenStream::from(ts);
                 }
             }
         }
     }
     // If not present, add them
     if !has_record_id {
-        let field: Field = syn::parse_quote! { pub record_id: CInt };
+        let field: Field = syn::parse_quote! { pub record_id: u128 };
         fields.insert(0, field);
     }
     if !has_record_flags {
-        let field: Field = syn::parse_quote! { pub record_flags: FlagSet<RecordFlags> };
+        let field: Field =
+            syn::parse_quote! { pub record_flags: flagset::FlagSet<epiloglite_core::RecordFlags> };
         fields.insert(1, field);
     }
 
-    // Merge derives: only add missing
+    // Preserve the original struct attributes and adds the possibly modified
+    // field list (we do not emit compatibility shims or extra helper
+    // functions here; the macro purposely keeps the struct attributes as
+    // authored by the user).
     let output_struct = ItemStruct {
-        attrs: merge_derive_bounds(&input.attrs),
+        attrs: input.attrs.clone(),
         vis: input.vis.clone(),
         struct_token: input.struct_token,
         ident: struct_ident.clone(),
         generics: input.generics.clone(),
         fields: Fields::Named(syn::FieldsNamed {
             brace_token: syn::token::Brace::default(),
-            named: fields,
+            named: fields.clone(),
         }),
         semi_token: None,
     };
 
     let imp = quote! {
-        impl RecordTrait for #struct_ident {
-            fn id(&self) -> CInt {
+        impl epiloglite_core::Record for #struct_ident {
+            fn record_id(&self) -> u128 {
                 self.record_id
             }
-            fn set_id(&mut self, id: CInt) {
+            fn set_record_id(&mut self, id: u128) {
                 self.record_id = id;
             }
-            fn flags(&self) -> &FlagSet<RecordFlags> {
+            fn flags(&self) -> &flagset::FlagSet<epiloglite_core::RecordFlags> {
                 &self.record_flags
             }
-            fn flags_mut(&mut self) -> &mut FlagSet<RecordFlags> {
+            fn flags_mut(&mut self) -> &mut flagset::FlagSet<epiloglite_core::RecordFlags> {
                 &mut self.record_flags
             }
         }
     };
 
-    // // Generate the container struct with fields: Vec<FieldMetadata>
-    // let container_ident = format_ident!("{}Collection", struct_ident);
-    // let field_metadata = build_field_metadata(&input);
-    // let container = quote! {
-    // #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-    // pub struct #container_ident {
-    //     container_id: CInt,
-    //     name: String,
-    //     min_row_id: CInt,
-    //     max_row_id: CInt,
-    //     records: Vec<#struct_ident>,
-    // }
-    // impl ContainerTrait<#struct_ident> for #container_ident {
-    //     // Use lazy_static for metadata
-    //     pub fn metadata() -> &'static [epiloglite_core::FieldMetadata] {
-    //         static META: once_cell::sync::Lazy<Vec<epiloglite_core::FieldMetadata>> = once_cell::sync::Lazy::new(|| {
-    //             #field_metadata
-    //         });
-    //         &META
-    //     }
+    /// Map a `syn::Type` into a `proc_macro2::TokenStream` expression that,
+    /// when expanded, evaluates to an `epiloglite_core::DataType` value.
+    ///
+    /// This function handles Rust primitive types, `String`, `Vec<u8>`/`[u8]`,
+    /// references, arrays and simple custom struct types (by calling
+    /// `<T>::metadata()` for non-primitive path types). Unknown types are
+    /// mapped to `DataType::Null` as a conservative fallback.
+    fn map_type_to_datatype_expr(ty: &Type) -> proc_macro2::TokenStream {
+        match ty {
+            Type::Path(TypePath { path, .. }) => {
+                if let Some(seg) = path.segments.last() {
+                    let ident = seg.ident.to_string();
+                    match ident.as_str() {
+                        "u8" => quote! { epiloglite_core::DataType::U8 },
+                        "i8" => quote! { epiloglite_core::DataType::I8 },
+                        "u16" => quote! { epiloglite_core::DataType::U16 },
+                        "i16" => quote! { epiloglite_core::DataType::I16 },
+                        "u32" => quote! { epiloglite_core::DataType::U32 },
+                        "i32" => quote! { epiloglite_core::DataType::I32 },
+                        "u64" => quote! { epiloglite_core::DataType::U64 },
+                        "i64" => quote! { epiloglite_core::DataType::I64 },
+                        "u128" => quote! { epiloglite_core::DataType::U128 },
+                        "i128" => quote! { epiloglite_core::DataType::I128 },
+                        "f32" => quote! { epiloglite_core::DataType::F32 },
+                        "f64" => quote! { epiloglite_core::DataType::F64 },
+                        "bool" => quote! { epiloglite_core::DataType::Boolean },
+                        "String" => quote! { epiloglite_core::DataType::String(None) },
+                        "Vec" => {
+                            // Detect Vec<u8> -> ByteArray, else treat as Null
+                            if let syn::PathArguments::AngleBracketed(args) = &seg.arguments {
+                                for gen in args.args.iter() {
+                                    if let syn::GenericArgument::Type(Type::Path(inner)) = gen {
+                                        if inner
+                                            .path
+                                            .segments
+                                            .last()
+                                            .map(|s| s.ident == "u8")
+                                            .unwrap_or(false)
+                                        {
+                                            return quote! { epiloglite_core::DataType::ByteArray };
+                                        }
+                                    }
+                                }
+                            }
+                            quote! { epiloglite_core::DataType::Null }
+                        }
+                        "Option" => {
+                            // Option<T> -> DataType::Option(Box::new(<T>))
+                            if let syn::PathArguments::AngleBracketed(args) = &seg.arguments {
+                                for gen in args.args.iter() {
+                                    if let syn::GenericArgument::Type(inner_ty) = gen {
+                                        let inner_expr = map_type_to_datatype_expr(inner_ty);
+                                        return quote! { epiloglite_core::DataType::Option(Box::new(#inner_expr)) };
+                                    }
+                                }
+                            }
+                            quote! { epiloglite_core::DataType::Option(Box::new(epiloglite_core::DataType::Null)) }
+                        }
+                        "str" => quote! { epiloglite_core::DataType::String(None) },
+                        "char" => quote! { epiloglite_core::DataType::Char },
+                        "isize" => quote! { epiloglite_core::DataType::Isize },
+                        "usize" => quote! { epiloglite_core::DataType::Usize },
+                        _other => {
+                            // Treat as custom struct: use the full path and assert it implements Record
+                            let p = path.clone();
+                            quote! {
+                                {
+                                    // Ensure the custom type implements `epiloglite_core::Record`.
+                                    // Emit a clear trait-bound error if it does not.
+                                    fn _assert_record_impl<T: epiloglite_core::Record>() {}
+                                    let _ = _assert_record_impl::<#p>;
+                                    #p::metadata().dtype
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    quote! { epiloglite_core::DataType::Null }
+                }
+            }
+            Type::Reference(r) => {
+                // &T -> map T
+                map_type_to_datatype_expr(&*r.elem)
+            }
+            Type::Slice(s) => {
+                // [u8] -> ByteArray
+                if let Type::Path(inner) = &*s.elem {
+                    if inner
+                        .path
+                        .segments
+                        .last()
+                        .map(|s| s.ident == "u8")
+                        .unwrap_or(false)
+                    {
+                        return quote! { epiloglite_core::DataType::ByteArray };
+                    }
+                }
+                quote! { epiloglite_core::DataType::Null }
+            }
+            Type::Array(arr) => {
+                // [T; N] -> map T (ignore length for now)
+                map_type_to_datatype_expr(&*arr.elem)
+            }
+            Type::Paren(p) => map_type_to_datatype_expr(&*p.elem),
+            Type::Group(g) => map_type_to_datatype_expr(&*g.elem),
+            Type::Tuple(t) => {
+                // Empty tuple -> Null, otherwise Tuple([...])
+                let elems: Vec<proc_macro2::TokenStream> = t
+                    .elems
+                    .iter()
+                    .map(|et| map_type_to_datatype_expr(et))
+                    .collect();
+                if elems.is_empty() {
+                    quote! { epiloglite_core::DataType::Null }
+                } else {
+                    quote! { epiloglite_core::DataType::Tuple(vec![#(#elems),*]) }
+                }
+            }
+            _ => quote! { epiloglite_core::DataType::Null },
+        }
+    }
 
-    //     pub fn new(container_id: CInt, name: String) -> Self {
-    //         Self {
-    //             container_id,
-    //             name,
-    //             records: Vec::new(),
-    //         }
-    //     }
+    let mut field_meta_tokens = Vec::new();
+    for field in fields.iter() {
+        if let Some(ident) = &field.ident {
+            let name = ident.to_string();
+            let name_lit = syn::LitStr::new(&name, Span::call_site());
+            // Special-case the engine-injected fields and FlagSet containers.
+            let dtype_expr = if name == "record_id" {
+                // Always treat record_id as primitive u128
+                quote! { epiloglite_core::DataType::U128 }
+            } else if is_flagset_type(&field.ty) {
+                // Map FlagSet<...> to a compact u8 representation
+                quote! { epiloglite_core::DataType::U8 }
+            } else {
+                map_type_to_datatype_expr(&field.ty)
+            };
+            field_meta_tokens.push(quote! {
+                epiloglite_core::Metadata::new(#name_lit, #dtype_expr)
+            });
+        }
+    }
 
-    //     fn container_id(&self) -> CInt {
-    //         self.container_id
-    //     }
-    //     fn set_container_id(&mut self, id: CInt) {
-    //         self.container_id = id;
-    //     }
-    //     fn name(&self) -> &str {
-    //         &self.name
-    //     }
-    //     fn records(&self) -> &Vec<#struct_ident> {
-    //         &self.records
-    //     }
+    let struct_name_str = struct_ident.to_string();
+    let struct_name_lit = syn::LitStr::new(&struct_name_str, Span::call_site());
 
-    //     fn add_or_update_record(&mut self, record: #struct_ident) -> Result<usize, ContainerError> {
-    //         // Check if add or update
-    //         if record.record_id == 0 {
-    //             let new_id = if let Some(next_id) = self.records.find(|r| r.record_flags.contains(RecordFlags::DELETED)).map(|r| r.record_id) {
-    //                 record.record_id = next_id;
-    //             } else {
-    //                 record.record_id = self.max_row_id + 1;
-    //                 self.max_row_id = record.record_id;
-    //             };
-    //             self.records.push(record);
-    //         } else {
-    //             self.records[record_id] = record;
-    //         }
-    //             Ok(self.records.len() - 1)
-    //         }
-    //     }
+    let meta_impl = quote! {
+        impl #struct_ident {
+            /// Return runtime metadata for this struct as a named `Metadata` root.
+            /// The returned `Metadata` has `name` set to the struct name and
+            /// `dtype = DataType::Struct(fields)`.
+            pub fn metadata() -> epiloglite_core::Metadata {
+                epiloglite_core::Metadata::new(
+                    #struct_name_lit,
+                    epiloglite_core::DataType::Struct(vec![
+                        #(#field_meta_tokens),*
+                    ])
+                )
+            }
+        }
+    };
 
-    // };
-
-    // Output both structs
     let expanded = quote! {
         #output_struct
 
         #imp
-
-        // #container
+        #meta_impl
     };
     TokenStream::from(expanded)
-}
-
-fn is_cint_type(ty: &Type) -> bool {
-    if let Type::Path(TypePath { path, .. }) = ty {
-        path.segments
-            .last()
-            .map(|seg| seg.ident == "CInt")
-            .unwrap_or(false)
-    } else {
-        false
-    }
 }
 
 /// Checks if the type is `RecordFlags` or `FlagSet<RecordFlags>`.
 /// Returns true if the type matches the expected record flags type.
 fn is_flagset_type(ty: &Type) -> bool {
+    // Inline check removed; keep a conservative path-based detection to
+    // recognise `RecordFlags` and `FlagSet<RecordFlags>`.
     if let Type::Path(TypePath { path, .. }) = ty {
         let segments: Vec<_> = path.segments.iter().collect();
-        // Match RecordFlags directly
         if let Some(last) = segments.last() {
             if last.ident == "RecordFlags" {
                 return true;
             }
-            // Match FlagSet<RecordFlags>
             if last.ident == "FlagSet" {
                 if let syn::PathArguments::AngleBracketed(ref args) = last.arguments {
                     for arg in &args.args {
@@ -187,105 +414,4 @@ fn is_flagset_type(ty: &Type) -> bool {
         }
     }
     false
-}
-
-fn merge_derive_bounds(attrs: &[Attribute]) -> Vec<Attribute> {
-    let mut new_attrs = Vec::new();
-    let mut found = false;
-    let mut seen_traits = std::collections::HashSet::new();
-    let required = ["Clone", "Debug", "Serialize", "Deserialize"];
-    for attr in attrs {
-        if attr.path().is_ident("derive") {
-            found = true;
-            // Parse the derive list using syn v2 API
-            if let syn::Meta::List(meta_list) = &attr.meta {
-                let parser =
-                    syn::punctuated::Punctuated::<syn::Meta, syn::token::Comma>::parse_terminated;
-                let nested = parser.parse2(meta_list.tokens.clone()).unwrap_or_default();
-                let mut trait_idents = Vec::new();
-                for meta in nested.iter() {
-                    if let syn::Meta::Path(path) = meta {
-                        if let Some(ident) = path.get_ident() {
-                            seen_traits.insert(ident.to_string());
-                            trait_idents.push(ident.clone());
-                        }
-                    }
-                }
-                // Add missing
-                for req in &required {
-                    if !seen_traits.contains(*req) {
-                        let ident: syn::Ident = syn::parse_str(req).unwrap();
-                        trait_idents.push(ident);
-                    }
-                }
-                let new_attr: Attribute = syn::parse_quote! {
-                    #[derive(#(#trait_idents),*)]
-                };
-                new_attrs.push(new_attr);
-                continue;
-            }
-            new_attrs.push(attr.clone());
-        } else {
-            new_attrs.push(attr.clone());
-        }
-    }
-    if !found {
-        let mut trait_idents = Vec::new();
-        for req in &required {
-            let ident: syn::Ident = syn::parse_str(req).unwrap();
-            trait_idents.push(ident);
-        }
-        let new_attr: Attribute = syn::parse_quote! {
-            #[derive(#(#trait_idents),*)]
-        };
-        new_attrs.push(new_attr);
-    }
-    new_attrs
-}
-
-fn build_field_metadata(input: &ItemStruct) -> proc_macro2::TokenStream {
-    let mut field_meta = Vec::new();
-    if let Fields::Named(named) = &input.fields {
-        for field in named.named.iter() {
-            let name = field.ident.as_ref().unwrap().to_string();
-            let ty = &field.ty;
-            let ty_str = quote!(#ty).to_string().replace(' ', "");
-            // Try to match primitive types by string
-            let ty_expr = match ty_str.as_str() {
-                "u8" => quote! { Box::new(epiloglite_core::FieldType::U8) },
-                "u16" => quote! { Box::new(epiloglite_core::FieldType::U16) },
-                "u32" => quote! { Box::new(epiloglite_core::FieldType::U32) },
-                "u64" => quote! { Box::new(epiloglite_core::FieldType::U64) },
-                "i8" => quote! { Box::new(epiloglite_core::FieldType::I8) },
-                "i16" => quote! { Box::new(epiloglite_core::FieldType::I16) },
-                "i32" => quote! { Box::new(epiloglite_core::FieldType::I32) },
-                "i64" => quote! { Box::new(epiloglite_core::FieldType::I64) },
-                "f32" => quote! { Box::new(epiloglite_core::FieldType::F32) },
-                "f64" => quote! { Box::new(epiloglite_core::FieldType::F64) },
-                "bool" => quote! { Box::new(epiloglite_core::FieldType::Bool) },
-                "String" | "&str" => {
-                    quote! { Box::new(epiloglite_core::FieldType::String) }
-                }
-                _ => {
-                    // Nested struct: recurse (for now, just mark as Struct with empty FieldMetadata)
-                    quote! { Box::new(epiloglite_core::FieldType::Struct(
-                        epiloglite_core::FieldMetadata {
-                            name: #name.to_string(),
-                            ty: Box::new(epiloglite_core::FieldType::String),
-                        }
-                    )) }
-                }
-            };
-            field_meta.push(quote! {
-                epiloglite_core::FieldMetadata {
-                    name: #name.to_string(),
-                    ty: #ty_expr,
-                }
-            });
-        }
-    }
-    // Output as a Vec for lazy_static assignment
-    quote! {
-        vec![ #(#field_meta),* ]
-    }
 }

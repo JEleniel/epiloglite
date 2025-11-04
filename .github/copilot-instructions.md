@@ -1,112 +1,56 @@
 # Copilot Instructions
 
-All paths are relative to the repository root.
+## Maintaininc Conciceness
 
-**Read and follow the instructions in the following files as part of these instructions:**
+- When using the ToDo list, the prefix/preamble, status reports, and other informational messages must be placed in a collapsed section with an `expand` option.
+- Only the most recent progress step needs to be visible. Previous progress reports can be folded.
+- Failed progress reports should remain visible until resolved.
+- The various readouts of tool calls must be placed in a collapsed section with an `expand` option.
 
 ## Coding Practices and Style
 
-### Priorities
+- Write code in the idiomatic style and formatting of the language in use, obeying any relevant formatting configuration files in the repository (e.g. `.prettierrc.json`,`.markdownlint.json`). Such files override all other instructions.
+- Prefer tabs over spaces for indentation when the language has an option and the formatting configuration does not specify otherwise.
 
-1. Security
-2. Robustness
-3. Scalability
-4. Performance
-5. Maintainability
+### Rust Specific
 
-### Standards
-
-Code must conform to:
-
-- [The Twelve-Factor App](https://12factor.net/).
-- [Web Content Accessibility Guidelines (WCAG) 2.2 AAA](https://www.w3.org/WAI/standards-guidelines/wcag/docs/).
-- [OWASP Application Security Verification Standard (ASVS)](https://owasp.org/www-project-application-security-verification-standard/), if applicable.
-- [OWASP Mobile Application Security Verification Standard (MASVS)](https://mas.owasp.org/MASVS/), if applicable.
+- Use the Builder pattern for constructing complex, configurable structs.
+- Use `thiserror` and custom error enums matching the struct for surfacing errors.
+    + For example, a `Foo` struct that can return errors from some functions (e.g. try_from) would have a `FooError` enum, with `#[derive(Error)]` and appropriately descriptive errors. Any call that can fail would either handle the error internally or return a `Result<T,Error>` where `Error` maps to the custom error enum.
+    + Never `panic!`. Always either handle the error logically or return it to the caller.
 
 ### Acceptance Criteria
 
 All code must:
 
-- Compile with zero warnings or errors.
+- Compile with zero errors.
     + Future use code should be appropriately marked to avoid warnings (e.g. prefixed with `_` in Rust).
     + Unused code should be removed.
-- Include passing unit tests for all generated functions and code.
-    + Include positive and negative cases.
-    + Include security tests, e.g. bad input handling.
-- Use secure coding practices to prevent common vulnerabilities.
-
-```markdown
-# Copilot Instructions
-
-All paths are relative to the repository root.
-
-These instructions explain the project-level guidance Copilot and other automated agents should follow when contributing or suggesting changes. When in doubt about repository policy or modifying configuration in `.github/`, propose changes and create a PR for human review; do not push unilateral changes to repository metadata unless you have explicit maintainer approval.
-
-## Priorities
-
-1. Security
-2. Robustness
-3. Scalability
-4. Performance
-5. Maintainability
-
-## Standards
-
-
-When applicable, prefer established standards and best practices such as:
-
-- The Twelve-Factor App: https://12factor.net/
-- WCAG (accessibility) where relevant
-- OWASP ASVS (if relevant to the scope)
-
-## Acceptance Criteria
-
-Generated or suggested code should meet these baseline expectations:
-
-- Build and typecheck cleanly with zero errors; avoid introducing new compiler errors.
-  - For Rust code, prefer following `rustfmt` defaults and `cargo clippy` guidance.
-- Include unit tests for new behavior (positive and negative cases where appropriate).
-  - Tests should mock external resources and stay focused on the unit under test.
-- Follow secure-coding practices and handle errors robustly; avoid panics in library code.
-
-## Formatting and Style
-
-- Follow language-specific and tooling defaults (e.g., Rust: rustfmt; use rustfmt defaults rather than enforcing tabs/spaces manually).
-- Use automated formatters where available (`rustfmt`, `prettier`, `markdownlint`).
-- Prefer the repository's canonical format over personal preference. If a project-wide formatter is not configured, propose one (e.g., add rustfmt config).
-
-Note: Configuration file format should follow the tool's expectations. While JSON is preferred for some config types, many tools (including GitHub Actions) require YAML and Rust uses TOML for Cargo. Do not replace format types required by tools.
-
-## Tests and Coverage
-
-- Aim for high test quality and meaningful coverage (for guidance, target >= 80% for critical modules), but prioritize correct, well-scoped tests over chasing a specific percentage.
-- Organize tests using language conventions (for Rust, use module-level tests or `tests/` integration tests as appropriate).
-
-## Version Control and Commits
-
-- Write clear, descriptive commit messages. Keep commits focused and logically grouped.
-- Branch names should be descriptive and follow project conventions.
-
-## Agent Behavior & Personality
-
-- Be professional, concise, and accurate.
-- Do not invent facts or misrepresent repository state; ask maintainers when uncertain.
-- Avoid unnecessary verbosity; be direct and provide concrete suggestions and diffs when proposing changes.
-
-## Project Files and .github
-
-- You may read files in `.github/` to understand repository policies.
-- Do not modify `.github/` files directly without explicit maintainer approval. Instead, create a PR with proposed changes and include tests or validation where applicable.
-
-## Secrets and Security
-
-- Never commit secrets or private keys to the repository. Use environment variables or a secrets manager.
-- Report security issues privately following the SECURITY.md guidance.
-
-## Technologies and Libraries
-
-- Prefer well-maintained libraries with recent activity. For Rust, examples of commonly used crates include `serde`, `tokio`, `regex`, `thiserror`, `uuid`, etc.
+    + Warnings should be minimized, or elmininated if possible.
 
 ## Project Overview
 
 EpilogLite is a pure Rust database library implementation inspired by SQLite, designed for safety, reliability, and performance. The engine aims to be 100% safe Rust (no `unsafe` code) where feasible.
+
+### Project Structure
+
+- You may read but not modify the files in the `.github/` folder unless specifically instructed to modify them.
+    + The `.github/tamplates/` folder contains useful reference templates with the `.template` extension added.
+- The following files and folders should geneerally be ignored:
+    + Dot (`.`) folders. These are tooling specific working folders. The '.github` folder is an exception, as you are the tooling it is intended for.
+    + Output folders, such as `target`, `build`, and `out`.
+    + Cache, temporary, or intermediate folders, like `cache`, `node_modules`, etc.
+- Documentation (other than common repo files) goes in the `docs/` folder.
+    + Design documentation goes in `docs/design/`
+    + The `docs/design/agents/` folder is reserved for machine agent (including you) use.
+- The project is broken into multiple crates:
+    + `epiloglite-core` contains shared elements and fundamental types.
+    + `epilog-lite-derive` contains macros to make integration easier for developers.
+    + The root crate is the EpilogLite library entry point and the crate developers will depend on.
+
+## Agent Behavior & Personality
+
+- Be professional, concise, and accurate. Collapse diagnostic and tracing output behind an explicit "expand" request.
+- Do not invent facts or misrepresent repository state; ask maintainers when uncertain.
+- Avoid unnecessary verbosity; be direct and provide concrete suggestions and diffs when proposing changes.
+- Always finish with a one paragraph summary. This is separate from any detailed information previously provided or required by other instructions.

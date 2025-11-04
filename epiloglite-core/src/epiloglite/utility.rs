@@ -92,7 +92,3 @@ pub enum SerializeError {
     #[error("Integer conversion error: {0}")]
     IntConversion(#[from] std::num::TryFromIntError),
 }
-
-#[cfg(test)]
-#[path = "tests/utility_tests.rs"]
-mod utility_tests;

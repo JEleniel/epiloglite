@@ -3,7 +3,7 @@ use flagset::FlagSet;
 use serde::{Deserialize, Serialize};
 
 /// The header used by all pages in EpilogLite.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct PageHeader {
     /// The ID of the page.
     pub page_id: CInt,

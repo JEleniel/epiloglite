@@ -4,7 +4,7 @@ use tokio::sync::RwLock;
 
 use crate::os::sysinfo;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct SystemInfo {
     os_name: String,
     os_version: String,

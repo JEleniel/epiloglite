@@ -6,7 +6,7 @@ use crate::eplite::persistence::{OffsetPointer, RowIdIndex};
 fn test_new_index_is_empty() {
     let idx = RowIdIndex::new();
     assert_eq!(idx.len(), 0);
-    assert_eq!(idx.get(&CInt::from(1)), None);
+    assert_eq!(idx.get(&CInt::from(1usize)), None);
 }
 
 // Additional tests would follow...
@@ -17,7 +17,7 @@ use crate::eplite::persistence::{OffsetPointer, RowIdIndex};
 fn test_new_index_is_empty() {
     let idx = RowIdIndex::new();
     assert_eq!(idx.len(), 0);
-    assert_eq!(idx.get(&CInt::from(1)), None);
+    assert_eq!(idx.get(&CInt::from(1usize)), None);
 }
 
 #[test]
@@ -27,8 +27,8 @@ fn test_insert_and_get() {
         page_id: CInt::from(2),
         offset: CInt::from(3),
     };
-    idx.insert(CInt::from(1), ptr.clone());
-    assert_eq!(idx.get(&CInt::from(1)), Some(&ptr));
+    idx.insert(CInt::from(1usize), ptr.clone());
+    assert_eq!(idx.get(&CInt::from(1usize)), Some(&ptr));
 }
 
 #[test]
@@ -38,9 +38,9 @@ fn test_remove_sets_null_pointer() {
         page_id: CInt::from(2),
         offset: CInt::from(3),
     };
-    idx.insert(CInt::from(1), ptr);
-    idx.remove(&CInt::from(1));
-    assert_eq!(idx.get(&CInt::from(1)), Some(&OffsetPointer::null()));
+    idx.insert(CInt::from(1usize), ptr);
+    idx.remove(&CInt::from(1usize));
+    assert_eq!(idx.get(&CInt::from(1usize)), Some(&OffsetPointer::null()));
 }
 
 #[test]
@@ -54,14 +54,14 @@ fn test_get_entries_sorted() {
         },
     );
     idx.insert(
-        CInt::from(1),
+        CInt::from(1usize),
         OffsetPointer {
-            page_id: CInt::from(1),
+            page_id: CInt::from(1usize),
             offset: CInt::from(2),
         },
     );
     let entries = idx.get_entries();
-    assert_eq!(entries[0].0, CInt::from(1));
+    assert_eq!(entries[0].0, CInt::from(1usize));
     assert_eq!(entries[1].0, CInt::from(2));
 }
 
@@ -69,7 +69,7 @@ fn test_get_entries_sorted() {
 fn test_serialize_deserialize_roundtrip() {
     let mut idx = RowIdIndex::new();
     idx.insert(
-        CInt::from(1),
+        CInt::from(1usize),
         OffsetPointer {
             page_id: CInt::from(2),
             offset: CInt::from(3),

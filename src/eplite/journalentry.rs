@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{BINCODE_CONFIG, CInt};
 
 /// An entry in the Journal
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum JournalEntry {
     /// The beginning of a transaction
     BeginTransaction {

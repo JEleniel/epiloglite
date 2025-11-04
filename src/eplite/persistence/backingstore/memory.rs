@@ -9,7 +9,7 @@ use crate::{
     os::SystemInfo,
 };
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct MemoryBackingStore {
     header: DatabaseHeader,
     freelist_pointer: OffsetPointer,

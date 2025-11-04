@@ -1,8 +1,7 @@
 //! EpilogLite column data types
 use serde::{Deserialize, Serialize};
-use strum::EnumString;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, EnumString)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum DataType {
     /// Rust `()`
     Null,
@@ -36,6 +35,18 @@ pub enum DataType {
     String(Option<u64>),
     /// Rust `Vec<u8>` or `&[u8]`
     ByteArray,
+    /// Struct metadata: list of named fields and their datatypes
+    Struct(Vec<Metadata>),
+    /// Option wrapper around another DataType (represents `Option<T>`)
+    Option(Box<DataType>),
+    /// Tuple of other datatypes
+    Tuple(Vec<DataType>),
+    /// Rust `char`
+    Char,
+    /// Rust `isize`
+    Isize,
+    /// Rust `usize`
+    Usize,
 }
 
 // Additional documentation for DataType enum:
@@ -70,7 +81,29 @@ impl DataType {
                 | DataType::I64
                 | DataType::U64
                 | DataType::I128
+                | DataType::U128
+                | DataType::Isize
+                | DataType::Usize
         )
     }
     // ...existing code (truncated for brevity)...
+}
+
+// Default impl removed: names now match Rust counterparts and EnumString is not used.
+
+/// Metadata for a named field. Owned `String` is used so the metadata can be
+/// serialized/deserialized and stored in the data store.
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct Metadata {
+    pub name: String,
+    pub dtype: DataType,
+}
+
+impl Metadata {
+    pub fn new(name: impl Into<String>, dtype: DataType) -> Self {
+        Metadata {
+            name: name.into(),
+            dtype,
+        }
+    }
 }

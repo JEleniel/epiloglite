@@ -1,0 +1,13 @@
+error: record_flags field must be of type FlagSet<RecordFlags>
+ --> tests/ui/negative_wrong_types.rs:7:23
+  |
+7 |     pub record_flags: FlagSet<u8>,
+  |                       ^^^^^^^
+
+warning: unused import: `flagset::FlagSet`
+ --> tests/ui/negative_wrong_types.rs:2:5
+  |
+2 | use flagset::FlagSet;
+  |     ^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default

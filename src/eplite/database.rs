@@ -71,7 +71,7 @@ enum BackingStore {
 }
 
 /// Errors that can occur when working with a database.
-#[derive(Debug, Clone, PartialEq, Error)]
+#[derive(Clone, Debug, Error, PartialEq)]
 pub enum DatabaseError {
     /// The specified folder was not found.
     #[error("Folder not found {0}")]

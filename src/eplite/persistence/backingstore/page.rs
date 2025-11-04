@@ -17,7 +17,7 @@ use crate::try_into_vec;
 use crate::{CInt, eplite::persistence::backingstore::PageHeader};
 
 /// Represents a page in EpilogLite, containing a header and a list of entries.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Page {
     /// The header of the page.
     header: PageHeader,
@@ -285,3 +285,4 @@ pub enum PageError {
     #[error("Slot decode error: {0:?}")]
     SlotDecodeError(#[from] CIntError),
 }
+use flagset::flags;

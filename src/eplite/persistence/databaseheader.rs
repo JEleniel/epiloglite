@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Database file header
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct DatabaseHeader {
     /// Signature string (Magic Header)
     signature: String,
@@ -165,7 +165,7 @@ impl TryInto<Vec<u8>> for &DatabaseHeader {
 }
 
 /// Errors that can be returned while parsing a database header
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum HeaderError {
     /// Decoding error
     #[error("Decoding error {0:?}")]
