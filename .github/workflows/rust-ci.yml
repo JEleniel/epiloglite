@@ -9,6 +9,11 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      # Clear any RUSTFLAGS inherited from the runner or environment so
+      # workspace lint settings (Cargo.toml [workspace.lints.rust]) are
+      # authoritative for missing_docs (we want it to be a warning).
+      RUSTFLAGS: ''
     steps:
       - name: Checkout
         uses: actions/checkout@v4

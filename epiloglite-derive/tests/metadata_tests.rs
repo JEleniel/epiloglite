@@ -34,10 +34,13 @@ fn metadata_structure_and_types() {
                 other => panic!("expected String, got {:?}", other),
             }
 
-            // blob -> ByteArray
+            // blob -> VecPrimitive(U8)
             match &get("blob").dtype {
-                DataType::ByteArray => {}
-                other => panic!("expected ByteArray, got {:?}", other),
+                DataType::VecPrimitive(inner) => match **inner {
+                    DataType::U8 => {}
+                    ref o => panic!("expected VecPrimitive(U8), got {:?}", o),
+                },
+                other => panic!("expected VecPrimitive(U8), got {:?}", other),
             }
 
             // opt -> Option(i16)

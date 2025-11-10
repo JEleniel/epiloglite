@@ -103,7 +103,7 @@ Development follows a phased approach:
 
 All dependencies must meet the following criteria:
 
-1. **License Compatibility**: Must be compatible with LGPL-3.0-only
+1. **License Compatibility**: Must be compatible with the project's MIT/Apache-2.0 dual-license policy
 2. **Safety**: No `unsafe` code or verified safe `unsafe` usage
 3. **Maintenance**: Actively maintained with recent updates
 4. **Quality**: Well-tested with good documentation
@@ -214,16 +214,15 @@ To start working with EpilogLite:
 
 ## License
 
-EpilogLite is licensed under the GNU Lesser General Public License 3.0 only (LGPL-3.0-only).
+EpilogLite is licensed under the MIT OR Apache-2.0 licenses (your choice). See the top-level
+license files (`LICENSE-MIT.md` and `LICENSE-Apache.md`) for full text.
 
 This means:
 
-- You can use EpilogLite in your projects (including commercial)
-- You must disclose source code for modifications to EpilogLite itself
-- You can link to EpilogLite without making your code open source
-- Any modifications to EpilogLite must remain under LGPL-3.0-only
+- You can use EpilogLite in your projects (including commercial).
+- Modifications to EpilogLite itself remain subject to the chosen license terms when you distribute them.
 
-See [LICENSE.md](../../LICENSE.md) for the full license text.
+See [LICENSE.md](../../LICENSE.md) for the canonical license information.
 
 ## Acknowledgments
 

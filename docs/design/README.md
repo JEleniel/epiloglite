@@ -112,7 +112,8 @@ When contributing to design documentation:
 
 ## License
 
-EpilogLite is licensed under the GNU Lesser General Public License 3.0 only (LGPL-3.0-only).
+EpilogLite is licensed under the MIT OR Apache-2.0 licenses (your choice). See the top-level
+license files (`LICENSE-MIT.md` and `LICENSE-Apache.md`) for full text.
 
 ## Additional Resources
 

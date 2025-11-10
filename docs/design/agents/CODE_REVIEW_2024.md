@@ -369,7 +369,7 @@ Add examples for:
 All dependencies are:
 
 - ✅ Actively maintained
-- ✅ Compatible licenses (LGPL-3.0-compatible)
+- ✅ Compatible licenses (compatible with the project's MIT/Apache-2.0 dual-license)
 - ✅ Reasonable version ranges
 - ✅ Minimal dependency tree
 
@@ -432,7 +432,7 @@ All dependencies are:
 # Suggested GitHub Actions workflow
 - cargo fmt --check
 - cargo check
-- cargo clippy -- -D warnings # Will need fixes
+-- cargo clippy # Will need fixes
 - cargo test
 - cargo build --release
 - cargo doc --no-deps

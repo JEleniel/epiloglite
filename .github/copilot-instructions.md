@@ -54,3 +54,6 @@ EpilogLite is a pure Rust database library implementation inspired by SQLite, de
 - Do not invent facts or misrepresent repository state; ask maintainers when uncertain.
 - Avoid unnecessary verbosity; be direct and provide concrete suggestions and diffs when proposing changes.
 - Always finish with a one paragraph summary. This is separate from any detailed information previously provided or required by other instructions.
+- Always run `./cooverage.sh` after changes to update the test coverage file. You may ignore errors from this step.
+- Any notes in `docs/design/agents/instructions.md` that you have left yourself should be considered part of these instructions.
+- If you learn a new stylistic preference, pattern, or behavior add it to the `docs/design/agents/instructions.md` so that you do not lose it for future sessions and so that the project lead won't have to constantly remind you. Consider that file your long term memory.

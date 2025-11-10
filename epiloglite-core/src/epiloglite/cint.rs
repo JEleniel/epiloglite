@@ -11,14 +11,126 @@ const BYTE_1_COUNT_MASK: u8 = 0xF0;
 const BYTE_1_VALUE_MASK: u8 = !BYTE_1_COUNT_MASK;
 const BYTE_N_VALUE_MASK: u8 = 0xFF;
 
-/// A compressed integer, encoded in 1 to 17 bytes.
+/// A compressed 128-bit integer, encoded in 1 to 17 bytes.
 /// Used for compact storage of integer values in EpilogLite.
 #[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct CInt {
+pub struct Cu128 {
     bytes: Vec<u8>,
 }
 
-impl CInt {
+/// Small wrappers for narrower compressed integers. These are thin wrappers around
+/// the canonical `CInt` encoding so users can explicitly express a cu64/cu32/cu16
+/// semantic while reusing the same encoding/decoding logic.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct Cu64(pub Cu128);
+
+/// A compressed 32-bit unsigned integer wrapper around the canonical `CInt` encoding.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct Cu32(pub Cu128);
+
+/// A compressed 16-bit unsigned integer wrapper around the canonical `CInt` encoding.
+#[derive(Clone, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct Cu16(pub Cu128);
+
+// Implement From for primitive types into the cu* wrappers (via CInt::from)
+impl From<u64> for Cu64 {
+    fn from(v: u64) -> Self {
+        Cu64(Cu128::from(v as u128))
+    }
+}
+
+impl From<u32> for Cu32 {
+    fn from(v: u32) -> Self {
+        Cu32(Cu128::from(v as u128))
+    }
+}
+
+impl From<u16> for Cu16 {
+    fn from(v: u16) -> Self {
+        Cu16(Cu128::from(v as u128))
+    }
+}
+
+// Implement TryFrom from cu* wrappers into primitive types by delegating to TryFrom<CInt>
+// Provide conversions between the wrapper types and the canonical CInt so
+// callers can move between representations without friction.
+impl From<Cu64> for Cu128 {
+    fn from(value: Cu64) -> Self {
+        value.0
+    }
+}
+
+/// Try to build a `Cu64` from a raw `CInt`. Returns an error if the encoded
+/// value does not fit into a `u64`.
+impl std::convert::TryFrom<Cu128> for Cu64 {
+    type Error = CIntError;
+
+    fn try_from(value: Cu128) -> Result<Self, Self::Error> {
+        // Validate that the value fits a u64, using the existing TryFrom<Cu128> impl.
+        let _v: u64 = u64::try_from(value.clone())?;
+        Ok(Cu64(value))
+    }
+}
+
+impl From<Cu32> for Cu128 {
+    fn from(value: Cu32) -> Self {
+        value.0
+    }
+}
+
+/// Try to build a `Cu32` from a raw `CInt`. Returns an error if the encoded
+/// value does not fit into a `u32`.
+impl std::convert::TryFrom<Cu128> for Cu32 {
+    type Error = CIntError;
+
+    fn try_from(value: Cu128) -> Result<Self, Self::Error> {
+        let _v: u32 = u32::try_from(value.clone())?;
+        Ok(Cu32(value))
+    }
+}
+
+impl From<Cu16> for Cu128 {
+    fn from(value: Cu16) -> Self {
+        value.0
+    }
+}
+
+/// Try to build a `Cu16` from a raw `CInt`. Returns an error if the encoded
+/// value does not fit into a `u16`.
+impl std::convert::TryFrom<Cu128> for Cu16 {
+    type Error = CIntError;
+
+    fn try_from(value: Cu128) -> Result<Self, Self::Error> {
+        let _v: u16 = u16::try_from(value.clone())?;
+        Ok(Cu16(value))
+    }
+}
+
+impl std::convert::TryFrom<Cu64> for u64 {
+    type Error = CIntError;
+
+    fn try_from(value: Cu64) -> Result<Self, Self::Error> {
+        u64::try_from(value.0)
+    }
+}
+
+impl std::convert::TryFrom<Cu32> for u32 {
+    type Error = CIntError;
+
+    fn try_from(value: Cu32) -> Result<Self, Self::Error> {
+        u32::try_from(value.0)
+    }
+}
+
+impl std::convert::TryFrom<Cu16> for u16 {
+    type Error = CIntError;
+
+    fn try_from(value: Cu16) -> Result<Self, Self::Error> {
+        u16::try_from(value.0)
+    }
+}
+
+impl Cu128 {
     /// Reads a `CInt` from a reader, reading the necessary number of bytes.
     /// Returns an error if the reader does not contain enough bytes or if the format is invalid.
     pub fn read_from(reader: &mut dyn Read) -> Result<Self, CIntError> {
@@ -31,7 +143,7 @@ impl CInt {
         bytes.push(byte[0]);
 
         if !(byte[0] & 0x80 != 0) {
-            return Ok(CInt { bytes });
+            return Ok(Cu128 { bytes });
         }
 
         let mut len = 1 + ((byte[0] & BYTE_0_VALUE_MASK) as usize >> 7);
@@ -56,22 +168,43 @@ impl CInt {
                 .map_err(|_| CIntError::TooFew(len, i))?;
             bytes.push(byte[0]);
         }
-        Ok(CInt { bytes })
+        Ok(Cu128 { bytes })
     }
 }
 
-impl std::fmt::Display for CInt {
+impl std::fmt::Display for Cu128 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Clone and reuse the existing From<CInt> for u128 implementation
-        let v: u128 = u128::from(self.clone());
-        write!(f, "{}", v)
+        // Attempt to decode; on error show an explicit placeholder rather than panicking.
+        match u128::try_from(self.clone()) {
+            Ok(v) => write!(f, "{}", v),
+            Err(_) => write!(f, "<invalid-cint>"),
+        }
     }
 }
 
-impl From<u128> for CInt {
+impl std::fmt::Display for Cu64 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Delegate to the canonical Cu128 Display implementation.
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl std::fmt::Display for Cu32 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl std::fmt::Display for Cu16 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl From<u128> for Cu128 {
     fn from(value: u128) -> Self {
         if value < BYTE_0_COUNT_MASK as u128 {
-            return CInt {
+            return Cu128 {
                 bytes: vec![value as u8],
             };
         }
@@ -92,66 +225,81 @@ impl From<u128> for CInt {
         }
         bytes[0] |= byte_count << 4;
 
-        CInt { bytes }
+        Cu128 { bytes }
     }
 }
 
-// Note: signed integer conversions intentionally omitted. CInt encodes unsigned values only.
+impl std::convert::TryFrom<Cu128> for u128 {
+    type Error = CIntError;
 
-impl From<CInt> for u128 {
-    fn from(value: CInt) -> Self {
-        let bytes = value.bytes.clone();
+    fn try_from(value: Cu128) -> Result<Self, Self::Error> {
+        let bytes = value.bytes;
         if bytes.is_empty() {
-            return 0;
+            return Err(CIntError::NoData);
         }
 
+        // Single-byte fast-path
         if bytes[0] & BYTE_0_COUNT_MASK == 0 {
-            return bytes[0] as u128;
+            return Ok(bytes[0] as u128);
         }
 
-        let mut value: u128 = (bytes[0] & BYTE_1_VALUE_MASK) as u128;
-        value |= ((bytes[1] & BYTE_1_VALUE_MASK) as u128) << 7;
+        // Need at least two bytes for the multi-byte header
+        if bytes.len() < 2 {
+            return Err(CIntError::TooFew(2, bytes.len()));
+        }
 
-        let byte_count = bytes[1] >> 4;
+        let byte_count = (bytes[1] >> 4) as usize;
+        let expected_len = 2usize + byte_count;
+        if expected_len > 17 {
+            return Err(CIntError::InvalidEncodedLength(expected_len));
+        }
+        if bytes.len() < expected_len {
+            return Err(CIntError::TooFew(expected_len, bytes.len()));
+        }
+
+        let mut out: u128 = (bytes[0] & BYTE_1_VALUE_MASK) as u128;
+        out |= ((bytes[1] & BYTE_1_VALUE_MASK) as u128) << 7;
+
         for i in 0..byte_count {
-            value |= (bytes[(2 + i) as usize] as u128) << (11 + (i as u32 * 8));
+            let b = bytes[2 + i] as u128;
+            out |= b << (11 + (i as u32 * 8));
         }
 
-        value
+        Ok(out)
     }
 }
 
-impl From<u64> for CInt {
+impl From<u64> for Cu128 {
     fn from(value: u64) -> Self {
-        CInt::from(value as u128)
+        Cu128::from(value as u128)
     }
 }
 
-impl From<u32> for CInt {
+impl From<u32> for Cu128 {
     fn from(value: u32) -> Self {
-        CInt::from(value as u128)
+        Cu128::from(value as u128)
     }
 }
 
-impl From<u16> for CInt {
+impl From<u16> for Cu128 {
     fn from(value: u16) -> Self {
-        CInt::from(value as u128)
+        Cu128::from(value as u128)
     }
 }
 
-impl From<usize> for CInt {
+impl From<usize> for Cu128 {
     fn from(value: usize) -> Self {
-        CInt::from(value as u128)
+        Cu128::from(value as u128)
     }
 }
 
 // Try conversions FROM CInt into smaller integer types. These validate range and return a
 // `CIntError::ValueOutOfRange` when the encoded value doesn't fit the target type.
-impl std::convert::TryFrom<CInt> for u16 {
+impl std::convert::TryFrom<Cu128> for u16 {
     type Error = CIntError;
 
-    fn try_from(value: CInt) -> Result<Self, Self::Error> {
-        let v: u128 = u128::from(value);
+    fn try_from(value: Cu128) -> Result<Self, Self::Error> {
+        let v: u128 = u128::try_from(value)?;
         if v > u16::MAX as u128 {
             return Err(CIntError::ValueOutOfRange(u16::MAX as u128, v));
         }
@@ -159,11 +307,11 @@ impl std::convert::TryFrom<CInt> for u16 {
     }
 }
 
-impl std::convert::TryFrom<CInt> for u32 {
+impl std::convert::TryFrom<Cu128> for u32 {
     type Error = CIntError;
 
-    fn try_from(value: CInt) -> Result<Self, Self::Error> {
-        let v: u128 = u128::from(value);
+    fn try_from(value: Cu128) -> Result<Self, Self::Error> {
+        let v: u128 = u128::try_from(value)?;
         if v > u32::MAX as u128 {
             return Err(CIntError::ValueOutOfRange(u32::MAX as u128, v));
         }
@@ -171,11 +319,11 @@ impl std::convert::TryFrom<CInt> for u32 {
     }
 }
 
-impl std::convert::TryFrom<CInt> for u64 {
+impl std::convert::TryFrom<Cu128> for u64 {
     type Error = CIntError;
 
-    fn try_from(value: CInt) -> Result<Self, Self::Error> {
-        let v: u128 = u128::from(value);
+    fn try_from(value: Cu128) -> Result<Self, Self::Error> {
+        let v: u128 = u128::try_from(value)?;
         if v > u64::MAX as u128 {
             return Err(CIntError::ValueOutOfRange(u64::MAX as u128, v));
         }
@@ -183,11 +331,11 @@ impl std::convert::TryFrom<CInt> for u64 {
     }
 }
 
-impl std::convert::TryFrom<CInt> for usize {
+impl std::convert::TryFrom<Cu128> for usize {
     type Error = CIntError;
 
-    fn try_from(value: CInt) -> Result<Self, Self::Error> {
-        let v: u128 = u128::from(value);
+    fn try_from(value: Cu128) -> Result<Self, Self::Error> {
+        let v: u128 = u128::try_from(value)?;
         if v > usize::MAX as u128 {
             return Err(CIntError::ValueOutOfRange(usize::MAX as u128, v));
         }

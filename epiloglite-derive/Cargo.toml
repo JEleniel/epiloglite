@@ -9,8 +9,8 @@ license = "MIT OR Apache-2.0"
 proc-macro = true
 
 [dependencies]
-epiloglite-core = { path = "../epiloglite-core" }
 once_cell = { version = "1.9.0" }
+proc-macro-crate = "1.2.0"
 proc-macro2 = { version = "1.0.103" }
 quote = { version = "1.0.41" }
 serde.workspace = true
@@ -19,5 +19,6 @@ syn = { version = "2", features = ["full"] }
 thiserror = { version = "2.0.17" }
 
 [dev-dependencies]
+epiloglite-core = { path = "../epiloglite-core" }
 flagset = "0.4"
 trybuild = "1"

@@ -1,90 +1,131 @@
+
 # Contributing
 
-## Modifying the code
+Thank you for wanting to contribute to EpilogLite. This file explains how to propose changes, the project's expectations for code and commits, and where to run checks locally before opening a pull request.
 
-- All contributors agree to the [Developer's Certificate of Origin](DCO.md)
-- Follow the GitHub guide for [Contributing to a project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project)
+## Quick links
 
-## Code Standards
+- Code of Conduct: `CODE_OF_CONDUCT.md`
+- Security policy: `SECURITY.md` (report vulnerabilities privately)
+- Developer Certificate of Origin: `DCO.md`
+- GitHub templates and CODEOWNERS: `.github/`
+- Design docs: `docs/design/`
+- License files: `LICENSE.md`, `LICENSE-MIT.md`, `LICENSE-Apache.md`
 
-- Follow the official style guide for your programming language
-- Write clear, documented, and testable code
-- Include comments for complex logic
-- Keep functions focused and concise
-- Write meaningful variable and function names
-- Add unit tests for new functionality
-- Ensure all tests pass before submitting
+If anything below is unclear or you need help, open a discussion or an issue and tag @JEleniel.
 
-## Pull Requests
+## Before you start
 
-- Create a branch with a descriptive name
-- Make focused, single-purpose changes
-- Include comprehensive test coverage
-- Update documentation!
-- Follow the pull request template
-- Respond to review feedback promptly
-- Rebase your branch before merging
+- Read the `docs/design/README.md` and the relevant design documents for the area you intend to change.
+- Search open issues and discussions — you may find that someone else is already working on the same problem.
+- If you plan a large or invasive change, open an issue or discussion first to get maintainers' feedback on the approach.
 
-### CI and local checks
+## Code of Conduct and Security
 
-- Before opening a PR, run the following locally and ensure they pass:
+- All contributors must follow `CODE_OF_CONDUCT.md`.
+- Do not report security vulnerabilities in public issues. Follow `SECURITY.md` to disclose vulnerabilities privately.
 
-```bash
-# Check formatting
-cargo fmt --all -- --check
+## Branches and naming
 
-# Run clippy (warnings are fine locally; maintainers may require fixes)
-cargo clippy --workspace --all-targets --all-features
+- Create a short, descriptive branch name, for example: `fix/pager-serialization`, `feat/rowid-index`, or `docs/sql-syntax`.
+- Base feature branches on the project's default branch (`main`).
 
-# Run tests
-cargo test --workspace --all-features
-```
+## Pull requests
+
+- Keep PRs focused and single-purpose. Large changes should be split into smaller PRs.
+- Fill the PR template in `.github/pull_request_template.yml` — it helps reviewers and CI.
+- Link related issues or discussions in your PR description.
+- Add tests and documentation changes alongside functional changes.
+- Request reviews from maintainers listed in `.github/CODEOWNERS` when appropriate.
+- Rebase interactively to keep history clean; squash trivial fixup commits before merge.
+
+Recommended PR checklist (add to PR description or use the template):
+
+- [ ] Code follows rustfmt defaults (`cargo fmt`)
+- [ ] New and existing unit tests pass locally
+- [ ] Documentation updated where applicable
+- [ ] Commit messages follow the project's guidelines and DCO
 
 ### Changes to repository configuration
 
-- Do not modify files in the `.github/` folder directly on `main` or other protected branches. Propose changes via a pull request so maintainers can review; `.github` changes affect workflows and contributor experience.
-- Changes to core code (`src/`, `epiloglite-core/`, etc.) should follow the CODEOWNERS and review policies. See `.github/CODEOWNERS` for current owners.
+- Changes to `.github/` (workflows, templates, CODEOWNERS) affect contributor experience and CI; open a PR and request explicit review from maintainers.
 
-## Issues
+## Local checks (what to run before opening a PR)
 
-- Check existing issues before creating new ones
-- Use issue templates when available
-- Provide clear reproduction steps for bugs
-- Include system/environment details
-- Add relevant logs or screenshots
-- Tag issues appropriately
+Run these commands locally and fix any problems they report. These are the same checks CI runs for PRs.
 
-## Commits
+```bash
+# Format check
+cargo fmt --all -- --check
 
-- All commits must be linked to one or more Issues or Discussions. Feel free to [open a new issue](/issues/new) if necessary
-- Write clear commit messages in the imperative mood
-- Keep commits atomic and focused
-- Sign your commits
-- Reference related issues in commit messages
+# Static analysis
+cargo clippy --workspace --all-targets --all-features
 
-### Commit Message Examples
+# Build and tests
+cargo test --workspace --all-features
+
+# Quick build check (optional)
+cargo check --workspace --all-features
+
+# Optional: coverage helper (may require local tooling)
+./coverage.sh || true
+```
+
+Notes:
+
+- CI may run with additional flags or feature sets; passing locally reduces iteration time but CI is the final gate.
+
+## Tests
+
+- Add unit tests next to the code they exercise. Place integration tests in the relevant crate's `tests/` directory.
+- Keep tests deterministic. Use `-- --nocapture` only for debugging locally.
+
+## Commits and signing
+
+- All contributions must include a DCO sign-off. See `DCO.md` for details. You can add a sign-off with `git commit -s`.
+- We prefer concise commit messages in the imperative mood. Consider using the Conventional Commit style:
 
 Good examples:
 
-```
-feat: add user authentication system (#123)
-fix: resolve memory leak in data processing (#456)
-docs: update API documentation for new endpoints (#789)
+```text
+feat(persistence): add rowid index for fast lookups
+fix(pager): correct checksum calculation to include slot_index
+docs: document page format in docs/design/Storage_and_Pages.md
 ```
 
 Bad examples:
 
-```
+```text
 fixed stuff
-updated code
 WIP
-quick fix for #123
+quick fix
 ```
 
-## Code Review
+If you sign commits with GPG, ensure your signature is attached to the commits pushed to GitHub.
 
-- Be respectful and constructive
-- Review changes thoroughly
-- Test the changes locally
-- Provide specific feedback
-- Approve only when satisfied
+## Code standards and style
+
+- Follow Rust idioms and the project style (use `rustfmt` and `clippy`).
+- Keep functions small and focused; add comments for complex algorithms.
+- Add or update documentation and design docs for non-trivial changes. See `docs/design/` for conventions (Mermaid diagrams, RFC 2119 keywords, etc.).
+
+## Documentation contributions
+
+- Small documentation fixes can be made directly on a branch and opened as a PR.
+- For design-level changes, update the appropriate file in `docs/design/` and follow the document conventions in `docs/design/README.md`.
+
+## Issues and discussions
+
+- Use Issues to report bugs and request small features. Provide reproduction steps and environment details when possible.
+- Use Discussions for design proposals, broad feature requests, or questions that require community feedback.
+
+## License
+
+The project is licensed under MIT OR Apache-2.0 (your choice). See the top-level
+license files (`LICENSE-MIT.md` and `LICENSE-Apache.md`) for full text and licensing details.
+
+When contributing, ensure any added third-party dependencies are compatible with MIT/Apache-2.0.
+
+## Thank you
+
+Thanks for contributing! We review PRs as promptly as we can. If your PR needs help or edits, we'll leave constructive feedback to guide you.

@@ -62,6 +62,8 @@
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
+use proc_macro_crate::crate_name as resolve_crate_name;
+use proc_macro_crate::FoundCrate;
 use quote::quote;
 use syn::spanned::Spanned;
 use syn::{parse_macro_input, Field, Fields, ItemStruct, Type, TypePath};
@@ -73,7 +75,7 @@ enum RecordMacroError {
     /// Struct shape is not supported (only named-field structs are supported).
     #[error("record macro only supports structs with named fields")]
     UnsupportedStructShape,
-    //// `record_id` field is not of type `u128`.
+    //// `record_id` field is not of an accepted type.
     #[error("record_id field must be of type u128")]
     InvalidRecordIdType,
     /// `record_flags` field is not of type `FlagSet<RecordFlags>`.
@@ -110,20 +112,46 @@ pub fn record(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Check for record_id and record_flags fields
     let mut has_record_id = false;
     let mut has_record_flags = false;
+    // Track the detected record_id field form so the generated impl can
+    // adapt to either `u128`, `Cu128` or `Option<Cu128>` authored by the
+    // user. If absent we'll inject `Option<epiloglite_core::Cu128>`.
+    let mut record_id_kind: Option<&str> = None; // "u128", "cu128", "opt_cu128"
     for field in fields.iter() {
         if let Some(ident) = &field.ident {
             if ident == "record_id" {
                 has_record_id = true;
-                // Inline check for u128
-                let is_u128 = if let Type::Path(TypePath { path, .. }) = &field.ty {
-                    path.segments
-                        .last()
-                        .map(|seg| seg.ident == "u128")
-                        .unwrap_or(false)
-                } else {
-                    false
-                };
-                if !is_u128 {
+                // Detect accepted forms: u128, Cu128, Option<Cu128>
+                match &field.ty {
+                    Type::Path(TypePath { path, .. }) => {
+                        if let Some(seg) = path.segments.last() {
+                            let ident = seg.ident.to_string();
+                            if ident == "u128" {
+                                record_id_kind = Some("u128");
+                            } else if ident == "Cu128" {
+                                record_id_kind = Some("cu128");
+                            } else if ident == "Option" {
+                                // Check generic arg is Cu128
+                                if let syn::PathArguments::AngleBracketed(args) = &seg.arguments {
+                                    for gen in args.args.iter() {
+                                        if let syn::GenericArgument::Type(Type::Path(inner)) = gen {
+                                            if inner
+                                                .path
+                                                .segments
+                                                .last()
+                                                .map(|s| s.ident == "Cu128")
+                                                .unwrap_or(false)
+                                            {
+                                                record_id_kind = Some("opt_cu128");
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                if record_id_kind.is_none() {
                     let ts =
                         RecordMacroError::InvalidRecordIdType.to_compile_error(field.ty.span());
                     return TokenStream::from(ts);
@@ -167,16 +195,9 @@ pub fn record(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
     }
-    // If not present, add them
-    if !has_record_id {
-        let field: Field = syn::parse_quote! { pub record_id: u128 };
-        fields.insert(0, field);
-    }
-    if !has_record_flags {
-        let field: Field =
-            syn::parse_quote! { pub record_flags: flagset::FlagSet<epiloglite_core::RecordFlags> };
-        fields.insert(1, field);
-    }
+    // Defer injection of missing engine fields until after we resolve the
+    // correct `epiloglite_core` crate path so injected field types use the
+    // same name the generated impls will reference.
 
     // Preserve the original struct attributes and adds the possibly modified
     // field list (we do not emit compatibility shims or extra helper
@@ -195,52 +216,117 @@ pub fn record(_attr: TokenStream, item: TokenStream) -> TokenStream {
         semi_token: None,
     };
 
-    let imp = quote! {
-        impl epiloglite_core::Record for #struct_ident {
-            fn record_id(&self) -> u128 {
-                self.record_id
+    // Resolve the path to the `epiloglite_core` crate as the environment may
+    // rename it during workspace builds. We don't want to depend on the
+    // epiloglite_core crate at compile time; instead generated code will
+    // reference the resolved path so the final consumer's namespace is used.
+    let core_crate = match resolve_crate_name("epiloglite-core") {
+        Ok(found) => match found {
+            FoundCrate::Itself => "crate".to_string(),
+            FoundCrate::Name(name) => name,
+        },
+        // If resolution fails fall back to `crate` which is the common
+        // case when the macro is expanding inside the core crate itself.
+        Err(_) => "crate".to_string(),
+    };
+    let core_ident: proc_macro2::Ident = syn::parse_str(&core_crate)
+        .unwrap_or_else(|_| syn::Ident::new("epiloglite_core", Span::call_site()));
+
+    // Inject missing fields now that we know the correct epiloglite_core path
+    if !has_record_id {
+        let field: Field = syn::parse_quote! { pub record_id: Option<#core_ident::Cu128> };
+        fields.insert(0, field);
+        record_id_kind = Some("opt_cu128");
+    }
+    if !has_record_flags {
+        let field: Field =
+            syn::parse_quote! { pub record_flags: flagset::FlagSet<#core_ident::RecordFlags> };
+        fields.insert(1, field);
+    }
+
+    // Generate an implementation that adapts to the detected record_id field
+    // representation.
+    // Implement the external Record trait using primitive u128 for record_id
+    // while the struct field may be Cu128/Option<Cu128>/u128 as authored.
+    let imp = match record_id_kind {
+        Some(s) if s == "u128" => {
+            quote! {
+                impl #core_ident::Record for #struct_ident {
+                    fn record_id(&self) -> u128 { self.record_id }
+                    fn set_record_id(&mut self, id: u128) { self.record_id = id }
+                    fn flags(&self) -> &flagset::FlagSet<#core_ident::RecordFlags> { &self.record_flags }
+                    fn flags_mut(&mut self) -> &mut flagset::FlagSet<#core_ident::RecordFlags> { &mut self.record_flags }
+                }
             }
-            fn set_record_id(&mut self, id: u128) {
-                self.record_id = id;
+        }
+        Some(s) if s == "cu128" => {
+            quote! {
+                impl #core_ident::Record for #struct_ident {
+                    fn record_id(&self) -> u128 { u128::try_from(self.record_id.clone()).unwrap_or(0u128) }
+                    fn set_record_id(&mut self, id: u128) { self.record_id = #core_ident::Cu128::from(id) }
+                    fn flags(&self) -> &flagset::FlagSet<#core_ident::RecordFlags> { &self.record_flags }
+                    fn flags_mut(&mut self) -> &mut flagset::FlagSet<#core_ident::RecordFlags> { &mut self.record_flags }
+                }
             }
-            fn flags(&self) -> &flagset::FlagSet<epiloglite_core::RecordFlags> {
-                &self.record_flags
+        }
+        Some(s) if s == "opt_cu128" => {
+            quote! {
+                impl #core_ident::Record for #struct_ident {
+                    fn record_id(&self) -> u128 { match self.record_id.clone() { Some(cu) => u128::try_from(cu).unwrap_or(0u128), None => 0u128 } }
+                    fn set_record_id(&mut self, id: u128) { self.record_id = Some(#core_ident::Cu128::from(id)) }
+                    fn flags(&self) -> &flagset::FlagSet<#core_ident::RecordFlags> { &self.record_flags }
+                    fn flags_mut(&mut self) -> &mut flagset::FlagSet<#core_ident::RecordFlags> { &mut self.record_flags }
+                }
             }
-            fn flags_mut(&mut self) -> &mut flagset::FlagSet<epiloglite_core::RecordFlags> {
-                &mut self.record_flags
+        }
+        Some(_) => {
+            // Unknown annotation form; treat as Option<Cu128> to be safe.
+            quote! {
+                impl #core_ident::Record for #struct_ident {
+                    fn record_id(&self) -> u128 { match self.record_id.clone() { Some(cu) => u128::try_from(cu).unwrap_or(0u128), None => 0u128 } }
+                    fn set_record_id(&mut self, id: u128) { self.record_id = Some(#core_ident::Cu128::from(id)) }
+                    fn flags(&self) -> &flagset::FlagSet<#core_ident::RecordFlags> { &self.record_flags }
+                    fn flags_mut(&mut self) -> &mut flagset::FlagSet<#core_ident::RecordFlags> { &mut self.record_flags }
+                }
+            }
+        }
+        None => {
+            // Default: treat as Option<Cu128> injected field
+            quote! {
+                impl #core_ident::Record for #struct_ident {
+                    fn record_id(&self) -> u128 { match self.record_id.clone() { Some(cu) => u128::try_from(cu).unwrap_or(0u128), None => 0u128 } }
+                    fn set_record_id(&mut self, id: u128) { self.record_id = Some(#core_ident::Cu128::from(id)) }
+                    fn flags(&self) -> &flagset::FlagSet<#core_ident::RecordFlags> { &self.record_flags }
+                    fn flags_mut(&mut self) -> &mut flagset::FlagSet<#core_ident::RecordFlags> { &mut self.record_flags }
+                }
             }
         }
     };
 
-    /// Map a `syn::Type` into a `proc_macro2::TokenStream` expression that,
-    /// when expanded, evaluates to an `epiloglite_core::DataType` value.
-    ///
-    /// This function handles Rust primitive types, `String`, `Vec<u8>`/`[u8]`,
-    /// references, arrays and simple custom struct types (by calling
-    /// `<T>::metadata()` for non-primitive path types). Unknown types are
-    /// mapped to `DataType::Null` as a conservative fallback.
-    fn map_type_to_datatype_expr(ty: &Type) -> proc_macro2::TokenStream {
+    fn map_type_to_datatype_expr(
+        ty: &Type,
+        core_ident: &proc_macro2::Ident,
+    ) -> proc_macro2::TokenStream {
         match ty {
             Type::Path(TypePath { path, .. }) => {
                 if let Some(seg) = path.segments.last() {
                     let ident = seg.ident.to_string();
                     match ident.as_str() {
-                        "u8" => quote! { epiloglite_core::DataType::U8 },
-                        "i8" => quote! { epiloglite_core::DataType::I8 },
-                        "u16" => quote! { epiloglite_core::DataType::U16 },
-                        "i16" => quote! { epiloglite_core::DataType::I16 },
-                        "u32" => quote! { epiloglite_core::DataType::U32 },
-                        "i32" => quote! { epiloglite_core::DataType::I32 },
-                        "u64" => quote! { epiloglite_core::DataType::U64 },
-                        "i64" => quote! { epiloglite_core::DataType::I64 },
-                        "u128" => quote! { epiloglite_core::DataType::U128 },
-                        "i128" => quote! { epiloglite_core::DataType::I128 },
-                        "f32" => quote! { epiloglite_core::DataType::F32 },
-                        "f64" => quote! { epiloglite_core::DataType::F64 },
-                        "bool" => quote! { epiloglite_core::DataType::Boolean },
-                        "String" => quote! { epiloglite_core::DataType::String(None) },
+                        "u8" => quote! { #core_ident::DataType::U8 },
+                        "i8" => quote! { #core_ident::DataType::I8 },
+                        "u16" => quote! { #core_ident::DataType::U16 },
+                        "i16" => quote! { #core_ident::DataType::I16 },
+                        "u32" => quote! { #core_ident::DataType::U32 },
+                        "i32" => quote! { #core_ident::DataType::I32 },
+                        "u64" => quote! { #core_ident::DataType::U64 },
+                        "i64" => quote! { #core_ident::DataType::I64 },
+                        "u128" => quote! { #core_ident::DataType::U128 },
+                        "i128" => quote! { #core_ident::DataType::I128 },
+                        "f32" => quote! { #core_ident::DataType::F32 },
+                        "f64" => quote! { #core_ident::DataType::F64 },
+                        "bool" => quote! { #core_ident::DataType::Boolean },
+                        "String" => quote! { #core_ident::DataType::String(None) },
                         "Vec" => {
-                            // Detect Vec<u8> -> ByteArray, else treat as Null
                             if let syn::PathArguments::AngleBracketed(args) = &seg.arguments {
                                 for gen in args.args.iter() {
                                     if let syn::GenericArgument::Type(Type::Path(inner)) = gen {
@@ -251,37 +337,34 @@ pub fn record(_attr: TokenStream, item: TokenStream) -> TokenStream {
                                             .map(|s| s.ident == "u8")
                                             .unwrap_or(false)
                                         {
-                                            return quote! { epiloglite_core::DataType::ByteArray };
+                                            return quote! { #core_ident::DataType::VecPrimitive(Box::new(#core_ident::DataType::U8)) };
                                         }
                                     }
                                 }
                             }
-                            quote! { epiloglite_core::DataType::Null }
+                            quote! { #core_ident::DataType::Null }
                         }
                         "Option" => {
-                            // Option<T> -> DataType::Option(Box::new(<T>))
                             if let syn::PathArguments::AngleBracketed(args) = &seg.arguments {
                                 for gen in args.args.iter() {
                                     if let syn::GenericArgument::Type(inner_ty) = gen {
-                                        let inner_expr = map_type_to_datatype_expr(inner_ty);
-                                        return quote! { epiloglite_core::DataType::Option(Box::new(#inner_expr)) };
+                                        let inner_expr =
+                                            map_type_to_datatype_expr(inner_ty, core_ident);
+                                        return quote! { #core_ident::DataType::Option(Box::new(#inner_expr)) };
                                     }
                                 }
                             }
-                            quote! { epiloglite_core::DataType::Option(Box::new(epiloglite_core::DataType::Null)) }
+                            quote! { #core_ident::DataType::Option(Box::new(#core_ident::DataType::Null)) }
                         }
-                        "str" => quote! { epiloglite_core::DataType::String(None) },
-                        "char" => quote! { epiloglite_core::DataType::Char },
-                        "isize" => quote! { epiloglite_core::DataType::Isize },
-                        "usize" => quote! { epiloglite_core::DataType::Usize },
+                        "str" => quote! { #core_ident::DataType::String(None) },
+                        "char" => quote! { #core_ident::DataType::Char },
+                        "isize" => quote! { #core_ident::DataType::Isize },
+                        "usize" => quote! { #core_ident::DataType::Usize },
                         _other => {
-                            // Treat as custom struct: use the full path and assert it implements Record
                             let p = path.clone();
                             quote! {
                                 {
-                                    // Ensure the custom type implements `epiloglite_core::Record`.
-                                    // Emit a clear trait-bound error if it does not.
-                                    fn _assert_record_impl<T: epiloglite_core::Record>() {}
+                                    fn _assert_record_impl<T: #core_ident::Record>() {}
                                     let _ = _assert_record_impl::<#p>;
                                     #p::metadata().dtype
                                 }
@@ -289,15 +372,11 @@ pub fn record(_attr: TokenStream, item: TokenStream) -> TokenStream {
                         }
                     }
                 } else {
-                    quote! { epiloglite_core::DataType::Null }
+                    quote! { #core_ident::DataType::Null }
                 }
             }
-            Type::Reference(r) => {
-                // &T -> map T
-                map_type_to_datatype_expr(&*r.elem)
-            }
+            Type::Reference(r) => map_type_to_datatype_expr(&*r.elem, core_ident),
             Type::Slice(s) => {
-                // [u8] -> ByteArray
                 if let Type::Path(inner) = &*s.elem {
                     if inner
                         .path
@@ -306,31 +385,27 @@ pub fn record(_attr: TokenStream, item: TokenStream) -> TokenStream {
                         .map(|s| s.ident == "u8")
                         .unwrap_or(false)
                     {
-                        return quote! { epiloglite_core::DataType::ByteArray };
+                        return quote! { #core_ident::DataType::VecPrimitive(Box::new(#core_ident::DataType::U8)) };
                     }
                 }
-                quote! { epiloglite_core::DataType::Null }
+                quote! { #core_ident::DataType::Null }
             }
-            Type::Array(arr) => {
-                // [T; N] -> map T (ignore length for now)
-                map_type_to_datatype_expr(&*arr.elem)
-            }
-            Type::Paren(p) => map_type_to_datatype_expr(&*p.elem),
-            Type::Group(g) => map_type_to_datatype_expr(&*g.elem),
+            Type::Array(arr) => map_type_to_datatype_expr(&*arr.elem, core_ident),
+            Type::Paren(p) => map_type_to_datatype_expr(&*p.elem, core_ident),
+            Type::Group(g) => map_type_to_datatype_expr(&*g.elem, core_ident),
             Type::Tuple(t) => {
-                // Empty tuple -> Null, otherwise Tuple([...])
                 let elems: Vec<proc_macro2::TokenStream> = t
                     .elems
                     .iter()
-                    .map(|et| map_type_to_datatype_expr(et))
+                    .map(|et| map_type_to_datatype_expr(et, core_ident))
                     .collect();
                 if elems.is_empty() {
-                    quote! { epiloglite_core::DataType::Null }
+                    quote! { #core_ident::DataType::Null }
                 } else {
-                    quote! { epiloglite_core::DataType::Tuple(vec![#(#elems),*]) }
+                    quote! { #core_ident::DataType::Tuple(vec![#(#elems),*]) }
                 }
             }
-            _ => quote! { epiloglite_core::DataType::Null },
+            _ => quote! { #core_ident::DataType::Null },
         }
     }
 
@@ -342,15 +417,15 @@ pub fn record(_attr: TokenStream, item: TokenStream) -> TokenStream {
             // Special-case the engine-injected fields and FlagSet containers.
             let dtype_expr = if name == "record_id" {
                 // Always treat record_id as primitive u128
-                quote! { epiloglite_core::DataType::U128 }
+                quote! { #core_ident::DataType::U128 }
             } else if is_flagset_type(&field.ty) {
                 // Map FlagSet<...> to a compact u8 representation
-                quote! { epiloglite_core::DataType::U8 }
+                quote! { #core_ident::DataType::U8 }
             } else {
-                map_type_to_datatype_expr(&field.ty)
+                map_type_to_datatype_expr(&field.ty, &core_ident)
             };
             field_meta_tokens.push(quote! {
-                epiloglite_core::Metadata::new(#name_lit, #dtype_expr)
+                #core_ident::Metadata::new(#name_lit, #dtype_expr)
             });
         }
     }
@@ -363,10 +438,10 @@ pub fn record(_attr: TokenStream, item: TokenStream) -> TokenStream {
             /// Return runtime metadata for this struct as a named `Metadata` root.
             /// The returned `Metadata` has `name` set to the struct name and
             /// `dtype = DataType::Struct(fields)`.
-            pub fn metadata() -> epiloglite_core::Metadata {
-                epiloglite_core::Metadata::new(
+            pub fn metadata() -> #core_ident::Metadata {
+                #core_ident::Metadata::new(
                     #struct_name_lit,
-                    epiloglite_core::DataType::Struct(vec![
+                    #core_ident::DataType::Struct(vec![
                         #(#field_meta_tokens),*
                     ])
                 )
@@ -374,10 +449,34 @@ pub fn record(_attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
 
+    // Generate convenient inherent methods that expose primitive u128
+    // getters/setters for `record_id` to preserve examples/tests.
+    let inherent_impl = match record_id_kind {
+        Some(s) if s == "u128" => quote! {
+            impl #struct_ident {
+                pub fn record_id(&self) -> u128 { self.record_id }
+                pub fn set_record_id(&mut self, id: u128) { self.record_id = id }
+            }
+        },
+        Some(s) if s == "cu128" => quote! {
+            impl #struct_ident {
+                pub fn record_id(&self) -> u128 { u128::try_from(self.record_id.clone()).unwrap_or(0u128) }
+                pub fn set_record_id(&mut self, id: u128) { self.record_id = #core_ident::Cu128::from(id) }
+            }
+        },
+        _ => quote! {
+            impl #struct_ident {
+                pub fn record_id(&self) -> u128 { match self.record_id.clone() { Some(cu) => u128::try_from(cu).unwrap_or(0u128), None => 0u128 } }
+                pub fn set_record_id(&mut self, id: u128) { self.record_id = Some(#core_ident::Cu128::from(id)) }
+            }
+        },
+    };
+
     let expanded = quote! {
         #output_struct
 
         #imp
+        #inherent_impl
         #meta_impl
     };
     TokenStream::from(expanded)

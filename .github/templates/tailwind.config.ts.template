@@ -1,5 +1,0 @@
-// Front-end template moved to legacy-templates to keep repository templates focused on Rust.
-// Canonical legacy copy: .github/templates/legacy-templates/tailwind.config.ts.template
-
-// If you need this file restored to the main templates directory, open a PR explaining why.
-	content: ['./src/**/*.{html,js,svelte,ts}'],

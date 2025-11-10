@@ -230,9 +230,9 @@ This document outlines the non-functional requirements for EpilogLite, covering 
 
 ### COMP-1: Licensing
 
-- **Requirement**: LGPL-3.0-only license compliance
-- **Rationale**: Legal clarity
-- **Verification**: License header checks
+- **Requirement**: Project-wide MIT/Apache-2.0 dual-license compatibility (MIT OR Apache-2.0)
+- **Rationale**: Legal clarity and compatibility with project licensing
+- **Verification**: License header checks and dependency license audit
 - **Priority**: Critical
 
 ### COMP-2: Standards
