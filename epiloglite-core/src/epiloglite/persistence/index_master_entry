@@ -1,0 +1,10 @@
+use serde::{Deserialize, Serialize};
+
+use crate::SlotPointer;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IndexMasterEntry {
+    pub collection_id: u128,
+    pub row_id: u128,
+    pub slot_pointer: SlotPointer,
+}

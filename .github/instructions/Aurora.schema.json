@@ -1,0 +1,120 @@
+{
+	"$id": "https://crystultima.org/aurora/card.schema.json",
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"additionalProperties": false,
+	"description": "JSON schema for Aurora architectural model cards",
+	"properties": {
+		"$schema": {
+			"description": "The schema file this card adheres to",
+			"type": "string"
+		},
+		"attributes": {
+			"additionalProperties": true,
+			"description": "Key-value pairs providing additional data for tooling and agents",
+			"type": "object"
+		},
+		"audit_trail": {
+			"additionalProperties": false,
+			"description": "A record of the version and history of events (created/edited) a card has been through",
+			"properties": {
+				"hash": {
+					"anyOf": [
+						{
+							"type": "null"
+						},
+						{
+							"pattern": "^[A-Fa-f0-9]{64}$",
+							"type": "string"
+						}
+					],
+					"description": "SHA256 of the card; may be null while calculating"
+				},
+				"history": {
+					"description": "A chronological list of events the card has been through",
+					"items": {
+						"additionalProperties": false,
+						"properties": {
+							"editor": {
+								"description": "The identity of the entity making the change",
+								"minLength": 1,
+								"type": "string"
+							},
+							"event": {
+								"description": "The type of change event",
+								"enum": ["created", "edited", "deleted"],
+								"type": "string"
+							},
+							"timestamp": {
+								"description": "UTC time of the edit in RFC3339/ISO 8601 format",
+								"format": "date-time",
+								"type": "string"
+							}
+						},
+						"required": ["editor", "timestamp", "event"],
+						"type": "object"
+					},
+					"type": "array"
+				},
+				"version": {
+					"description": "Semver version of the card (major.minor.patch)",
+					"pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+					"type": "string"
+				}
+			},
+			"required": ["version", "hash", "history"],
+			"type": "object"
+		},
+		"card_subtype": {
+			"description": "An optional refinement of the card_type in Title Case",
+			"type": "string"
+		},
+		"card_type": {
+			"description": "The architectural type represented by the card in Title Case",
+			"type": "string"
+		},
+		"description": {
+			"description": "Details regarding the element the card represents",
+			"minLength": 1,
+			"type": "string"
+		},
+		"id": {
+			"description": "A stable identifier composed of a 3-letter prefix and a numeric suffix (e.g., 'MIS-001')",
+			"pattern": "^[A-Z]{3}-\\d{3,}$",
+			"type": "string"
+		},
+		"links": {
+			"description": "Relationships between cards, always directed away from mission",
+			"items": {
+				"additionalProperties": false,
+				"properties": {
+					"relationship": {
+						"description": "A verb-based description of the relationship (view-dependent)",
+						"minLength": 1,
+						"type": "string"
+					},
+					"target": {
+						"description": "The destination card id",
+						"pattern": "^[A-Z]{3}-\\d{3,}$",
+						"type": "string"
+					}
+				},
+				"required": ["relationship", "target"],
+				"type": "object"
+			},
+			"type": "array"
+		},
+		"name": {
+			"description": "A concise human-readable name for the card",
+			"minLength": 1,
+			"type": "string"
+		},
+		"status": {
+			"description": "Status of an implementable element",
+			"type": "string"
+		}
+	},
+	"required": ["$schema", "id", "card_type", "name", "description", "audit_trail"],
+	"title": "Aurora Card Schema",
+	"type": "object",
+	"version": "1.0.0"
+}

@@ -1,0 +1,29 @@
+{
+	"$schema": "./Aurora.schema.json",
+	"id": "FEA-000",
+	"card_type": "Feature",
+	"name": "Example Feature Card",
+	"description": "Illustrative example card used by agent instructions for demonstrating valid card structure and Markdown linking.",
+	"status": "Proposed",
+	"links": [
+		{
+			"target": "REQ-000",
+			"relationship": "satisfies"
+		}
+	],
+	"attributes": {
+		"is_example": true,
+		"notes": "Demonstration record referenced by .github instructions"
+	},
+	"audit_trail": {
+		"version": "1.0.0",
+		"hash": null,
+		"history": [
+			{
+				"editor": "example",
+				"timestamp": "2026-01-11T00:00:00Z",
+				"event": "created"
+			}
+		]
+	}
+}

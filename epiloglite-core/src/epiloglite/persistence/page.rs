@@ -1,25 +1,16 @@
-use crate::eplite::persistence::backingstore::PageHeader;
-use crate::eplite::persistence::backingstore::{PageFlags, SlotIndexEntry, SlotIndexEntryType};
-use crate::eplite::{
-    FREE_PAGE_CONTAINER_ID,
-    persistence::{FREE_PAGE_BACK_GUARD, FREE_PAGE_FRONT_GUARD},
-};
-use epiloglite_core::{
-    SerializeError, calculate_crc, serialized_size, try_from_slice, try_into_vec,
-};
 use flagset::FlagSet;
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
 use std::num::TryFromIntError;
 use thiserror::Error;
 
+use crate::{PageFlags, PageHeader};
+
 /// Represents a page in EpilogLite, containing a header and a list of entries.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Page {
     /// The header of the page.
     header: PageHeader,
-    /// The slot index for the page
-    slot_index: Vec<SlotIndexEntry>,
     /// The data in the page.
     data: Vec<u8>,
     /// CRC32 checksum of the page (excluding the crc itself).
@@ -29,8 +20,8 @@ pub struct Page {
 impl Page {
     /// Create a new page
     pub fn new(
-        page_id: epiloglite_core::Cu128,
-        container_id: epiloglite_core::Cu128,
+        page_id: u128,
+        container_id: u128,
         page_size: usize,
         flags: FlagSet<PageFlags>,
     ) -> Result<Self, PageError> {

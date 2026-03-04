@@ -9,9 +9,6 @@
 //! Publicly exported items live under the `epiloglite` module and are
 //! re-exported from the crate root for convenient consumption (for example
 //! consumers may use `epiloglite_core::CInt` or `epiloglite_core::Record`).
-
-mod constants;
 mod epiloglite;
 
-pub use constants::*;
 pub use epiloglite::*;

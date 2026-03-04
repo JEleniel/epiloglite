@@ -1,0 +1,90 @@
+{
+	"$id": "https://crystultima.org/aurora/compact.schema.json",
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"additionalProperties": false,
+	"definitions": {
+		"card": {
+			"additionalProperties": false,
+			"description": "Aurora card stripped of audit trail metadata for compact transport",
+			"properties": {
+				"attributes": {
+					"additionalProperties": true,
+					"description": "Key-value pairs providing additional data for tooling and agents",
+					"type": "object"
+				},
+				"card_subtype": {
+					"description": "Optional refinement of the card_type in Title Case",
+					"type": "string"
+				},
+				"card_type": {
+					"description": "The architectural type represented by the card in Title Case",
+					"type": "string"
+				},
+				"description": {
+					"description": "Details regarding the element the card represents",
+					"minLength": 1,
+					"type": "string"
+				},
+				"id": {
+					"description": "Stable identifier composed of a 3-letter prefix and numeric suffix (e.g., 'MIS-001')",
+					"pattern": "^[A-Z]{3}-\\d{3,}$",
+					"type": "string"
+				},
+				"links": {
+					"description": "Directed relationships between cards with only target identifiers retained",
+					"items": {
+						"$ref": "#/definitions/link"
+					},
+					"type": "array"
+				},
+				"name": {
+					"description": "Concise human-readable name for the card",
+					"minLength": 1,
+					"type": "string"
+				},
+				"status": {
+					"description": "Status of an implementable element",
+					"type": "string"
+				}
+			},
+			"required": ["id", "card_type", "name", "description"],
+			"type": "object"
+		},
+		"link": {
+			"additionalProperties": false,
+			"properties": {
+				"relationship": {
+					"description": "A verb-based description of the relationship (view-dependent)",
+					"minLength": 1,
+					"type": "string"
+				},
+				"target": {
+					"description": "The destination card id",
+					"pattern": "^[A-Z]{3}-\\d{3,}$",
+					"type": "string"
+				}
+			},
+			"required": ["relationship", "target"],
+			"type": "object"
+		}
+	},
+	"description": "JSON schema for the compact Aurora model representation emitted by the aurora_cli compact exporter",
+	"properties": {
+		"$schema": {
+			"description": "Optional reference to the Aurora.compact.schema.json in the Aurora model used to construct the compact document",
+			"type": "string"
+		},
+		"cards": {
+			"description": "List of cards comprising the compact Aurora model",
+			"items": {
+				"$ref": "#/definitions/card"
+			},
+			"minItems": 1,
+			"type": "array"
+		}
+	},
+	"required": ["cards"],
+	"title": "Aurora Compact Model Schema",
+	"type": "object",
+	"version": "1.0.0"
+}

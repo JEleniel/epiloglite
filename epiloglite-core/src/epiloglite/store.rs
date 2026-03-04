@@ -1,20 +1,11 @@
-use std::collections::HashMap;
+mod cint;
+mod container;
+mod journal_entry;
+mod record;
+mod store;
 
-use serde::Serialize;
-
-use crate::{Container, Record, StoreHeader};
-
-#[derive(Debug, Clone, Serialize)]
-pub struct Store<T>
-where
-    T: Record + serde::Serialize + serde::de::DeserializeOwned + Clone + std::fmt::Debug,
-{
-    pub containers: HashMap<u128, Container<T>>,
-    pub header: Container<StoreHeader>,
-    pub free_page_list: Vec<u128>,
-    // Persistence-specific metadata/index structures live in the top-level
-    // `epiloglite` crate. Core `Store` should not reference those types
-    // directly to avoid cross-crate import cycles.
-    pub metadata_index: HashMap<u128, u128>,
-    pub row_id_index: HashMap<u128, u128>,
-}
+pub use cint::*;
+pub use container::*;
+pub use journal_entry::*;
+pub use record::*;
+pub use store::*;

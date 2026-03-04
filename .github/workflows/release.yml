@@ -1,0 +1,181 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'Release*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: dumptruck
+
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: dumptruck
+
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            artifact_name: dumptruck
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: dumptruck.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Strawberry Perl
+        if: matrix.os == 'windows-latest'
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: '5.32'
+
+      - name: Install NASM
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/setup-nasm@v1
+
+      - run: cargo build --release --target ${{ matrix.target }} --verbose
+
+      - name: Package Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          zip -r dumptruck-linux-${{ matrix.target }}.zip dumptruck
+          mv dumptruck-linux-${{ matrix.target }}.zip ../../../
+
+      - name: Package macOS
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          cd target/${{ matrix.target }}/release
+          zip -r dumptruck-macos-${{ matrix.target }}.zip dumptruck
+          mv dumptruck-macos-${{ matrix.target }}.zip ../../../
+
+      - name: Package Windows
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          $SourcePath = "target\${{ matrix.target }}\release\dumptruck.exe"
+          $DestZip = "dumptruck-windows-${{ matrix.target }}.zip"
+          Compress-Archive -Path $SourcePath -DestinationPath $DestZip
+          Move-Item $DestZip . -Force
+
+      - name: Generate checksums
+        run: |
+          cd target/${{ matrix.target }}/release
+          sha256sum ${{ matrix.artifact_name }} > checksum.sha256
+          cat checksum.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dumptruck-${{ matrix.os }}-${{ matrix.target }}
+          path: |
+            target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
+            target/${{ matrix.target }}/release/checksum.sha256
+            dumptruck-*.zip
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get version from tag
+        id: tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release_assets
+          # Copy all artifacts to release directory
+          find artifacts -type f \( -name "dumptruck*" -o -name "*.sha256" -o -name "*.zip" \) -exec cp {} release_assets/ \;
+          ls -la release_assets/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release_assets/*
+
+  build-deb:
+    name: Build Debian Package (amd64)
+    runs-on: ubuntu-latest
+    needs: release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: x86_64-unknown-linux-gnu
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y debhelper devscripts dh-cargo dpkg-dev
+
+      - name: Set version from tag
+        id: version
+        run: |
+          # Extract version from tag like "Release-v1.0.0" to get "1.0.0"
+          TAG=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG#Release-v}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "DEB_VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Update debian/changelog
+        run: |
+          VERSION=${{ steps.version.outputs.DEB_VERSION }}
+          TIMESTAMP=$(date -R)
+          cat > debian/changelog.new << EOF
+          dumptruck ($VERSION-1) unstable; urgency=medium
+
+            * Release version $VERSION
+
+           -- Dumptruck Contributors <support@dumptruck.io>  $TIMESTAMP
+          EOF
+          cat debian/changelog >> debian/changelog.new
+          mv debian/changelog.new debian/changelog
+
+      - name: Build Debian package
+        run: |
+          DEB_BUILD_OPTIONS=nostrip dpkg-buildpackage -us -uc -b -d
+
+      - name: Generate checksums
+        run: |
+          cd ..
+          sha256sum dumptruck_*.deb > dumptruck_${{ steps.version.outputs.DEB_VERSION }}.deb.sha256
+          cat dumptruck_${{ steps.version.outputs.DEB_VERSION }}.deb.sha256
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ github.workspace }}/../dumptruck_${{ steps.version.outputs.DEB_VERSION }}-1_amd64.deb
+            ${{ github.workspace }}/../dumptruck_${{ steps.version.outputs.DEB_VERSION }}.deb.sha256

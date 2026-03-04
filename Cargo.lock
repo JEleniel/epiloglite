@@ -155,7 +155,6 @@ dependencies = [
  "bincode",
  "chrono",
  "crc-adler",
- "epiloglite-derive",
  "flagset",
  "num-traits",
  "regex",

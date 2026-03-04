@@ -1,0 +1,85 @@
+{
+	"agents": [
+		{
+			"id": "planner",
+			"name": "Planner",
+			"model": "GPT-5.2 (copilot)",
+			"file": ".github/agents/0-Planner.agent.md",
+			"scope": ["Project planning", "Progress tracking"],
+			"ownedArtifacts": [".agents/PROGRESS.md"],
+			"reviewOutputs": [".agents/PROJECT_BRIEF.md"]
+		},
+		{
+			"id": "architect",
+			"name": "Architect",
+			"model": "GPT-5.2 (copilot)",
+			"file": ".github/agents/1-Architect.agent.md",
+			"scope": ["Aurora card curation", "Design patterns"],
+			"ownedArtifacts": ["docs/design/", "aurora/"],
+			"reviewOutputs": [".agents/PROGRESS.md"]
+		},
+		{
+			"id": "backend",
+			"name": "BackendDeveloper",
+			"model": "GPT-5.1-Codex",
+			"file": ".github/agents/2-BackendDeveloper.agent.md",
+			"scope": ["Rust services", "APIs"],
+			"ownedArtifacts": ["src/", "tools/aurora_cli/", "tools/aurora_lib/"]
+		},
+		{
+			"id": "ui",
+			"name": "UIDeveloper",
+			"model": "GPT-5.1-Codex",
+			"file": ".github/agents/3-UIDeveloper.agent.md",
+			"scope": ["Svelte/Tauri UI", "Accessibility"],
+			"ownedArtifacts": ["tools/aurora_editor/"]
+		},
+		{
+			"id": "test",
+			"name": "TestDeveloper",
+			"model": "GPT-5.1-Codex",
+			"file": ".github/agents/4-TestDeveloper.agent.md",
+			"scope": ["Unit tests", "Integration tests", "End-to-end"]
+		},
+		{
+			"id": "code_review",
+			"name": "CodeReviewer",
+			"model": "GPT-5.2 (copilot)",
+			"file": ".github/agents/5-CodeReviewer.agent.md",
+			"scope": ["Security review", "Maintainability"],
+			"reviewOutputs": [".agents/REVIEW-CODE.md"]
+		},
+		{
+			"id": "security_review",
+			"name": "SecurityReviewer",
+			"model": "GPT-5.2 (copilot)",
+			"file": ".github/agents/6-SecurityReviewer.agent.md",
+			"scope": ["Threat modeling", "Security audits"],
+			"reviewOutputs": [".agents/REVIEW-SECURITY.md"]
+		},
+		{
+			"id": "technical_writer",
+			"name": "TechnicalWriter",
+			"model": "GPT-5.2 (copilot)",
+			"file": ".github/agents/7-TechnicalWriter.agent.md",
+			"scope": ["Repository documentation", "User guides"],
+			"ownedArtifacts": ["docs/", "README.md", "CONTRIBUTING.md", "CHANGELOG.md"]
+		},
+		{
+			"id": "documentation_review",
+			"name": "DocumentationReviewer",
+			"model": "GPT-5.2 (copilot)",
+			"file": ".github/agents/8-DocumentationReviewer.agent.md",
+			"scope": ["Documentation QA"],
+			"reviewOutputs": [".agents/REVIEW-DOCUMENTATION.md"]
+		},
+		{
+			"id": "release_review",
+			"name": "ReleaseReviewer",
+			"model": "GPT-5.2 (copilot)",
+			"file": ".github/agents/9-ReleaseReviewer.agent.md",
+			"scope": ["Release readiness"],
+			"reviewOutputs": [".agents/REVIEW-RELEASE.md"]
+		}
+	]
+}

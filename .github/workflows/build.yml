@@ -1,0 +1,67 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: dumptruck
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: dumptruck
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: dumptruck.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Strawberry Perl
+        if: matrix.os == 'windows-latest'
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: '5.32'
+
+      - name: Install NASM
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/setup-nasm@v1
+
+      - run: cargo build --release --target ${{ matrix.target }} --verbose
+
+      - name: Package Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          zip -r dumptruck-linux.zip dumptruck
+          mv dumptruck-linux.zip ../../../
+
+      - name: Package macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          cd target/${{ matrix.target }}/release
+          zip -r dumptruck-macos.zip dumptruck
+          mv dumptruck-macos.zip ../../../
+
+      - name: Package Windows
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        run: |
+          $SourcePath = "target\${{ matrix.target }}\release\dumptruck.exe"
+          $DestZip = "dumptruck-windows.zip"
+          Compress-Archive -Path $SourcePath -DestinationPath $DestZip
+          Move-Item $DestZip . -Force
