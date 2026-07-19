@@ -1,11 +1,11 @@
 ---
 description: 'Agent directives for YAML formatting and linting.'
-applyTo: '*.yaml'
+applyTo: '**/*.yaml'
 ---
 
 # Agent Directives — YAML Formatting & Linting
 
-Purpose: These directives are written for an automated coding agent that creates or modifies YAML files in this repository. They complement Prettier's YAML formatting (see `.prettierrc.json`) by enforcing content, validation, and YAML-specific conventions.
+If present, the repository's Prettier config (`.prettierrc.json`) is the source of truth for whitespace formatting. Preserve string quoting per the rules below.
 
 ## Principles
 
@@ -15,7 +15,7 @@ Purpose: These directives are written for an automated coding agent that creates
 
 - **Indentation**: Use 2 spaces for indentation in YAML. Do not use tabs.
 - **Document Start/End**: Use `---` (three dashes) to separate multiple documents within a single file. Do not include `---` in a single-document file unless it is required by the consuming tool. The document-end marker `...` is optional and rarely required; avoid it unless needed.
-- **Quoting**: Prefer unquoted scalars for simple strings. Quote values when necessary (when a value contains leading/trailing whitespace, special characters like `:`, or starts with characters that cause implicit typing). Use double quotes when you need escape sequences; single quotes are acceptable for literal strings.
+- **Quoting**: Quote all strings. Prefer single quotes unless the string contains single quotes, in which case use double quotes.
 - **Booleans & Nulls**: Use YAML booleans `true`/`false` (lowercase) and `null` for empty values. Avoid using `yes`/`no` unless required by a specific tool that expects them.
 - **Anchors & Aliases**: Avoid anchors (`&`) and aliases (`*`). Name anchors descriptively and avoid accidental alias cycles. If the consumer of the YAML cannot handle aliases, reify duplicates instead of using anchors.
 - **Avoid Complex Tags**: Do not use explicit YAML tags (`!!python/object:...`) or custom tags unless the receiving application requires them.
@@ -26,9 +26,4 @@ Purpose: These directives are written for an automated coding agent that creates
 
 ## Validation & Schema
 
-- **Schema Validation**: If a schema (JSON Schema for YAML or a dedicated YAML schema) exists for the file type (e.g., `kubernetes` resources, `github` workflows) and the schema is accessible or can be downloaded, validate the YAML against that schema and fail changes that do not validate.
-- **Sorting of Keys**: YAML files are often consumed by human-editable manifests; do **not** change key order when editing existing files. Preserve the existing order to avoid noisy diffs. Only reorder keys when a schema explicitly requires a specific order and document the reason in the PR.
-
-## Exception Handling and Human Review
-
-- **Include a note in the summary for Human Review**: If a change would violate any of these directives, the agent must use the method that conforms closest to the directives and include a note in the summary for human review.
+- If a YAML file is schema-validated by the consuming tool, adhere to that schema. Prefer preserving key order and string quoting over stylistic rewrites.

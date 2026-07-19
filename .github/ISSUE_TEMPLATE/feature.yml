@@ -38,8 +38,9 @@ body:
 
         - Define the feature in the project design docs (`docs/design/features/`).
         - Add or update tests (unit, integration, e2e) as required.
-        - Implement code changes in a feature branch and open a PR.
-        - Link PR(s) to this issue and add notes for human review.
+        - Implement code changes.
+        - If this work is being tracked on GitHub and a pull request is desired: use a feature branch, open a PR, and link it to this issue.
+        - Otherwise: attach a patch/diff and testing notes directly to this issue.
 
   - type: textarea
     id: acceptance_criteria

@@ -2,6 +2,8 @@
 
 Thanks for taking the time to open a pull request.
 
+This template applies when submitting a GitHub pull request for this repository.
+
 ## Related issues
 
 Link related issues (examples: `Fixes #123`, `Closes #123`, `Related to #123`).
